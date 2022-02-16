@@ -8,6 +8,7 @@ buildscript {
     }
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.10")
+//        classpath("com.squareup.sqldelight:gradle-plugin:1.5.3")
 //        classpath(KAplugin.androidGradle)
 //        classpath KAplugin.google.hilt
 //        classpath KAplugin.gradleVersions
@@ -21,6 +22,15 @@ buildscript {
 
 plugins {
     kotlin("multiplatform") version "1.5.10"
+    id("com.squareup.sqldelight")
+}
+
+sqldelight {
+    database("CtxDatabase") {
+        packageName = "chat.sphinx.concepts.coredb"
+        schemaOutputDirectory = file("build/dbs")
+    }
+    linkSqlite = false
 }
 
 group = "chat.sphinx"
@@ -54,23 +64,26 @@ kotlin {
         val kotlinVersion = "1.5.1"
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
-                implementation("com.benasher44:uuid:0.4.0")
-                implementation("com.soywiz.korlibs.krypto:krypto:2.2.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-io:0.1.16")
-                implementation("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
+                api("com.benasher44:uuid:0.4.0")
+                api("com.soywiz.korlibs.krypto:krypto:2.4.12")
+                api("org.jetbrains.kotlinx:kotlinx-io:0.1.16")
+                api("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
+                implementation("com.squareup.okio:okio:3.0.0")
+                implementation("com.squareup.sqldelight:coroutines-extensions:1.5.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
             }
         }
         val commonTest by getting {
             dependencies {
-                implementation(kotlin("test"))
+                api(kotlin("test"))
 
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
             }
         }
         val jvmMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-io-jvm:0.1.16")
+                api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.1.16")
             }
         }
         val jvmTest by getting

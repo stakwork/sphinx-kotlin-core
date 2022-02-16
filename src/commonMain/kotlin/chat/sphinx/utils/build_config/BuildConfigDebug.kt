@@ -13,6 +13,6 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 * */
-package io.matthewnelson.build_config
+package chat.sphinx.utils.build_config
 
 class BuildConfigDebug(val value: Boolean)
