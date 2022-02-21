@@ -5,9 +5,9 @@ import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.concepts.socket_io.*
-import chat.sphinx.feature_socket_io.json.MessageResponse
-import chat.sphinx.feature_socket_io.json.getMessageResponse
-import chat.sphinx.feature_socket_io.json.getMessageType
+import chat.sphinx.features.socket_io.json.MessageResponse
+import chat.sphinx.features.socket_io.json.getMessageResponse
+import chat.sphinx.features.socket_io.json.getMessageType
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.logger.e

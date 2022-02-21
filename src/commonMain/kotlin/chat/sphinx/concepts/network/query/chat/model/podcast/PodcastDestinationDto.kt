@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.chat.model.podcast
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PodcastDestinationDto(
     val split: Long,
     val address: String,

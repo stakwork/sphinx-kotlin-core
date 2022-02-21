@@ -3,16 +3,12 @@ package chat.sphinx.features.repository.mappers.chat
 import chat.sphinx.concepts.coredb.ChatDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.features.repository.mappers.ClassMapper
-import chat.sphinx.wrapper.chat.*
+import chat.sphinx.wrapper.chat.Chat
 
 internal class ChatDboPresenterMapper(
     dispatchers: CoroutineDispatchers
 ): ClassMapper<ChatDbo, Chat>(dispatchers) {
 
-    @Throws(
-        IllegalArgumentException::class,
-        ParseException::class
-    )
     override suspend fun mapFrom(value: ChatDbo): Chat {
         return Chat(
             id = value.id,

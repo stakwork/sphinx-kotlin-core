@@ -1,4 +1,6 @@
-package chat.sphinx.wrapper_subscription
+package chat.sphinx.wrapper.subscription
+
+import kotlin.jvm.JvmInline
 
 @JvmInline
 value class SubscriptionCron(val value: String) {

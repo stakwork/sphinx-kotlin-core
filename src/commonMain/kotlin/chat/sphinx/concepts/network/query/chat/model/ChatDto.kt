@@ -1,10 +1,10 @@
 package chat.sphinx.concepts.network.query.chat.model
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 import kotlin.jvm.Transient
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class ChatDto(
     val id: Long,
     val uuid: String,
@@ -25,7 +25,7 @@ data class ChatDto(
     val escrow_millis: Long?,
     val unlisted: Any?,
     val private: Any?,
-    @Json(name = "owner_pubkey")
+    @JsonNames("owner_pubkey")
     val owner_pub_key: String?,
     val seen: Any?,
     val app_url: String?,

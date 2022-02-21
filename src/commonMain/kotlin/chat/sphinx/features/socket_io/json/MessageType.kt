@@ -1,16 +1,14 @@
-package chat.sphinx.feature_socket_io.json
+package chat.sphinx.features.socket_io.json
 
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.JsonDataException
-import com.squareup.moshi.Moshi
-import java.io.IOException
+import kotlinx.io.errors.IOException
+import kotlinx.serialization.Serializable
 
 @Suppress("NOTHING_TO_INLINE")
-@Throws(IOException::class, JsonDataException::class)
+@Throws(IOException::class)
 internal inline fun Moshi.getMessageType(json: String): MessageType =
     adapter(MessageType::class.java)
         .fromJson(json)
         ?: throw JsonDataException("Failed to convert SocketIO Message.type Json")
 
-@JsonClass(generateAdapter = true)
+@Serializable
 internal data class MessageType(val type: String)

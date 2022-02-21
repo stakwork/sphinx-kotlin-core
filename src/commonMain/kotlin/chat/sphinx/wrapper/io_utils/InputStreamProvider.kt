@@ -1,7 +1,8 @@
 package chat.sphinx.wrapper.io_utils
 
-import java.io.File
-import java.io.InputStream
+import chat.sphinx.utils.platform.File
+import com.stakwork.koi.InputStream
+
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun File.toInputStreamProvider(): InputStreamProvider {

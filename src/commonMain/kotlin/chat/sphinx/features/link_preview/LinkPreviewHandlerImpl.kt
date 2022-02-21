@@ -6,7 +6,6 @@ import chat.sphinx.concepts.link_preview.model.HtmlPreviewData
 import chat.sphinx.concepts.link_preview.model.TribePreviewData
 import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
-import chat.sphinx.feature_link_preview.LinkPreviewCache
 import chat.sphinx.wrapper.tribe.TribeJoinLink
 
 class LinkPreviewHandlerImpl(

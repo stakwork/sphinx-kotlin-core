@@ -1,5 +1,6 @@
 package chat.sphinx.wrapper.message
 
+import chat.sphinx.utils.platform.getCurrentTimeInMillis
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.Seen
@@ -8,11 +9,9 @@ import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.lightning.LightningPaymentHash
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.lightning.Sat
-import chat.sphinx.wrapper.message.media.MessageMedia
-import chat.sphinx.wrapper.message.media.isImage
-import chat.sphinx.wrapper.message.media.isSphinxText
-import chat.sphinx.wrapper.message.media.isVideo
+import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaUrl
+import chat.sphinx.wrapper.time
 
 
 @Suppress("NOTHING_TO_INLINE")
@@ -268,7 +267,7 @@ inline val Message.isPodcastClip: Boolean
     get() = podcastClip != null
 
 inline val Message.isExpiredInvoice: Boolean
-    get() = type.isInvoice() && !status.isConfirmed() && expirationDate != null && expirationDate!!.time < System.currentTimeMillis()
+    get() = type.isInvoice() && !status.isConfirmed() && expirationDate != null && expirationDate!!.time < getCurrentTimeInMillis()
 
 inline val Message.isPaidInvoice: Boolean
     get() = type.isInvoice() && status.isConfirmed()

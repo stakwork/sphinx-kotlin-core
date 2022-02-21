@@ -3,11 +3,11 @@ package chat.sphinx.concepts.network.query.message.model
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
 import chat.sphinx.utils.platform.File
-import com.squareup.moshi.JsonClass
-import kotlin.jvm.Transient
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.jvm.Volatile
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class MessageDto(
     val id: Long,
     val uuid: String?,
@@ -82,7 +82,7 @@ data class MessageDto(
 
     fun setMediaLocalFile(file: File) {
         mediaLocalFile = try {
-            if (file.exists() && file.isFile) {
+            if (file.exists() && file.isFile()) {
                 file
             } else {
                 null

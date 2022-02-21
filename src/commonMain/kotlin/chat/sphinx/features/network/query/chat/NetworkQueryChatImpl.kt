@@ -10,6 +10,7 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.chat.ChatHost
 import chat.sphinx.wrapper.chat.ChatMuted
 import chat.sphinx.wrapper.chat.ChatUUID
+import chat.sphinx.wrapper.chat.isTrue
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.feed.FeedUrl
@@ -69,7 +70,7 @@ class NetworkQueryChatImpl(
         uuid: ChatUUID
     ): Flow<LoadResponse<TribeDto, ResponseError>> =
         networkRelayCall.get(
-            url = String.format(GET_TRIBE_INFO_URL, host.value, uuid.value),
+            url = "https://${host.value}/tribes/${uuid.value}",
             responseJsonClass = TribeDto::class.java,
         )
 
@@ -80,9 +81,9 @@ class NetworkQueryChatImpl(
     ): Flow<LoadResponse<FeedDto, ResponseError>> =
         networkRelayCall.get(
             url = if (chatUUID != null) {
-                "${String.format(GET_FEED_CONTENT_URL, host.value, feedUrl.value)}&uuid=${chatUUID.value}"
+                "https://${host.value}/feed?url=${feedUrl.value}&uuid=${chatUUID.value}"
             } else {
-                String.format(GET_FEED_CONTENT_URL, host.value, feedUrl.value)
+                "https://${host.value}/feed?url=${feedUrl.value}"
             },
             responseJsonClass = FeedDto::class.java,
         )
@@ -98,7 +99,7 @@ class NetworkQueryChatImpl(
     ): Flow<LoadResponse<ChatDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonClass = UpdateChatRelayResponse::class.java,
-            relayEndpoint = String.format(ENDPOINT_EDIT_CHAT, chatId.value),
+            relayEndpoint = "$ENDPOINT_CHATS/${chatId.value}",
             requestBodyJsonClass = PutChatDto::class.java,
             requestBody = putChatDto,
             relayData = relayData
@@ -111,7 +112,7 @@ class NetworkQueryChatImpl(
     ): Flow<LoadResponse<ChatDto, ResponseError>>  =
         networkRelayCall.relayPut(
             responseJsonClass = UpdateChatRelayResponse::class.java,
-            relayEndpoint = String.format(ENDPOINT_KICK, chatId.value, contactId.value),
+            relayEndpoint = "/kick/${chatId.value}/${contactId.value}",
             requestBodyJsonClass = Map::class.java,
             requestBody = mapOf(Pair("", "")),
             relayData = relayData
@@ -126,7 +127,7 @@ class NetworkQueryChatImpl(
     ): Flow<LoadResponse<ChatDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonClass = PostGroupRelayResponse::class.java,
-            relayEndpoint = String.format(ENDPOINT_EDIT_GROUP, chatId.value),
+            relayEndpoint = "/group/${chatId.value}",
             requestBodyJsonClass = PostGroupDto::class.java,
             requestBody = postGroupDto,
             relayData = relayData
@@ -165,7 +166,7 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ChatDto, ResponseError>> =
         toggleMuteChatImpl(
-            endpoint = String.format(ENDPOINT_MUTE_CHAT, chatId.value, (if (muted.isTrue()) UN_MUTE_CHAT else MUTE_CHAT)),
+            endpoint = "/chats/${chatId.value}/${if (muted.isTrue()) UN_MUTE_CHAT else MUTE_CHAT}",
             relayData = relayData
         )
 
@@ -199,7 +200,7 @@ class NetworkQueryChatImpl(
     ): Flow<LoadResponse<Map<String, Long>, ResponseError>> =
         networkRelayCall.relayDelete(
             responseJsonClass = DeleteChatRelayResponse::class.java,
-            relayEndpoint = String.format(ENDPOINT_DELETE_CHAT, chatId.value),
+            relayEndpoint = "$ENDPOINT_CHAT/${chatId.value}",
             requestBody = null,
             relayData = relayData,
         )

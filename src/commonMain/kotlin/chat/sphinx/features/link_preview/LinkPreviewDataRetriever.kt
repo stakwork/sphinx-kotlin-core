@@ -14,18 +14,17 @@ import chat.sphinx.response.Response
 import chat.sphinx.wrapper.chat.ChatHost
 import chat.sphinx.wrapper.chat.ChatUUID
 import chat.sphinx.wrapper.tribe.TribeJoinLink
+import io.ktor.client.*
+import io.ktor.http.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl
-import okhttp3.OkHttpClient
-import okhttp3.internal.closeQuietly
 import kotlin.jvm.Volatile
 
 internal sealed interface LinkPreviewDataRetriever
 
-internal data class HtmlPreviewDataRetriever(val url: HttpUrl): LinkPreviewDataRetriever {
+internal data class HtmlPreviewDataRetriever(val url: Url): LinkPreviewDataRetriever {
     private val lock = Mutex()
 
     @Volatile
@@ -33,7 +32,7 @@ internal data class HtmlPreviewDataRetriever(val url: HttpUrl): LinkPreviewDataR
 
     suspend fun getHtmlPreview(
         dispatchers: CoroutineDispatchers,
-        okHttpClient: OkHttpClient
+        okHttpClient: HttpClient
     ): HtmlPreviewData? =
         previewData ?: lock.withLock {
             previewData ?: retrievePreview(
@@ -49,7 +48,7 @@ internal data class HtmlPreviewDataRetriever(val url: HttpUrl): LinkPreviewDataR
     @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun retrievePreview(
         dispatchers: CoroutineDispatchers,
-        okHttpClient: OkHttpClient
+        okHttpClient: HttpClient
     ): HtmlPreviewData? {
         val request = SphinxSocketIOMessage.Type.Group.Member.Request.Builder().url(url).build()
         var response: Response?

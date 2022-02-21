@@ -1,6 +1,7 @@
 package chat.sphinx.concepts.network.query.meme_server.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 // {
 // "muid":"DldRwCblQ7Loqy6wYJnaodHl30d3j3eH-qtFzfEv46g=",
@@ -20,7 +21,7 @@ import com.squareup.moshi.JsonClass
 // "height":0,
 // "template":false
 // }
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PostMemeServerUploadDto(
     val muid: String,
     val owner_pub_key: String,

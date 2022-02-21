@@ -20,7 +20,6 @@ import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
-import com.squareup.moshi.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
@@ -94,8 +93,7 @@ class NetworkQueryMemeServerImpl(
 
     override suspend fun getPaymentTemplates(
         authenticationToken: AuthenticationToken,
-        memeServerHost: MediaHost,
-        moshi: Moshi
+        memeServerHost: MediaHost
     ): Flow<LoadResponse<List<PaymentTemplateDto>, ResponseError>> =
         networkRelayCall.getList(
             url = String.format(ENDPOINT_TEMPLATES, memeServerHost.value),

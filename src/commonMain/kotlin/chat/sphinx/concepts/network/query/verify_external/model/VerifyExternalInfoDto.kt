@@ -1,9 +1,9 @@
 package chat.sphinx.concepts.network.query.verify_external.model
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class VerifyExternalInfoDto(
     val price_to_meet: Long?,
     val jwt: String?,
@@ -16,6 +16,6 @@ data class VerifyExternalInfoDto(
 
     var url: String? = null
 
-    @Json(name = "verification_signature")
+    @JsonNames("verification_signature")
     var verificationSignature: String? = null
 }

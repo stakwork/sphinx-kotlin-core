@@ -1,11 +1,11 @@
 package chat.sphinx.concepts.network.query.contact.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
 /**
  * Only non-null fields will be serialized to Json for the request body.
  * */
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PutContactDto(
     val route_hint: String? = null,
     val public_key: String? = null,

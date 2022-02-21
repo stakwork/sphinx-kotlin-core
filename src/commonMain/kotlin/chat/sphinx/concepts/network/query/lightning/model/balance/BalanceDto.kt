@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.lightning.model.balance
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class BalanceDto(
     val reserve: Long,
     val full_balance: Long,

@@ -6,10 +6,10 @@ import chat.sphinx.wrapper.dashboard.toChatId
 import chat.sphinx.wrapper.dashboard.toContactId
 import chat.sphinx.wrapper.message.SenderAlias
 import chat.sphinx.wrapper.message.toSenderAlias
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class TransactionDto(
     val id: Long,
     val chat_id: Long?,

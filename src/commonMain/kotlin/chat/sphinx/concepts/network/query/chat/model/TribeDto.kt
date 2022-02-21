@@ -1,11 +1,12 @@
 package chat.sphinx.concepts.network.query.chat.model
 
 import chat.sphinx.utils.platform.File
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 import kotlin.jvm.Transient
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class TribeDto(
     val name: String,
     val description: String,
@@ -31,10 +32,12 @@ data class TribeDto(
     var host: String? = null
     var uuid: String? = null
 
-    @Json(name = "my_alias")
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("my_alias")
     var myAlias: String? = null
 
-    @Json(name = "my_photo_url")
+    @OptIn(ExperimentalSerializationApi::class)
+    @JsonNames("my_photo_url")
     var myPhotoUrl: String? = null
 
     @Transient

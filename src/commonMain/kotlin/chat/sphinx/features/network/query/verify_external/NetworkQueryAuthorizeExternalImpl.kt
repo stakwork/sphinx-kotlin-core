@@ -20,9 +20,6 @@ class NetworkQueryAuthorizeExternalImpl(
 
     companion object {
         private const val ENDPOINT_VERIFY_EXTERNAL = "/verify_external"
-        private const val ENDPOINT_SIGN_BASE_64 = "/signer/%s"
-        private const val ENDPOINT_AUTHORIZE_EXTERNAL = "https://%s/verify/%s?token=%s"
-        private const val ENDPOINT_GET_PERSON_INFO = "https://%s/person/%s"
     }
 
     override fun verifyExternal(
@@ -42,7 +39,7 @@ class NetworkQueryAuthorizeExternalImpl(
     ): Flow<LoadResponse<SignBase64Dto, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonClass = SignBase64RelayResponse::class.java,
-            relayEndpoint = "${String.format(ENDPOINT_SIGN_BASE_64, base64)}",
+            relayEndpoint = "/signer/$base64" ,
             relayData = relayData
         )
 
@@ -53,12 +50,7 @@ class NetworkQueryAuthorizeExternalImpl(
         info: VerifyExternalInfoDto,
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.post(
-            url = String.format(
-                ENDPOINT_AUTHORIZE_EXTERNAL,
-                host,
-                challenge,
-                token
-            ),
+            url = "https://$host/verify/$challenge?token=$token",
             responseJsonClass = Any::class.java,
             requestBodyJsonClass = VerifyExternalInfoDto::class.java,
             requestBody = info,
@@ -69,11 +61,7 @@ class NetworkQueryAuthorizeExternalImpl(
         publicKey: String
     ): Flow<LoadResponse<PersonInfoDto, ResponseError>> =
         networkRelayCall.get(
-            url = String.format(
-                ENDPOINT_GET_PERSON_INFO,
-                host,
-                publicKey
-            ),
+            url = "https://$host/person/$publicKey",
             responseJsonClass = PersonInfoDto::class.java,
         )
 }

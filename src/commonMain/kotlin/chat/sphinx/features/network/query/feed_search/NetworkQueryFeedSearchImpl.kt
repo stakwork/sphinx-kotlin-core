@@ -28,12 +28,10 @@ class NetworkQueryFeedSearchImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<List<FeedSearchResultDto>, ResponseError>> =
         networkRelayCall.getList(
-            url = String.format(
-                if (feedType.isPodcast())
-                    ENDPOINT_PODCAST_SEARCH
-                else
-                    ENDPOINT_YOUTUBE_SEARCH, searchTerm
-            ),
+            url = if (feedType.isPodcast())
+                "$TRIBES_DEFAULT_SERVER_URL/search_podcasts?q=$searchTerm"
+            else
+                "$TRIBES_DEFAULT_SERVER_URL/search_youtube?q=$searchTerm",
             responseJsonClass = FeedSearchResultDto::class.java,
         )
 

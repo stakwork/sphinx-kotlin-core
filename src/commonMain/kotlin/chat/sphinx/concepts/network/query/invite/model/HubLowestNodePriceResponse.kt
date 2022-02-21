@@ -1,11 +1,11 @@
 package chat.sphinx.concepts.network.query.invite.model
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class HubLowestNodePriceResponse(
-    @Json(name = "object")
+    @JsonNames("object")
     val response: LowestNodePriceResponseDto?,
 
     val error: String?

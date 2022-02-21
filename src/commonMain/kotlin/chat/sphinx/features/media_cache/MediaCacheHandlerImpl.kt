@@ -1,17 +1,18 @@
-package io.matthewnelson.feature_media_cache
+package chat.sphinx.features.media_cache
 
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
 import chat.sphinx.utils.platform.File
-import chat.sphinx.utils.platform.InputStream
 import chat.sphinx.wrapper.message.media.MediaType
+import com.soywiz.klock.DateFormat
+import com.soywiz.klock.DateTimeTz
+import com.stakwork.koi.InputStream
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.io.errors.IOException
-import okio.*
 
 class MediaCacheHandlerImpl(
     private val applicationScope: CoroutineScope,
@@ -25,7 +26,7 @@ class MediaCacheHandlerImpl(
                 throw IllegalStateException("Failed to create root MediaCache directory: ${cacheDir.getAbsolutePath()}")
             }
         } else {
-            require(cacheDir.isDirectory) {
+            require(cacheDir.isDirectory()) {
                 "cacheDir must be a directory"
             }
         }
@@ -162,8 +163,8 @@ class MediaCacheHandlerImpl(
         }
 
         val ext = extension.replace(".", "")
-        val sdf = SimpleDateFormat(DATE_FORMAT, Locale.US)
-        return File(cacheDir, "${prefix}_${sdf.format(Date())}.$ext")
+        val sdf = DateFormat(DATE_FORMAT)
+        return File(cacheDir, "${prefix}_${sdf.format(DateTimeTz.nowLocal())}.$ext")
     }
 
     // TODO: Implement file deletion on caller scope cancellation

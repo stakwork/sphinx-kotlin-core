@@ -1,19 +1,18 @@
-package chat.sphinx.feature_socket_io.json
+package chat.sphinx.features.socket_io.json
 
-import chat.sphinx.concept_network_query_chat.model.ChatDto
-import chat.sphinx.concept_network_query_contact.model.ContactDto
-import chat.sphinx.concept_network_query_invite.model.InviteDto
-import chat.sphinx.concept_network_query_lightning.model.invoice.LightningPaymentInvoiceDto
-import chat.sphinx.concept_network_query_message.model.MessageDto
-import chat.sphinx.concept_socket_io.GroupDto
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.JsonDataException
-import com.squareup.moshi.Moshi
-import java.io.IOException
+
+import chat.sphinx.concepts.network.query.chat.model.ChatDto
+import chat.sphinx.concepts.network.query.contact.model.ContactDto
+import chat.sphinx.concepts.network.query.invite.model.InviteDto
+import chat.sphinx.concepts.network.query.lightning.model.invoice.LightningPaymentInvoiceDto
+import chat.sphinx.concepts.network.query.message.model.MessageDto
+import chat.sphinx.concepts.socket_io.GroupDto
+import kotlinx.io.errors.IOException
+import kotlinx.serialization.Serializable
 
 
 @Suppress("NOTHING_TO_INLINE")
-@Throws(IOException::class, JsonDataException::class)
+@Throws(IOException::class)
 internal inline fun<T: Any, V: MessageResponse<T>> Moshi.getMessageResponse(
     adapter: Class<V>,
     json: String
@@ -33,7 +32,7 @@ internal inline fun<T: Any, V: MessageResponse<T>> Moshi.getMessageResponse(
         ?: throw JsonDataException("Failed to convert SocketIO Message.response Json to ${adapter.simpleName}")
 }
 
-@JsonClass(generateAdapter = true)
+@Serializable
 internal data class GroupDtoImpl(
     override val chat: ChatDto,
     override val contact: ContactDto?,
@@ -43,22 +42,22 @@ internal data class GroupDtoImpl(
 internal sealed class MessageResponse<T> {
     abstract val response: T
 
-    @JsonClass(generateAdapter = true)
+    @Serializable
     internal class ResponseChat(override val response: ChatDto): MessageResponse<ChatDto>()
 
-    @JsonClass(generateAdapter = true)
+    @Serializable
     internal class ResponseContact(override val response: ContactDto): MessageResponse<ContactDto>()
 
-    @JsonClass(generateAdapter = true)
+    @Serializable
     internal class ResponseGroup(override val response: GroupDtoImpl): MessageResponse<GroupDtoImpl>()
 
-    @JsonClass(generateAdapter = true)
+    @Serializable
     internal class ResponseInvite(override val response: InviteDto): MessageResponse<InviteDto>()
 
-    @JsonClass(generateAdapter = true)
+    @Serializable
     internal class ResponseInvoice(override val response: LightningPaymentInvoiceDto): MessageResponse<LightningPaymentInvoiceDto>()
 
-    @JsonClass(generateAdapter = true)
+    @Serializable
     internal class ResponseMessage(override val response: MessageDto): MessageResponse<MessageDto>()
 }
 

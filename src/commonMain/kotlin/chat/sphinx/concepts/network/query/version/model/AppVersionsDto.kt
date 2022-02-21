@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.version.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class AppVersionsDto(
     val ios: Long,
     val android: Long,

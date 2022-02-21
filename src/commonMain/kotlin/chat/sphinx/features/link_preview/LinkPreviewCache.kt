@@ -1,14 +1,11 @@
-package chat.sphinx.feature_link_preview
+package chat.sphinx.features.link_preview
 
-import chat.sphinx.features.link_preview.HtmlPreviewDataRetriever
-import chat.sphinx.features.link_preview.LinkPreviewDataRetriever
-import chat.sphinx.features.link_preview.TribePreviewDataRetriever
+import chat.sphinx.utils.toHttpUrlOrNull
 import chat.sphinx.wrapper.tribe.TribeJoinLink
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import kotlin.jvm.JvmSynthetic
 import kotlin.jvm.Volatile
 

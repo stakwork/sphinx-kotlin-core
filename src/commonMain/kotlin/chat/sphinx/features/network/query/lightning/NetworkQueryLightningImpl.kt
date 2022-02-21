@@ -83,7 +83,7 @@ class NetworkQueryLightningImpl(
 
     private val getBalanceFlowNullData: Flow<LoadResponse<BalanceDto, ResponseError>> by lazy {
         networkRelayCall.relayGet(
-            responseJsonClass = GetBalanceRelayResponse::class.java,
+            responseJsonClass = GetBalanceRelayResponse::class,
             relayEndpoint = ENDPOINT_BALANCE,
             relayData = null
         )

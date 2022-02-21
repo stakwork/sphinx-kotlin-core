@@ -1,9 +1,9 @@
 package chat.sphinx.wrapper.message
 
 import chat.sphinx.wrapper.DateTime
+import com.soywiz.klock.DateFormat
+import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
-import java.text.SimpleDateFormat
-import java.util.*
 import kotlin.jvm.JvmInline
 import kotlin.jvm.Volatile
 
@@ -13,19 +13,18 @@ value class MessagePagination private constructor(val value: String) {
     companion object {
 
         const val FORMAT_PAGINATION_PERCENT_ESCAPED = "yyyy-MM-dd'%20'HH:mm:ss"
-
+        private val lock = SynchronizedObject()
         @Volatile
-        private var formatPercentEscapedPagination: SimpleDateFormat? = null
-        fun getFormatPaginationPercentEscaped(): SimpleDateFormat =
-            formatPercentEscapedPagination ?: synchronized(this) {
-                formatPercentEscapedPagination ?: SimpleDateFormat(
-                    FORMAT_PAGINATION_PERCENT_ESCAPED,
-                    Locale.ENGLISH
-                )
-                    .also {
-                        it.timeZone = TimeZone.getTimeZone(DateTime.UTC)
+        private var formatPercentEscapedPagination: DateFormat? = null
+
+        fun getFormatPaginationPercentEscaped(): DateFormat =
+            formatPercentEscapedPagination ?: synchronized(lock) {
+                formatPercentEscapedPagination ?: DateFormat(
+                    FORMAT_PAGINATION_PERCENT_ESCAPED
+                ).also {
+//                        it.timeZone = TimeZone.getTimeZone(DateTime.UTC)
                         formatPercentEscapedPagination = it
-                    }
+                }
             }
 
         @Throws(IllegalArgumentException::class)

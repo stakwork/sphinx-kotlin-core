@@ -1,4 +1,5 @@
-package chat.sphinx.wrapper_common.util
+package chat.sphinx.wrapper.util
+
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.getInitials(charLimit: Int = 2): String {
@@ -38,5 +39,5 @@ inline fun Long.getHHMMString(): String {
     val minutes = this / 1000 / 60
     val seconds = this / 1000 % 60
 
-    return "${"%02d".format(minutes)}:${"%02d".format(seconds)}"
+    return "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
 }

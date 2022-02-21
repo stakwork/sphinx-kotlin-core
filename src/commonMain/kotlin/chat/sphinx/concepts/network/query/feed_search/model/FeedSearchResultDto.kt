@@ -1,9 +1,9 @@
 package chat.sphinx.concepts.network.query.feed_search.model
 
 import chat.sphinx.wrapper.podcast.FeedSearchResult
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class FeedSearchResultDto(
     val id: String,
     val feedType: Long,

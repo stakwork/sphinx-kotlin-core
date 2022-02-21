@@ -1,7 +1,6 @@
 package chat.sphinx.wrapper.message
 
-import java.net.MalformedURLException
-import java.net.URL
+import chat.sphinx.utils.platform.getCurrentTimeInMillis
 import kotlin.jvm.JvmInline
 
 @Suppress("NOTHING_TO_INLINE")
@@ -31,7 +30,7 @@ value class SphinxCallLink(val value: String) {
             customServerUrl: String?,
             startAudioOnly: Boolean
         ): SphinxCallLink? {
-            val currentTime = System.currentTimeMillis()
+            val currentTime = getCurrentTimeInMillis()
             val audioOnlyParam = if (startAudioOnly) "#$AUDIO_ONLY_PARAM=true" else ""
             val linkString = "${customServerUrl ?: DEFAULT_CALL_SERVER_URL}/$CALL_ROOM_NAME.$currentTime$audioOnlyParam"
 
@@ -53,15 +52,6 @@ value class SphinxCallLink(val value: String) {
 
     inline val callRoom : String
         get() = "sphinx.call." + value.substringAfter("sphinx.call.").substringBefore("#")
-
-    inline val callServerUrl : URL?
-        get() {
-            return try {
-                URL(callServer)
-            } catch (e: MalformedURLException) {
-                null
-            }
-        }
 
     fun getParameter(k: String): String? {
         val parameters = value.substringAfter("#").split("&")

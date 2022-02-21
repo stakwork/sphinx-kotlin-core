@@ -1,5 +1,7 @@
 package chat.sphinx.wrapper.chat
 
+import kotlin.jvm.JvmInline
+
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.toChatAlias(): ChatAlias? =
     try {

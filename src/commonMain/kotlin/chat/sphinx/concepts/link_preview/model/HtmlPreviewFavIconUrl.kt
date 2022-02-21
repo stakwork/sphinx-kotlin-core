@@ -1,21 +1,19 @@
 package chat.sphinx.concepts.link_preview.model
 
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import io.ktor.http.*
 import kotlin.jvm.JvmInline
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.toHtmlPreviewFavIconUrlOrNull(): HtmlPreviewFavIconUrl? =
     try {
         HtmlPreviewFavIconUrl(this)
-    } catch (e: IllegalArgumentException) {
+    } catch (e: URLParserException) {
         null
     }
 
 @JvmInline
 value class HtmlPreviewFavIconUrl(val value: String) {
     init {
-        require(value.toHttpUrlOrNull() != null) {
-            "HtmlPreviewFavIconUrl was not a valid url"
-        }
+        Url(value)
     }
 }

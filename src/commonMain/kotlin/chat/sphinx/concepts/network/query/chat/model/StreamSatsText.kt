@@ -1,10 +1,10 @@
 package chat.sphinx.concepts.network.query.chat.model
 
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.Moshi
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encoding.Encoder
 
 @Throws(AssertionError::class)
-fun StreamSatsText.toJson(moshi: Moshi): String =
+fun StreamSatsText.toJson(encoder: Encoder): String =
     moshi.adapter(StreamSatsText::class.java)
         .toJson(
             StreamSatsText(
@@ -16,7 +16,7 @@ fun StreamSatsText.toJson(moshi: Moshi): String =
             )
         )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class StreamSatsText(
     val feedID: String,
     val itemID: String,

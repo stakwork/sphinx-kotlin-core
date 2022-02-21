@@ -1,10 +1,10 @@
 package chat.sphinx.concepts.network.query.contact.model
 
 import chat.sphinx.concepts.network.query.invite.model.InviteDto
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 import kotlin.jvm.Transient
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class ContactDto(
     val id: Long,
     val route_hint: String?,

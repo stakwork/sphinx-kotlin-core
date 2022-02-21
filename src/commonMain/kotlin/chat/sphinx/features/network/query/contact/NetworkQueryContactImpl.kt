@@ -9,6 +9,7 @@ import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.contact.Blocked
+import chat.sphinx.wrapper.contact.isTrue
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.message.MessagePagination
@@ -85,7 +86,7 @@ class NetworkQueryContactImpl(
     ): Flow<LoadResponse<GetTribeMembersResponse, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonClass = GetTribeMembersRelayResponse::class.java,
-            relayEndpoint = "${String.format(ENDPOINT_TRIBE_MEMBERS, chatId.value)}?offset=$offset&limit=$limit",
+            relayEndpoint = "/contacts/${chatId.value}?offset=$offset&limit=$limit",
             relayData = relayData
         )
 
@@ -99,7 +100,7 @@ class NetworkQueryContactImpl(
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonClass = ContactRelayResponse::class.java,
-            relayEndpoint = ENDPOINT_CONTACTS + "/${contactId.value}",
+            relayEndpoint = "/contacts/${contactId.value}",
             requestBodyJsonClass = PutContactDto::class.java,
             requestBody = putContactDto,
             relayData = relayData,
@@ -111,7 +112,7 @@ class NetworkQueryContactImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         toggleBlockedContactImpl(
-            endpoint = String.format(ENDPOINT_BLOCK_CONTACT, (if (blocked.isTrue()) UN_BLOCK_CONTACT else BLOCK_CONTACT), contactId.value),
+            endpoint = "/${if (blocked.isTrue()) UN_BLOCK_CONTACT else BLOCK_CONTACT}/${contactId.value}",
             relayData = relayData
         )
 
@@ -176,7 +177,7 @@ class NetworkQueryContactImpl(
 
         networkRelayCall.relayDelete(
             DeleteContactRelayResponse::class.java,
-            String.format(ENDPOINT_DELETE_CONTACT, contactId.value),
+            "/contacts/${contactId.value}",
             requestBody = null
         ).collect { loadResponse ->
             if (loadResponse is Response.Error<*>) {

@@ -15,9 +15,6 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.response.message
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
-import com.squareup.moshi.adapter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emitAll
@@ -92,7 +89,6 @@ private suspend inline fun<RequestBody: Any> Moshi.requestBodyToJson(
 @Suppress("BlockingMethodInNonBlockingContext")
 class NetworkRelayCallImpl(
     private val dispatchers: CoroutineDispatchers,
-    private val moshi: Moshi,
     private val networkClient: NetworkClient,
     private val relayDataHandler: RelayDataHandler,
     private val LOG: SphinxLogger,

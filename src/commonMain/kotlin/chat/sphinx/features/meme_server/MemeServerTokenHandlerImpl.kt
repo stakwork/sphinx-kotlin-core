@@ -103,7 +103,7 @@ class MemeServerTokenHandlerImpl(
 
     private suspend fun retrieveAuthenticationTokenImpl(mediaHost: MediaHost): AuthenticationToken? {
         authenticationStorage.getString(
-            String.format(MEME_SERVER_TOKEN, mediaHost.value),
+            "MEME_SERVER_TOKEN_${mediaHost.value}",
             null
         ).let { tokenString ->
             return if (tokenString == null) {

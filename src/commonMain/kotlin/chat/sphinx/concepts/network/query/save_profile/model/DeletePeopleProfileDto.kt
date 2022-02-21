@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.save_profile.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class DeletePeopleProfileDto(
     val id: Int,
     val host: String,

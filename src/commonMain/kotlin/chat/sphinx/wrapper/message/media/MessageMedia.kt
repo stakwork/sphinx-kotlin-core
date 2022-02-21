@@ -1,8 +1,8 @@
 package chat.sphinx.wrapper.message.media
 
+import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.media.token.*
-import java.io.File
 
 abstract class MessageMedia {
     abstract val mediaKey: MediaKey?

@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.invite.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class InviteDto(
     val id: Long,
     val invite_string: String,

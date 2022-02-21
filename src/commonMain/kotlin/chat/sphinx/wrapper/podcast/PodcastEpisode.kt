@@ -1,8 +1,8 @@
 package chat.sphinx.wrapper.podcast
 
+import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.feed.*
-import java.io.File
 
 data class PodcastEpisode(
     override val id: FeedId,

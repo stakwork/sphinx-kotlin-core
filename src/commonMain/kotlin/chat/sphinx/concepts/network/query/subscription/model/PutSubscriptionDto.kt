@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.subscription.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PutSubscriptionDto(
     val amount: Long,
     val contact_id: Long,

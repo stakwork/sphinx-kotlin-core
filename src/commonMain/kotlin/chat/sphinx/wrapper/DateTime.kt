@@ -1,8 +1,11 @@
 package chat.sphinx.wrapper
 
-import java.text.ParseException
-import java.text.SimpleDateFormat
-import java.util.*
+import chat.sphinx.utils.platform.getCurrentTimeInMillis
+import com.soywiz.klock.*
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
+import kotlin.jvm.JvmInline
+import kotlin.jvm.Volatile
 
 /**
  * Will always format to [DateTime.formatRelay] which is:
@@ -11,22 +14,20 @@ import java.util.*
  *  - [TimeZone] UTC
  * */
 @Suppress("NOTHING_TO_INLINE")
-@Throws(ParseException::class)
 inline fun String.toDateTime(): DateTime =
     DateTime(DateTime.getFormatRelay().parse(this))
 
 @Suppress("NOTHING_TO_INLINE")
-@Throws(ParseException::class)
-inline fun String.toDateTimeWithFormat(format: SimpleDateFormat): DateTime =
+inline fun String.toDateTimeWithFormat(format: DateFormat): DateTime =
     DateTime(format.parse(this))
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Long.toDateTime(): DateTime =
-    DateTime(Date(this))
+    DateTime(DateTimeTz.fromUnix(this))
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Long.secondsToDateTime(): DateTime =
-    DateTime(Date(this * 1000))
+    DateTime(DateTimeTz.fromUnix(this * 1000))
 
 /**
  * Returns:
@@ -83,15 +84,15 @@ inline fun DateTime.eeemmddhmma(): String =
     DateTime.getFormateeemmddhmma().format(value)
 
 inline val DateTime.time: Long
-    get() = value.time
+    get() = value.local.unixMillisLong
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun DateTime.after(dateTime: DateTime): Boolean =
-    value.after(dateTime.value)
+    value.local.unixMillis > dateTime.value.local.unixMillis
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun DateTime.before(dateTime: DateTime): Boolean =
-    value.before(dateTime.value)
+    value.local.unixMillis < dateTime.value.local.unixMillis
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun DateTime.getMinutesDifferenceWithDateTime(dateTime: DateTime): Double {
@@ -106,9 +107,9 @@ inline fun DateTime.getMinutesDifferenceWithDateTime(dateTime: DateTime): Double
  * See https://www.datetimeformatter.com/how-to-format-date-time-in-java-7/#examples
  * */
 @JvmInline
-value class DateTime(val value: Date) {
-
+value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
     companion object {
+        private val lock = SynchronizedObject()
         const val UTC = "UTC"
 
         private const val FORMAT_RELAY = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
@@ -125,12 +126,11 @@ value class DateTime(val value: Date) {
         private const val SIX_DAYS_IN_MILLISECONDS = 518_400_000L
 
         @Volatile
-        private var formatRelay: SimpleDateFormat? = null
-        fun getFormatRelay(): SimpleDateFormat =
-            formatRelay ?: synchronized(this) {
-                formatRelay ?: SimpleDateFormat(FORMAT_RELAY, Locale.ENGLISH)
+        private var formatRelay: DateFormat? = null
+        fun getFormatRelay(): DateFormat =
+            formatRelay ?: synchronized(lock) {
+                formatRelay ?: DateFormat(FORMAT_RELAY)
                     .also {
-                        it.timeZone = TimeZone.getTimeZone(UTC)
                         formatRelay = it
                     }
             }
@@ -139,21 +139,16 @@ value class DateTime(val value: Date) {
          * Returns a string value using [FORMAT_RELAY]
          * */
         fun nowUTC(): String =
-            getFormatRelay().format(Date(System.currentTimeMillis()))
+            getFormatRelay().format(DateTimeTz.nowLocal())
 
         @Volatile
-        private var formatToday00: SimpleDateFormat? = null
-        fun getFormatToday00(): SimpleDateFormat =
-            formatToday00?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formatToday00?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_TODAY_00, Locale.getDefault())
-                    .also {
-                        it.timeZone = TimeZone.getDefault()
-                        formatToday00 = it
-                    }
+        private var formatToday00: DateFormat? = null
+        fun getFormatToday00(): DateFormat =
+            formatToday00  ?: synchronized(lock) {
+                DateFormat(FORMAT_TODAY_00)
+                .also {
+                    formatToday00 = it
+                }
             }
 
         /**
@@ -164,7 +159,7 @@ value class DateTime(val value: Date) {
         fun getToday00(): DateTime =
             getFormatToday00()
             .format(
-                Date(System.currentTimeMillis())
+                DateTimeTz.nowLocal()
             )
             .toDateTime()
 
@@ -172,130 +167,90 @@ value class DateTime(val value: Date) {
          * Create a [DateTime] that is 6 days from the current time
          * */
         fun getSixDaysAgo(): DateTime =
-            DateTime(Date(System.currentTimeMillis() - SIX_DAYS_IN_MILLISECONDS))
+            DateTime(DateTimeTz.fromUnix(getCurrentTimeInMillis() - SIX_DAYS_IN_MILLISECONDS))
 
         @Volatile
-        private var formateeemmddhmma: SimpleDateFormat? = null
+        private var formateeemmddhmma: DateFormat? = null
         @Suppress("SpellCheckingInspection")
-        fun getFormateeemmddhmma(): SimpleDateFormat =
-            formateeemmddhmma?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formateeemmddhmma?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_EEE_MM_DD_H_MM_A, Locale.getDefault())
-                    .also {
-                        it.timeZone = TimeZone.getDefault()
-                        formateeemmddhmma = it
-                    }
+        fun getFormateeemmddhmma(): DateFormat =
+            formateeemmddhmma ?: synchronized(lock) {
+                DateFormat(FORMAT_EEE_MM_DD_H_MM_A)
+                .also {
+                    formateeemmddhmma = it
+                }
             }
 
         @Volatile
-        private var formatddmmmhhmm: SimpleDateFormat? = null
+        private var formatddmmmhhmm: DateFormat? = null
         @Suppress("SpellCheckingInspection")
-        fun getFormatddmmmhhmm(): SimpleDateFormat =
-            formatddmmmhhmm?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formatddmmmhhmm?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_DD_MMM_HH_MM, Locale.getDefault())
-                    .also {
-                        it.timeZone = TimeZone.getDefault()
-                        formatddmmmhhmm = it
-                    }
+        fun getFormatddmmmhhmm(): DateFormat =
+            formatddmmmhhmm ?: synchronized(lock) {
+                DateFormat(FORMAT_DD_MMM_HH_MM)
+                .also {
+                    formatddmmmhhmm = it
+                }
             }
 
         @Volatile
-        private var formathmma: SimpleDateFormat? = null
+        private var formathmma: DateFormat? = null
         @Suppress("SpellCheckingInspection")
-        fun getFormathmma(): SimpleDateFormat =
-            formathmma?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formathmma?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_H_MM_A, Locale.getDefault())
+        fun getFormathmma(): DateFormat =
+            formathmma ?: synchronized(lock) {
+                 DateFormat(FORMAT_H_MM_A)
                     .also {
-                        it.timeZone = TimeZone.getDefault()
                         formathmma = it
                     }
             }
 
         @Volatile
-        private var formateeehmma: SimpleDateFormat? = null
+        private var formateeehmma: DateFormat? = null
         @Suppress("SpellCheckingInspection")
-        fun getFormatEEEhmma(): SimpleDateFormat =
-            formateeehmma?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formateeehmma?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_EEE_H_MM_A, Locale.getDefault())
-                    .also {
-                        it.timeZone = TimeZone.getDefault()
-                        formateeehmma = it
-                    }
+        fun getFormatEEEhmma(): DateFormat =
+            formateeehmma ?: synchronized(lock) {
+                DateFormat(FORMAT_EEE_H_MM_A)
+                .also {
+                    formateeehmma = it
+                }
             }
 
         @Volatile
-        private var formatMMM: SimpleDateFormat? = null
-        fun getFormatMMM(): SimpleDateFormat =
-            formatMMM?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formatMMM?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_MMM, Locale.getDefault())
-                    .also {
-                        it.timeZone = TimeZone.getDefault()
-                        formatMMM = it
-                    }
+        private var formatMMM: DateFormat? = null
+        fun getFormatMMM(): DateFormat =
+            formatMMM ?: synchronized(lock) {
+                DateFormat(FORMAT_MMM)
+                .also {
+                    formatMMM = it
+                }
             }
 
         @Volatile
-        private var formatEEEdd: SimpleDateFormat? = null
-        fun getFormatEEEdd(): SimpleDateFormat =
-            formatEEEdd?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formatEEEdd?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_EEE_DD, Locale.getDefault())
+        private var formatEEEdd: DateFormat? = null
+        fun getFormatEEEdd(): DateFormat =
+            formatEEEdd ?: synchronized(lock) {
+                 DateFormat(FORMAT_EEE_DD)
                     .also {
-                        it.timeZone = TimeZone.getDefault()
                         formatEEEdd = it
                     }
             }
 
         @Volatile
-        private var formatMMMEEEdd: SimpleDateFormat? = null
-        fun getFormatMMMEEEdd(): SimpleDateFormat =
-            formatMMMEEEdd?.also {
-                it.timeZone = TimeZone.getDefault()
-            } ?: synchronized(this) {
-                formatMMMEEEdd?.also {
-                    it.timeZone = TimeZone.getDefault()
-                } ?: SimpleDateFormat(FORMAT_MMM_EEE_DD, Locale.getDefault())
+        private var formatMMMEEEdd: DateFormat? = null
+        fun getFormatMMMEEEdd(): DateFormat =
+            formatMMMEEEdd ?: synchronized(lock) {
+                formatMMMEEEdd ?: DateFormat(FORMAT_MMM_EEE_DD)
                     .also {
-                        it.timeZone = TimeZone.getDefault()
                         formatMMMEEEdd = it
                     }
             }
 
         @Volatile
-        private var formatMMMddyyyy: SimpleDateFormat? = null
-        fun getFormatMMMddyyyy(timeZone: TimeZone = TimeZone.getDefault()): SimpleDateFormat =
-            formatMMMddyyyy?.also {
-                it.timeZone = timeZone
-            } ?: synchronized(this) {
-                formatMMMddyyyy?.also {
-                    it.timeZone = timeZone
-                } ?: SimpleDateFormat(FORMAT_MMM_DD_YYYY, Locale.getDefault())
-                    .also {
-                        it.timeZone = timeZone
-                        formatMMMddyyyy = it
-                    }
+        private var formatMMMddyyyy: DateFormat? = null
+        fun getFormatMMMddyyyy(timeZone: TimezoneOffset = DateTimeTz.nowLocal().local.localOffset): DateFormat =
+            formatMMMddyyyy ?: synchronized(lock) {
+                DateFormat(FORMAT_MMM_DD_YYYY)
+                .also {
+                    formatMMMddyyyy = it
+                }
             }
     }
 

@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.message.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PostPaymentDto(
     val chat_id: Long?,
     val contact_id: Long?,

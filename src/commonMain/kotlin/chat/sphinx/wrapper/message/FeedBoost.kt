@@ -2,23 +2,17 @@ package chat.sphinx.wrapper.message
 
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.Sat
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.JsonDataException
-import com.squareup.moshi.Moshi
+import kotlinx.serialization.Serializable
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun String.toPodBoostOrNull(moshi: Moshi): FeedBoost? =
+inline fun String.toPodBoostOrNull(): FeedBoost? =
     try {
-        this.toPodBoost(moshi)
+        this.toPodBoost()
     } catch (e: Exception) {
         null
     }
 
-@Throws(
-    IllegalArgumentException::class,
-    JsonDataException::class
-)
-fun String.toPodBoost(moshi: Moshi): FeedBoost =
+fun String.toPodBoost(): FeedBoost =
     moshi.adapter(PodBoostMoshi::class.java)
         .fromJson(this)
         ?.let {
@@ -32,7 +26,7 @@ fun String.toPodBoost(moshi: Moshi): FeedBoost =
         ?: throw IllegalArgumentException("Provided Json was invalid")
 
 @Throws(AssertionError::class)
-fun FeedBoost.toJson(moshi: Moshi): String =
+fun FeedBoost.toJson(): String =
     moshi.adapter(PodBoostMoshi::class.java)
         .toJson(
             PodBoostMoshi(
@@ -55,7 +49,7 @@ data class FeedBoost(
 }
 
 // "{\"feedID\":\"226249\",\"itemID\":\"1997782557\",\"ts\":1396,\"amount\":100}"
-@JsonClass(generateAdapter = true)
+@Serializable
 internal data class PodBoostMoshi(
     val feedID: String,
     val itemID: String,

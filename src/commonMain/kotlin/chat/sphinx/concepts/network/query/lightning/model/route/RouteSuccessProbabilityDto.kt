@@ -1,11 +1,11 @@
 package chat.sphinx.concepts.network.query.lightning.model.route
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
 inline val RouteSuccessProbabilityDto.isRouteAvailable: Boolean
     get() = success_prob > 0
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class RouteSuccessProbabilityDto(
     val success_prob: Double
 )

@@ -3,23 +3,20 @@ package chat.sphinx.wrapper.chat
 import chat.sphinx.wrapper.ItemId
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.Sat
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.JsonDataException
-import com.squareup.moshi.Moshi
+import kotlinx.serialization.Serializable
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun String.toChatMetaDataOrNull(moshi: Moshi): ChatMetaData? =
+inline fun String.toChatMetaDataOrNull(): ChatMetaData? =
     try {
-        this.toChatMetaData(moshi)
+        this.toChatMetaData()
     } catch (e: Exception) {
         null
     }
 
 @Throws(
-    IllegalArgumentException::class,
-    JsonDataException::class
+    IllegalArgumentException::class
 )
-fun String.toChatMetaData(moshi: Moshi): ChatMetaData {
+fun String.toChatMetaData(): ChatMetaData {
     val chatMetaData = try {
         moshi.adapter(ChatMetaDataLongIdMoshi::class.java)
             .fromJson(this)
@@ -53,7 +50,7 @@ fun String.toChatMetaData(moshi: Moshi): ChatMetaData {
 }
 
 @Throws(AssertionError::class)
-fun ChatMetaData.toJson(moshi: Moshi): String {
+fun ChatMetaData.toJson(): String {
     return if (itemLongId.value >= 0) {
         moshi.adapter(ChatMetaDataLongIdMoshi::class.java)
             .toJson(
@@ -88,7 +85,7 @@ data class ChatMetaData(
 
 // ItemID as String
 // "{\"itemID\":\"1922435539"\,\"sats_per_minute\":3,\"ts\":4, \"speed\":1.5}"
-@JsonClass(generateAdapter = true)
+@Serializable
 internal data class ChatMetaDataStringIdMoshi(
     val itemID: String,
     val sats_per_minute: Long,
@@ -98,7 +95,7 @@ internal data class ChatMetaDataStringIdMoshi(
 
 // ItemID as Long to be compatible with old version
 // "{\"itemID\":1922435539,\"sats_per_minute\":3,\"ts\":4, \"speed\":1.5}"
-@JsonClass(generateAdapter = true)
+@Serializable
 internal data class ChatMetaDataLongIdMoshi(
     val itemID: Long,
     val sats_per_minute: Long,

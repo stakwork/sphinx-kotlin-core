@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.meme_server.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class MemeServerAuthenticationTokenDto(
     val token: String,
 )

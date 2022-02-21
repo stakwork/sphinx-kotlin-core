@@ -71,7 +71,6 @@ import chat.sphinx.logger.e
 import chat.sphinx.logger.w
 import chat.sphinx.response.*
 import chat.sphinx.utils.platform.File
-import chat.sphinx.utils.platform.InputStream
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.contact.*
@@ -95,16 +94,19 @@ import chat.sphinx.wrapper.rsa.RsaPublicKey
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
-import com.squareup.moshi.Moshi
 import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
+import com.stakwork.koi.InputStream
+import io.ktor.http.parsing.*
+import io.ktor.util.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import okio.base64.encodeBase64
+import kotlinx.io.core.toByteArray
 import kotlin.math.absoluteValue
+import kotlin.text.toCharArray
 
 
 abstract class SphinxRepository(
@@ -114,7 +116,6 @@ abstract class SphinxRepository(
     private val authenticationStorage: AuthenticationStorage,
     protected val coreDB: CoreDB,
     private val dispatchers: CoroutineDispatchers,
-    private val moshi: Moshi,
     private val mediaCacheHandler: MediaCacheHandler,
     private val memeInputStreamHandler: MemeInputStreamHandler,
     private val memeServerTokenHandler: MemeServerTokenHandler,
@@ -263,7 +264,6 @@ abstract class SphinxRepository(
                                         chatDto?.let { nnChatDto ->
                                             upsertChat(
                                                 nnChatDto,
-                                                moshi,
                                                 chatSeenMap,
                                                 queries,
                                                 contactDto
@@ -535,7 +535,7 @@ abstract class SphinxRepository(
                                             null
                                         }
 
-                                    upsertChat(dto, moshi, chatSeenMap, queries, contactDto)
+                                    upsertChat(dto, chatSeenMap, queries, contactDto)
                                 }
 
                             }
@@ -590,7 +590,7 @@ abstract class SphinxRepository(
                 try {
                     networkQueryChat.updateChat(
                         chatId,
-                        PutChatDto(meta = metaData.toJson(moshi))
+                        PutChatDto(meta = metaData.toJson())
                     ).collect {}
                 } catch (e: AssertionError) {
                 }
@@ -643,7 +643,7 @@ abstract class SphinxRepository(
             val postStreamSatsDto = PostStreamSatsDto(
                 metaData.satsPerMinute.value,
                 chatId.value,
-                streamSatsText.toJson(moshi),
+                streamSatsText.toJson(),
                 updateMetaData,
                 destinationsArray
             )
@@ -1525,7 +1525,6 @@ abstract class SphinxRepository(
                                             queries.transaction {
                                                 upsertChat(
                                                     loadResponse.value,
-                                                    moshi,
                                                     chatSeenMap,
                                                     queries,
                                                     null
@@ -1580,7 +1579,6 @@ abstract class SphinxRepository(
                                 queries.transaction {
                                     upsertChat(
                                         loadResponse.value,
-                                        moshi,
                                         chatSeenMap,
                                         queries,
                                         null
@@ -1720,7 +1718,7 @@ abstract class SphinxRepository(
     ////////////////
     private val messageLock = Mutex()
     private val messageDboPresenterMapper: MessageDboPresenterMapper by lazy {
-        MessageDboPresenterMapper(dispatchers, moshi)
+        MessageDboPresenterMapper(dispatchers)
     }
 
     @OptIn(RawPasswordAccess::class)
@@ -2102,11 +2100,11 @@ abstract class SphinxRepository(
 
     private val provisionalMessageLock = Mutex()
 
-    private fun messageText(sendMessage: SendMessage, moshi: Moshi): String? {
+    private fun messageText(sendMessage: SendMessage): String? {
         try {
             if (sendMessage.giphyData != null) {
                 return sendMessage.giphyData?.let {
-                    "${GiphyData.MESSAGE_PREFIX}${it.toJson(moshi).toByteArray().encodeBase64()}"
+                    "${GiphyData.MESSAGE_PREFIX}${it.toJson().toByteArray().encodeBase64()}"
                 }
             }
         } catch (e: Exception) {
@@ -2116,7 +2114,7 @@ abstract class SphinxRepository(
         try {
             if (sendMessage.podcastClip != null) {
                 return sendMessage.podcastClip?.let {
-                    "${PodcastClip.MESSAGE_PREFIX}${it.toJson(moshi)}"
+                    "${PodcastClip.MESSAGE_PREFIX}${it.toJson()}"
                 }
             }
         } catch (e: Exception) {
@@ -2175,7 +2173,7 @@ abstract class SphinxRepository(
 
             // encrypt text
             val message: Pair<MessageContentDecrypted, MessageContent>? =
-                messageText(sendMessage, moshi)?.let { msgText ->
+                messageText(sendMessage)?.let { msgText ->
 
                     val response = rsa.encrypt(
                         ownerPubKey,
@@ -2570,7 +2568,6 @@ abstract class SphinxRepository(
                                         loadResponse.value.chat?.let { chatDto ->
                                             upsertChat(
                                                 chatDto,
-                                                moshi,
                                                 chatSeenMap,
                                                 queries,
                                                 loadResponse.value.contact,
@@ -3015,7 +3012,7 @@ abstract class SphinxRepository(
         boost: FeedBoost
     ) {
         applicationScope.launch(mainImmediate) {
-            val message = boost.toJson(moshi)
+            val message = boost.toJson()
 
             val sendMessageBuilder = SendMessage.Builder()
             sendMessageBuilder.setChatId(chatId)
@@ -3387,7 +3384,6 @@ abstract class SphinxRepository(
                                 queries.transaction {
                                     upsertChat(
                                         loadResponse.value,
-                                        moshi,
                                         chatSeenMap,
                                         queries,
                                         null
@@ -4661,7 +4657,6 @@ abstract class SphinxRepository(
                                             queries.transaction {
                                                 upsertChat(
                                                     chatDto,
-                                                    moshi,
                                                     chatSeenMap,
                                                     queries,
                                                     null
@@ -4745,7 +4740,6 @@ abstract class SphinxRepository(
                                         queries.transaction {
                                             upsertChat(
                                                 loadResponse.value,
-                                                moshi,
                                                 chatSeenMap,
                                                 queries,
                                                 null
@@ -4798,7 +4792,6 @@ abstract class SphinxRepository(
                                     queries.transaction {
                                         upsertChat(
                                             loadResponse.value.chat,
-                                            moshi,
                                             chatSeenMap,
                                             queries,
                                             null
@@ -4854,7 +4847,6 @@ abstract class SphinxRepository(
                                     queries.transaction {
                                         upsertChat(
                                             loadResponse.value,
-                                            moshi,
                                             chatSeenMap,
                                             queries,
                                             null
@@ -5359,7 +5351,7 @@ abstract class SphinxRepository(
         val memeServerHost = MediaHost.DEFAULT
 
         memeServerTokenHandler.retrieveAuthenticationToken(memeServerHost)?.let { token ->
-            networkQueryMemeServer.getPaymentTemplates(token, moshi = moshi)
+            networkQueryMemeServer.getPaymentTemplates(token)
                 .collect { loadResponse ->
                     Exhaustive@
                     when (loadResponse) {

@@ -1,10 +1,10 @@
 package chat.sphinx.concepts.network.query.subscription.model
 
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
-import com.squareup.moshi.JsonClass
-import kotlin.jvm.Transient
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class SubscriptionDto(
     val id: Long,
     val chat_id: Long,

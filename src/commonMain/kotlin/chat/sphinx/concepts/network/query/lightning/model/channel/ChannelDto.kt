@@ -1,9 +1,9 @@
 package chat.sphinx.concepts.network.query.lightning.model.channel
 
 import chat.sphinx.concepts.network.query.lightning.model.invoice.HtlcDto
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 @Suppress("SpellCheckingInspection")
 data class ChannelDto(
     val active: Boolean,

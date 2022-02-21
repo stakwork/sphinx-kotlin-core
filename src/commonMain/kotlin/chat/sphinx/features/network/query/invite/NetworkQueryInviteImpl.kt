@@ -67,7 +67,7 @@ class NetworkQueryInviteImpl(
     ): Flow<LoadResponse<PayInviteDto, ResponseError>> {
         return networkRelayCall.relayPost(
             responseJsonClass = PayInviteResponse::class.java,
-            relayEndpoint = String.format(ENDPOINT_INVITE_PAY, inviteString.value),
+            relayEndpoint = "/invites/${inviteString.value}/pay" ,
             requestBodyJsonClass = Map::class.java,
             requestBody = mapOf(Pair("", ""))
         )

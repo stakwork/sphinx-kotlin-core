@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.lightning.model.invoice
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PaymentMessageDto(
     val success: Boolean,
     val response: PayRequestDto

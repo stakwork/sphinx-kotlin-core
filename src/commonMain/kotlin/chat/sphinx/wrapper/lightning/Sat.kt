@@ -1,7 +1,5 @@
 package chat.sphinx.wrapper.lightning
 
-import java.text.NumberFormat
-import java.util.*
 import kotlin.jvm.JvmInline
 
 @Suppress("NOTHING_TO_INLINE")
@@ -29,13 +27,7 @@ inline val Sat.unit: String
  * */
 @Suppress("NOTHING_TO_INLINE")
 inline fun Sat.asFormattedString(separator: Char = ' ', appendUnit: Boolean = false): String =
-    NumberFormat
-        .getInstance(Locale.ENGLISH)
-        .format(value)
-        .replace(',', separator)
-        .plus(
-            if (appendUnit) " $unit" else ""
-        )
+    value.toString().replace("...".toRegex(), "$0$separator")
 
 @JvmInline
 value class Sat(val value: Long) {

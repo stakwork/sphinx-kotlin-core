@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.meme_server.model
 
-import com.squareup.moshi.*
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PaymentTemplateDto(
     val muid: String,
     val width: Int,

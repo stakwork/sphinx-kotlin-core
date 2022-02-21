@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.chat.model.feed
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class FeedModelDto(
     val type: String,
     val suggested: Double,

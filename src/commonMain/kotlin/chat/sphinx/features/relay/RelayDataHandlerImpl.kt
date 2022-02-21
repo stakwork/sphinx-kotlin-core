@@ -1,5 +1,6 @@
 package chat.sphinx.features.relay
 
+import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.authentication.encryption_key.EncryptionKeyHandler
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.network.tor.TorManager
@@ -14,12 +15,12 @@ import chat.sphinx.crypto.common.exceptions.EncryptionException
 import chat.sphinx.crypto.k_openssl.KOpenSSL
 import chat.sphinx.crypto.k_openssl.algos.AES256CBC_PBKDF2_HMAC_SHA256
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
+import chat.sphinx.utils.toHttpUrlOrNull
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.isOnionAddress
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.jvm.Volatile
 
@@ -123,7 +124,8 @@ class RelayDataHandlerImpl(
 
     override fun formatRelayUrl(relayUrl: RelayUrl): RelayUrl {
         return try {
-            relayUrl.value.toHttpUrl()
+            // TODO: Check what should be done when RelayUrl isn't a valid URL
+            relayUrl.value.toHttpUrlOrNull()
 
             // is valid url with scheme
             relayUrl

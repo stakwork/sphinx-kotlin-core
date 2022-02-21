@@ -22,7 +22,7 @@ class NetworkQueryVersionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<AppVersionsDto, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = GetAppVersionsRelayResponse::class.java,
+            responseJsonClass = GetAppVersionsRelayResponse::class,
             relayEndpoint = ENDPOINT_APP_VERSIONS,
             relayData = relayData
         )

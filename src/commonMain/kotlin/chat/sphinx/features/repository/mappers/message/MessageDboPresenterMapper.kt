@@ -5,13 +5,13 @@ import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.features.repository.model.message.MessageDboWrapper
 import chat.sphinx.wrapper.message.*
+import io.ktor.util.*
 import kotlinx.coroutines.withContext
-import okio.base64.decodeBase64ToArray
 
 internal class MessageDboPresenterMapper(
     dispatchers: CoroutineDispatchers,
-    private val moshi: Moshi,
 ): ClassMapper<MessageDbo, MessageDboWrapper>(dispatchers) {
+    @OptIn(InternalAPI::class)
     override suspend fun mapFrom(value: MessageDbo): MessageDboWrapper {
         return MessageDboWrapper(value).also { message ->
             value.message_content_decrypted?.let { decrypted ->
@@ -21,7 +21,7 @@ internal class MessageDboPresenterMapper(
                         decrypted.isPodBoost -> {
                             withContext(default) {
                                 decrypted.value.replaceFirst(FeedBoost.MESSAGE_PREFIX, "")
-                                    .toPodBoostOrNull(moshi)
+                                    .toPodBoostOrNull()
                                     ?.let { podBoost ->
                                         message._feedBoost = podBoost
                                     }
@@ -30,7 +30,7 @@ internal class MessageDboPresenterMapper(
                         decrypted.isPodcastClip -> {
                             withContext(default) {
                                 decrypted.value.replaceFirst(PodcastClip.MESSAGE_PREFIX, "")
-                                    .toPodcastClipOrNull(moshi)
+                                    .toPodcastClipOrNull()
                                     ?.let { podcastClip ->
                                         message._podcastClip = podcastClip
                                     }
@@ -39,9 +39,9 @@ internal class MessageDboPresenterMapper(
                         decrypted.isGiphy -> {
                             withContext(default) {
                                 decrypted.value.replaceFirst(GiphyData.MESSAGE_PREFIX, "")
-                                    .decodeBase64ToArray()
+                                    .decodeBase64Bytes()
                                     ?.decodeToString()
-                                    ?.toGiphyDataOrNull(moshi)
+                                    ?.toGiphyDataOrNull()
                                     ?.let { giphy ->
                                         message._giphyData = giphy
                                     }
@@ -54,7 +54,7 @@ internal class MessageDboPresenterMapper(
                     //New Podcast boost with boost type (29) and null uuid
                     withContext(default) {
                         decrypted.value.replaceFirst(FeedBoost.MESSAGE_PREFIX, "")
-                            .toPodBoostOrNull(moshi)?.let { podBoost ->
+                            .toPodBoostOrNull()?.let { podBoost ->
                                 message._feedBoost = podBoost
                             }
                     }

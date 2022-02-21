@@ -2,23 +2,17 @@ package chat.sphinx.wrapper.message
 
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
-import com.squareup.moshi.JsonClass
-import com.squareup.moshi.JsonDataException
-import com.squareup.moshi.Moshi
+import kotlinx.serialization.Serializable
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun String.toPodcastClipOrNull(moshi: Moshi): PodcastClip? =
+inline fun String.toPodcastClipOrNull(): PodcastClip? =
     try {
-        this.toPodcastClip(moshi)
+        this.toPodcastClip()
     } catch (e: Exception) {
         null
     }
 
-@Throws(
-    IllegalArgumentException::class,
-    JsonDataException::class
-)
-fun String.toPodcastClip(moshi: Moshi): PodcastClip =
+fun String.toPodcastClip(): PodcastClip =
     moshi.adapter(PodcastClipMoshi::class.java)
         .fromJson(this)
         ?.let {
@@ -35,7 +29,7 @@ fun String.toPodcastClip(moshi: Moshi): PodcastClip =
         ?: throw IllegalArgumentException("Provided Json was invalid")
 
 @Throws(AssertionError::class)
-fun PodcastClip.toJson(moshi: Moshi): String =
+fun PodcastClip.toJson(): String =
     moshi.adapter(PodcastClipMoshi::class.java)
         .toJson(
             PodcastClipMoshi(
@@ -64,7 +58,7 @@ data class PodcastClip(
     }
 }
 
-@JsonClass(generateAdapter = true)
+@Serializable
 internal data class PodcastClipMoshi(
     val text: String,
     val title: String,

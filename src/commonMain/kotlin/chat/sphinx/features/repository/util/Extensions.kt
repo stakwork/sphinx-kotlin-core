@@ -1,21 +1,30 @@
 package chat.sphinx.features.repository.util
 
-import chat.sphinx.wrapper.DateTime
-import chat.sphinx.wrapper.PhotoUrl
-import chat.sphinx.wrapper.chat.ChatMuted
+import chat.sphinx.concepts.coredb.SphinxDatabaseQueries
+import chat.sphinx.concepts.network.query.chat.model.ChatDto
+import chat.sphinx.concepts.network.query.chat.model.TribeDto
+import chat.sphinx.concepts.network.query.chat.model.feed.FeedDto
+import chat.sphinx.concepts.network.query.contact.model.ContactDto
+import chat.sphinx.concepts.network.query.invite.model.InviteDto
+import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
+import chat.sphinx.concepts.network.query.message.model.MessageDto
+import chat.sphinx.concepts.network.query.subscription.model.SubscriptionDto
+import chat.sphinx.wrapper.*
+import chat.sphinx.wrapper.chat.*
+import chat.sphinx.wrapper.contact.*
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.dashboard.InviteId
-import chat.sphinx.wrapper.feed.FeedDescription
-import chat.sphinx.wrapper.feed.FeedId
-import chat.sphinx.wrapper.feed.FeedUrl
-import chat.sphinx.wrapper.feed.Subscribed
-import chat.sphinx.wrapper.invite.InviteStatus
-import chat.sphinx.wrapper.lightning.NodeBalance
-import chat.sphinx.wrapper.message.MessageId
-import chat.sphinx.wrapper.message.media.toMediaKey
-import chat.sphinx.wrapper.message.media.toMediaType
-import com.squareup.moshi.Moshi
+import chat.sphinx.wrapper.feed.*
+import chat.sphinx.wrapper.invite.*
+import chat.sphinx.wrapper.lightning.*
+import chat.sphinx.wrapper.message.*
+import chat.sphinx.wrapper.message.media.*
+import chat.sphinx.wrapper.rsa.RsaPublicKey
+import chat.sphinx.wrapper.subscription.Cron
+import chat.sphinx.wrapper.subscription.EndNumber
+import chat.sphinx.wrapper.subscription.SubscriptionCount
+import chat.sphinx.wrapper.subscription.SubscriptionId
 import com.squareup.sqldelight.TransactionCallbacks
 
 @Suppress("NOTHING_TO_INLINE")
@@ -117,7 +126,6 @@ inline fun TransactionCallbacks.updateChatTribeData(
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun TransactionCallbacks.upsertChat(
     dto: ChatDto,
-    moshi: Moshi,
     chatSeenMap: SynchronizedMap<ChatId, Seen>,
     queries: SphinxDatabaseQueries,
     contactDto: ContactDto? = null
@@ -145,7 +153,7 @@ inline fun TransactionCallbacks.upsertChat(
         dto.privateActual.toChatPrivate(),
         dto.owner_pub_key?.toLightningNodePubKey(),
         seen,
-        dto.meta?.toChatMetaDataOrNull(moshi),
+        dto.meta?.toChatMetaDataOrNull(),
         dto.my_photo_url?.toPhotoUrl(),
         dto.my_alias?.toChatAlias(),
         dto.pending_contact_ids?.map { ContactId(it) },

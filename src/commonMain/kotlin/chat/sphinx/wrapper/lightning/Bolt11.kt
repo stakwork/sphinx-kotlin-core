@@ -4,6 +4,7 @@ import chat.sphinx.crypto.common.clazzes.toSha256Hash
 import chat.sphinx.crypto.common.extensions.toHex
 import chat.sphinx.wrapper.util.Bech32
 import chat.sphinx.wrapper.util.Int5
+import com.stakwork.koi.ByteArrayInputStream
 import kotlinx.io.core.toByteArray
 
 

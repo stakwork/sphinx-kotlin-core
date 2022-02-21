@@ -9,9 +9,7 @@ import chat.sphinx.wrapper.lightning.LightningNodeAlias
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.LightningRouteHint
 import chat.sphinx.wrapper.lightning.Sat
-import chat.sphinx.wrapper_contact.*
-import java.net.MalformedURLException
-import java.net.URL
+import chat.sphinx.wrapper.rsa.RsaPublicKey
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Contact.isInviteContact(): Boolean =
@@ -21,18 +19,18 @@ inline fun Contact.isInviteContact(): Boolean =
 inline fun Contact.isOnVirtualNode(): Boolean =
     routeHint != null && routeHint.value.isNotEmpty()
 
-inline val Contact.avatarUrl: URL?
-    get() {
-        return try {
-            if (photoUrl?.value != null) {
-                URL(photoUrl!!.value)
-            } else {
-                null
-            }
-        } catch (e: MalformedURLException) {
-            null
-        }
-    }
+//inline val Contact.avatarUrl: URL?
+//    get() {
+//        return try {
+//            if (photoUrl?.value != null) {
+//                URL(photoUrl!!.value)
+//            } else {
+//                null
+//            }
+//        } catch (e: MalformedURLException) {
+//            null
+//        }
+//    }
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Contact.getColorKey(): String {

@@ -14,14 +14,13 @@ inline val AuthenticationToken.headerKey: String
     get() = AuthenticationToken.HEADER_KEY
 
 inline val AuthenticationToken.headerValue: String
-    get() = String.format(AuthenticationToken.HEADER_VALUE, value)
+    get() = "Bearer $value"
 
 @JvmInline
 value class AuthenticationToken(val value: String) {
 
     companion object {
         const val HEADER_KEY = "Authorization"
-        const val HEADER_VALUE = "Bearer %s"
     }
 
     init {

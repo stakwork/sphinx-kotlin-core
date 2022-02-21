@@ -62,6 +62,8 @@ kotlin {
     
     sourceSets {
         val kotlinVersion = "1.5.1"
+        val okioVersion = "3.0.0"
+        val klockVersion = "2.5.1"
         val commonMain by getting {
             dependencies {
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
@@ -72,6 +74,10 @@ kotlin {
                 implementation("com.squareup.okio:okio:3.0.0")
                 implementation("com.squareup.sqldelight:coroutines-extensions:1.5.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+                implementation("io.ktor:ktor-client-core:1.6.7")
+                implementation("io.ktor:ktor-client-cio:1.6.7")
+                implementation("com.squareup.okio:okio:$okioVersion")
+                implementation("com.soywiz.korlibs.klock:klock:$klockVersion")
             }
         }
         val commonTest by getting {
@@ -79,6 +85,7 @@ kotlin {
                 api(kotlin("test"))
 
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
+                implementation("com.squareup.okio:okio-fakefilesystem:$okioVersion")
             }
         }
         val jvmMain by getting {

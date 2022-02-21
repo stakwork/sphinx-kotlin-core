@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.chat.model
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class PutTribeDto(
     val name: String,
     val img: String = ""

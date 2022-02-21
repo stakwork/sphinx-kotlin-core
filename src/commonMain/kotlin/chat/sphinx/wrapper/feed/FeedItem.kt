@@ -1,8 +1,8 @@
 package chat.sphinx.wrapper.feed
 
+import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
-import java.io.File
 
 inline val FeedItem.isPodcast: Boolean
     get() = feed?.feedType?.isPodcast() == true

@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.network.query.lightning.model.channel
 
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.Serializable
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class ChannelConstraintDto(
     val csv_delay: Int,
     val chan_reserve_sat: Long,

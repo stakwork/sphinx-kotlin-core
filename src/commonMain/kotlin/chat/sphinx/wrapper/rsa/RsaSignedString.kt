@@ -1,22 +1,24 @@
 package chat.sphinx.wrapper.rsa
 
-import okio.base64.decodeBase64ToArray
-import okio.base64.encodeBase64
+import io.ktor.util.*
 import kotlin.jvm.JvmInline
 
+@OptIn(InternalAPI::class)
 @Suppress("NOTHING_TO_INLINE")
 inline fun RsaSignatureString.toRsaSignature(): RsaSignature? =
-    value.decodeBase64ToArray()?.let { RsaSignature(it) }
+    value.decodeBase64Bytes()?.let { RsaSignature(it) }
 
 @JvmInline
 value class RsaSignatureString(val value: String)
 
+@OptIn(InternalAPI::class)
 @Suppress("NOTHING_TO_INLINE")
 inline fun RsaSignature.toRsaSignatureString(): RsaSignatureString =
     RsaSignatureString(value.encodeBase64())
 
 @JvmInline
 value class RsaSignature(val value: ByteArray) {
+    @OptIn(InternalAPI::class)
     override fun toString(): String {
         return "RsaSignature(value=${value.encodeBase64()})"
     }

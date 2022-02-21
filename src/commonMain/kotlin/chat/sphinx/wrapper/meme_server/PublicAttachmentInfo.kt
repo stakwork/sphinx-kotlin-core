@@ -1,6 +1,7 @@
 package chat.sphinx.wrapper.meme_server
 
 import chat.sphinx.wrapper.io_utils.InputStreamProvider
+import chat.sphinx.wrapper.message.media.MediaType
 
 
 data class PublicAttachmentInfo(

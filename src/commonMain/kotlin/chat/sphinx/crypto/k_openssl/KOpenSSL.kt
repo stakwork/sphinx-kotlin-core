@@ -16,16 +16,16 @@
 package chat.sphinx.crypto.k_openssl
 
 import chat.sphinx.crypto.common.clazzes.*
+import io.ktor.util.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import okio.base64.decodeBase64ToArray
-import okio.base64.encodeBase64
 import kotlin.coroutines.cancellation.CancellationException
 
+@OptIn(InternalAPI::class)
 inline val CharSequence.isSalted: Boolean
     get() = try {
         lines().joinToString("")
-            .decodeBase64ToArray()
+            .decodeBase64Bytes()
             ?.copyOfRange(0, 8)
             ?.contentEquals(KOpenSSL.SALTED.encodeToByteArray())
             ?: false
@@ -115,12 +115,14 @@ abstract class KOpenSSL {
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ): EncryptedString
 
+    @OptIn(InternalAPI::class)
     @Throws(IllegalStateException::class)
     protected open fun decodeEncryptedString(encryptedString: EncryptedString): ByteArray =
         encryptedString.value.lines().joinToString("")
-            .decodeBase64ToArray()
+            .decodeBase64Bytes()
             ?: throw IllegalStateException("Could not decode the provided string")
 
+    @OptIn(InternalAPI::class)
     @Throws(IllegalStateException::class)
     protected open fun encodeCipherText(salt: ByteArray, cipherText: ByteArray): String =
         (SALTED.encodeToByteArray() + salt + cipherText)
