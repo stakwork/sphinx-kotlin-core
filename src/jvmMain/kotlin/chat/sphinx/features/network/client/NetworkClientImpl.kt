@@ -3,13 +3,10 @@ package chat.sphinx.features.network.client
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.client.cache.NetworkClientCache
-import chat.sphinx.concepts.network.tor.SocksProxyAddress
-import chat.sphinx.concepts.network.tor.TorManager
-import chat.sphinx.concepts.network.tor.TorManagerListener
-import chat.sphinx.concepts.network.tor.TorState
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.utils.build_config.BuildConfigDebug
+import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.Job
@@ -22,9 +19,6 @@ import kotlinx.coroutines.sync.withLock
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.util.concurrent.TimeUnit
 import kotlin.jvm.Volatile
 
 class NetworkClientImpl(

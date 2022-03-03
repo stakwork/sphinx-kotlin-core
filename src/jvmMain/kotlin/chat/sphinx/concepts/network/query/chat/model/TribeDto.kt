@@ -4,7 +4,6 @@ import chat.sphinx.utils.platform.File
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
-import kotlin.jvm.Transient
 
 @Serializable
 data class TribeDto(

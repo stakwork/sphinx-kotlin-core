@@ -20,12 +20,11 @@ import chat.sphinx.concepts.navigation.NavigationRequest
 import com.benasher44.uuid.Uuid
 import com.benasher44.uuid.uuidOf
 import com.soywiz.krypto.SecureRandom
-import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.internal.SynchronizedObject
-import kotlinx.coroutines.internal.synchronized
 
 /**
  * This class is consumed by the driver (for Android, an activity) and injected
@@ -45,12 +44,10 @@ abstract class NavigationDriver<T>(
     val navigationRequestSharedFlow: SharedFlow<Pair<NavigationRequest<T>, Uuid>>
         get() = _navigationRequestSharedFlow.asSharedFlow()
 
-    @OptIn(InternalCoroutinesApi::class)
     private val executedNavigationRequestsLock = SynchronizedObject()
     private val executedNavigationRequests: Array<Uuid?> =
         arrayOfNulls(replayCacheSize)
 
-    @OptIn(InternalCoroutinesApi::class)
     @Suppress("MemberVisibilityCanBePrivate")
     protected fun hasBeenExecuted(request: Pair<NavigationRequest<T>, Uuid>): Boolean =
         synchronized(executedNavigationRequestsLock) {
@@ -69,7 +66,6 @@ abstract class NavigationDriver<T>(
     /**
      * Returns true if the request was executed, and false if it was not
      * */
-    @OptIn(InternalCoroutinesApi::class)
     open suspend fun executeNavigationRequest(controller: T, request: Pair<NavigationRequest<T>, Uuid>): Boolean {
         if (hasBeenExecuted(request)) {
             return false

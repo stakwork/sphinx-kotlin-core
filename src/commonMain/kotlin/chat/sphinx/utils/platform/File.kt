@@ -4,6 +4,8 @@ expect class File(path: String) {
 
     constructor(parent: File, child: String)
 
+    fun getName(): String
+
     fun exists(): Boolean
 
     fun delete(): Boolean
@@ -17,4 +19,6 @@ expect class File(path: String) {
     fun mkdir(): Boolean
 
     fun mkdirs(): Boolean
+
+    fun length(): Long
 }

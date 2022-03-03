@@ -3,6 +3,9 @@ package chat.sphinx.wrapper.message
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.Sat
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.toPodBoostOrNull(): FeedBoost? =
@@ -13,29 +16,25 @@ inline fun String.toPodBoostOrNull(): FeedBoost? =
     }
 
 fun String.toPodBoost(): FeedBoost =
-    moshi.adapter(PodBoostMoshi::class.java)
-        .fromJson(this)
-        ?.let {
-            FeedBoost(
-                FeedId(it.feedID),
-                FeedId(it.itemID),
-                it.ts,
-                Sat(it.amount)
-            )
-        }
-        ?: throw IllegalArgumentException("Provided Json was invalid")
+    Json.decodeFromString<PodBoostMoshi>(this).let {
+        FeedBoost(
+            FeedId(it.feedID),
+            FeedId(it.itemID),
+            it.ts,
+            Sat(it.amount)
+        )
+    }
 
 @Throws(AssertionError::class)
 fun FeedBoost.toJson(): String =
-    moshi.adapter(PodBoostMoshi::class.java)
-        .toJson(
-            PodBoostMoshi(
-                feedId.value,
-                itemId.value,
-                timeSeconds,
-                amount.value
-            )
+    Json.encodeToString(
+        PodBoostMoshi(
+            feedId.value,
+            itemId.value,
+            timeSeconds,
+            amount.value
         )
+    )
 
 data class FeedBoost(
     val feedId: FeedId,

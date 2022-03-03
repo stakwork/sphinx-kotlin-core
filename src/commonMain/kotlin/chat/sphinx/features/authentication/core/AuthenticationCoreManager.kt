@@ -34,10 +34,9 @@ import chat.sphinx.features.authentication.core.components.AuthenticationProcess
 import chat.sphinx.features.authentication.core.data.AuthenticationCoreStorage
 import chat.sphinx.features.authentication.core.model.AuthenticateFlowResponse
 import chat.sphinx.features.authentication.core.model.UserInputWriter
-import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.internal.SynchronizedObject
-import kotlinx.coroutines.internal.synchronized
 import kotlin.jvm.JvmSynthetic
 import kotlin.jvm.Synchronized
 import kotlin.jvm.Volatile
@@ -269,16 +268,13 @@ abstract class AuthenticationCoreManager(
     //////////////////////
     @Volatile
     private var encryptionKey: EncryptionKey? = null
-    @OptIn(InternalCoroutinesApi::class)
     private val encryptionKeyLock = SynchronizedObject()
 
-    @OptIn(InternalCoroutinesApi::class)
     fun getEncryptionKey(): EncryptionKey? =
         synchronized(encryptionKeyLock) {
             encryptionKey
         }
 
-    @OptIn(InternalCoroutinesApi::class)
     @JvmSynthetic
     internal fun getEncryptionKeyCopy(): EncryptionKey? =
         synchronized(encryptionKeyLock) {
@@ -293,7 +289,6 @@ abstract class AuthenticationCoreManager(
             }
         }
 
-    @OptIn(InternalCoroutinesApi::class)
     private fun setEncryptionKey(encryptionKey: EncryptionKey?) {
         synchronized(encryptionKeyLock) {
 

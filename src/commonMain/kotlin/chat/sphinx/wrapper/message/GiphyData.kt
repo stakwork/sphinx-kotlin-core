@@ -3,6 +3,9 @@ package chat.sphinx.wrapper.message
 import chat.sphinx.wrapper.message.media.MessageMedia
 import kotlinx.io.errors.EOFException
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.toGiphyDataOrNull(): GiphyData? =
@@ -15,15 +18,12 @@ inline fun String.toGiphyDataOrNull(): GiphyData? =
 @Suppress("NOTHING_TO_INLINE")
 @Throws(IllegalArgumentException::class)
 inline fun String.toGiphyData(): GiphyData =
-    moshi.adapter(GiphyData::class.java)
-        .fromJson(this)
-        ?: throw IllegalArgumentException("Provided Json was invalid")
+    Json.decodeFromString(this)
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(AssertionError::class, EOFException::class)
 inline fun GiphyData.toJson(): String =
-    moshi.adapter(GiphyData::class.java)
-        .toJson(this)
+    Json.encodeToString(this)
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun GiphyData.retrieveImageUrlAndMessageMedia(): Pair<String, MessageMedia?>? {

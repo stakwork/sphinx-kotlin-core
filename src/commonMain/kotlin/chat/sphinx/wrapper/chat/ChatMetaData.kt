@@ -4,6 +4,10 @@ import chat.sphinx.wrapper.ItemId
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.Sat
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.*
+
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.toChatMetaDataOrNull(): ChatMetaData? =
@@ -18,25 +22,22 @@ inline fun String.toChatMetaDataOrNull(): ChatMetaData? =
 )
 fun String.toChatMetaData(): ChatMetaData {
     val chatMetaData = try {
-        moshi.adapter(ChatMetaDataLongIdMoshi::class.java)
-            .fromJson(this)
-            ?.let {
-                ChatMetaData(
-                    FeedId(it.itemID.toString()),
-                    ItemId(it.itemID),
-                    Sat(it.sats_per_minute),
-                    it.ts,
-                    it.speed
-                )
-            }
+        Json.decodeFromString<ChatMetaDataLongIdMoshi>(this).let {
+            ChatMetaData(
+                FeedId(it.itemID.toString()),
+                ItemId(it.itemID),
+                Sat(it.sats_per_minute),
+                it.ts,
+                it.speed
+            )
+        }
     } catch (e: Exception) {
         null
     }
 
     return chatMetaData ?: run {
-        moshi.adapter(ChatMetaDataStringIdMoshi::class.java)
-            .fromJson(this)
-            ?.let {
+        try {
+            Json.decodeFromString<ChatMetaDataStringIdMoshi>(this).let {
                 ChatMetaData(
                     FeedId(it.itemID),
                     ItemId(-1),
@@ -45,32 +46,32 @@ fun String.toChatMetaData(): ChatMetaData {
                     it.speed
                 )
             }
-            ?: throw IllegalArgumentException("Provided Json was invalid")
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Provided Json was invalid")
+        }
     }
 }
 
 @Throws(AssertionError::class)
 fun ChatMetaData.toJson(): String {
     return if (itemLongId.value >= 0) {
-        moshi.adapter(ChatMetaDataLongIdMoshi::class.java)
-            .toJson(
-                ChatMetaDataLongIdMoshi(
-                    itemLongId.value,
-                    satsPerMinute.value,
-                    timeSeconds,
-                    speed
-                )
+        Json.encodeToString(
+            ChatMetaDataLongIdMoshi(
+                itemLongId.value,
+                satsPerMinute.value,
+                timeSeconds,
+                speed
             )
+        )
     } else {
-        moshi.adapter(ChatMetaDataStringIdMoshi::class.java)
-            .toJson(
-                ChatMetaDataStringIdMoshi(
-                    itemId.value,
-                    satsPerMinute.value,
-                    timeSeconds,
-                    speed
-                )
+        Json.encodeToString(
+            ChatMetaDataStringIdMoshi(
+                itemId.value,
+                satsPerMinute.value,
+                timeSeconds,
+                speed
             )
+        )
     }
 }
 

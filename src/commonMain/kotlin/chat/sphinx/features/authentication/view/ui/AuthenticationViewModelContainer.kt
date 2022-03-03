@@ -28,12 +28,11 @@ import chat.sphinx.features.authentication.core.model.AuthenticateFlowResponse
 import chat.sphinx.features.authentication.view.components.AuthenticationRequestTracker
 import chat.sphinx.features.authentication.view.components.ConfirmPressAction
 import chat.sphinx.features.authentication.view.navigation.AuthenticationViewCoordinator
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.internal.SynchronizedObject
-import kotlinx.coroutines.internal.synchronized
 
-@OptIn(InternalCoroutinesApi::class)
 class AuthenticationViewModelContainer<T>(
     val authenticationManager: AuthenticationManager<
             AuthenticateFlowResponse,
@@ -49,7 +48,6 @@ class AuthenticationViewModelContainer<T>(
     private val userInput: UserInput = authenticationManager.getNewUserInput()
     private val authenticationRequestTracker = AuthenticationRequestTracker()
     private val confirmPressAction = ConfirmPressAction()
-    @OptIn(InternalCoroutinesApi::class)
     private val viewStateUpdateLock = SynchronizedObject()
     private var confirmPressJob: Job? = null
 
@@ -76,7 +74,6 @@ class AuthenticationViewModelContainer<T>(
     fun getAuthenticationFinishedStateFlow(): StateFlow<List<AuthenticationResponse>?> =
         _authenticationFinishedStateFlow.asStateFlow()
 
-    @OptIn(InternalCoroutinesApi::class)
     fun completeAuthentication(responses: List<AuthenticationResponse>) {
         if (
             authenticationManager.authenticationStateFlow.value !is AuthenticationState.NotRequired ||
@@ -98,10 +95,8 @@ class AuthenticationViewModelContainer<T>(
     }
 
     private var completeAuthenticationJob: Job? = null
-    @OptIn(InternalCoroutinesApi::class)
     private val submitAuthenticationResponseLock = SynchronizedObject()
 
-    @OptIn(InternalCoroutinesApi::class)
     private fun submitAuthenticationResponses(responses: List<AuthenticationResponse>) {
         synchronized(submitAuthenticationResponseLock) {
             if (completeAuthenticationJob?.isActive == true) {
@@ -192,7 +187,6 @@ class AuthenticationViewModelContainer<T>(
         }
     }
 
-    @OptIn(InternalCoroutinesApi::class)
     fun confirmPress(produceHapticFeedback: Boolean = true) {
         if (produceHapticFeedback) {
             viewModelScope.launch(dispatchers.mainImmediate) {
@@ -270,7 +264,6 @@ class AuthenticationViewModelContainer<T>(
         }
     }
 
-    @OptIn(InternalCoroutinesApi::class)
     private suspend fun processResponseFlow(responseFlow: Flow<AuthenticateFlowResponse>) {
         synchronized(viewStateUpdateLock) {
             viewStateContainer.updateCurrentViewState(inputLockState = InputLockState.Locked.Idle)

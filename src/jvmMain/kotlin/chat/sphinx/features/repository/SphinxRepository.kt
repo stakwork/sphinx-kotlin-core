@@ -2100,6 +2100,7 @@ abstract class SphinxRepository(
 
     private val provisionalMessageLock = Mutex()
 
+    @OptIn(io.ktor.util.InternalAPI::class)
     private fun messageText(sendMessage: SendMessage): String? {
         try {
             if (sendMessage.giphyData != null) {

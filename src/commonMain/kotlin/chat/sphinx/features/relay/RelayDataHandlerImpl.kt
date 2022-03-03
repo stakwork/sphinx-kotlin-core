@@ -3,7 +3,6 @@ package chat.sphinx.features.relay
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.authentication.encryption_key.EncryptionKeyHandler
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
-import chat.sphinx.concepts.network.tor.TorManager
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
@@ -19,6 +18,7 @@ import chat.sphinx.utils.toHttpUrlOrNull
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.isOnionAddress
+import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.cancellation.CancellationException
@@ -116,7 +116,8 @@ class RelayDataHandlerImpl(
             }
 
             authenticationStorage.putString(RELAY_URL_KEY, encryptedRelayUrl.value)
-            torManager.setTorRequired(formattedUrl.isOnionAddress)
+            // TODO: Figure out how to set Tor required
+//            torManager.setTorRequired(formattedUrl.isOnionAddress)
             relayUrlCache = formattedUrl
             return true
         }

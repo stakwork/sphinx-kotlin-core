@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encoding.Encoder
 
 @Throws(AssertionError::class)
-fun StreamSatsText.toJson(encoder: Encoder): String =
+fun StreamSatsText.toJson(): String =
     moshi.adapter(StreamSatsText::class.java)
         .toJson(
             StreamSatsText(

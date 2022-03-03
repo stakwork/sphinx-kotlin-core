@@ -3,6 +3,9 @@ package chat.sphinx.wrapper.message
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.toPodcastClipOrNull(): PodcastClip? =
@@ -13,35 +16,31 @@ inline fun String.toPodcastClipOrNull(): PodcastClip? =
     }
 
 fun String.toPodcastClip(): PodcastClip =
-    moshi.adapter(PodcastClipMoshi::class.java)
-        .fromJson(this)
-        ?.let {
-            PodcastClip(
-                it.text,
-                it.title,
-                LightningNodePubKey(it.pubkey),
-                it.url,
-                FeedId(it.feedID),
-                FeedId(it.itemID),
-                it.ts
-            )
-        }
-        ?: throw IllegalArgumentException("Provided Json was invalid")
+    Json.decodeFromString<PodcastClipMoshi>(this).let {
+        PodcastClip(
+            it.text,
+            it.title,
+            LightningNodePubKey(it.pubkey),
+            it.url,
+            FeedId(it.feedID),
+            FeedId(it.itemID),
+            it.ts
+        )
+    }
 
 @Throws(AssertionError::class)
 fun PodcastClip.toJson(): String =
-    moshi.adapter(PodcastClipMoshi::class.java)
-        .toJson(
-            PodcastClipMoshi(
-                text ?: "",
-                title,
-                pubkey.value,
-                url,
-                feedID.value,
-                itemID.value,
-                ts
-            )
+    Json.encodeToString(
+        PodcastClipMoshi(
+            text ?: "",
+            title,
+            pubkey.value,
+            url,
+            feedID.value,
+            itemID.value,
+            ts
         )
+    )
 
 data class PodcastClip(
     val text: String?,

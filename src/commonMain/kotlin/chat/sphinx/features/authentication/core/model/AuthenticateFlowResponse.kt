@@ -20,9 +20,8 @@ import chat.sphinx.concepts.authentication.coordinator.AuthenticationResponse
 import chat.sphinx.concepts.authentication.core.model.ConfirmUserInputToReset
 import chat.sphinx.concepts.authentication.core.model.ConfirmUserInputToSetForFirstTime
 import chat.sphinx.concepts.authentication.core.model.UserInput
-import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.internal.SynchronizedObject
-import kotlinx.coroutines.internal.synchronized
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlin.jvm.JvmSynthetic
 import kotlin.jvm.Synchronized
 import kotlin.jvm.Volatile
@@ -50,7 +49,6 @@ sealed class AuthenticateFlowResponse {
     ): AuthenticateFlowResponse(), ConfirmUserInputToReset {
 
         companion object {
-            @OptIn(InternalCoroutinesApi::class)
             private val trackerLock = SynchronizedObject()
             private val resetCompletionTracker: Array<Int?> by lazy {
                 arrayOfNulls(2)
@@ -59,7 +57,6 @@ sealed class AuthenticateFlowResponse {
             /**
              * Will issue a request if it has not been fulfilled yet, otherwise returns null.
              * */
-            @OptIn(InternalCoroutinesApi::class)
             @JvmSynthetic
             internal fun generate(
                 validUserInput: UserInputWriter,
@@ -78,7 +75,6 @@ sealed class AuthenticateFlowResponse {
          * Call after completion of saving new credentials to inhibit re-issuance when
          * processing request responses.
          * */
-        @OptIn(InternalCoroutinesApi::class)
         @JvmSynthetic
         internal fun onPasswordResetCompletion() {
             synchronized(trackerLock) {

@@ -1,34 +1,13 @@
-buildscript {
-//    apply(from = rootProject.file("gradle/dependencies.gradle"))
-
-    repositories {
-        mavenCentral()
-        google()
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.10")
-//        classpath("com.squareup.sqldelight:gradle-plugin:1.5.3")
-//        classpath(KAplugin.androidGradle)
-//        classpath KAplugin.google.hilt
-//        classpath KAplugin.gradleVersions
-//        classpath KAplugin.kotlin.gradle
-//        classpath KAplugin.square.exhaustive
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
-    }
-}
-
 plugins {
-    kotlin("multiplatform") version "1.5.10"
+    kotlin("multiplatform") version "1.6.10"
+    kotlin("plugin.serialization") version "1.6.10"
     id("com.squareup.sqldelight")
 }
 
 sqldelight {
-    database("CtxDatabase") {
+    database("SphinxDatabase") {
         packageName = "chat.sphinx.concepts.coredb"
-        schemaOutputDirectory = file("build/dbs")
+//        schemaOutputDirectory = file("build/dbs")
     }
     linkSqlite = false
 }
@@ -38,6 +17,15 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+}
+
+configurations {
+    all {
+        exclude(
+            "io.matthewnelson.kotlin-components",
+            "kmp-tor-macosx64"
+        )
+    }
 }
 
 kotlin {
@@ -64,6 +52,7 @@ kotlin {
         val kotlinVersion = "1.5.1"
         val okioVersion = "3.0.0"
         val klockVersion = "2.5.1"
+
         val commonMain by getting {
             dependencies {
                 api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
@@ -72,12 +61,13 @@ kotlin {
                 api("org.jetbrains.kotlinx:kotlinx-io:0.1.16")
                 api("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
                 implementation("com.squareup.okio:okio:3.0.0")
-                implementation("com.squareup.sqldelight:coroutines-extensions:1.5.3")
+                implementation("com.squareup.sqldelight:coroutines-extensions:1.5.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
                 implementation("io.ktor:ktor-client-core:1.6.7")
                 implementation("io.ktor:ktor-client-cio:1.6.7")
                 implementation("com.squareup.okio:okio:$okioVersion")
                 implementation("com.soywiz.korlibs.klock:klock:$klockVersion")
+                implementation("io.matthewnelson.kotlin-components:kmp-tor:0.4.6.10+0.1.0-alpha4")
             }
         }
         val commonTest by getting {
@@ -91,6 +81,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.1.16")
+                implementation("com.squareup.okhttp3:okhttp:4.9.3")
             }
         }
         val jvmTest by getting
