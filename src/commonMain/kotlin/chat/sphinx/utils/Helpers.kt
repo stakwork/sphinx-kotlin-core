@@ -18,7 +18,7 @@ fun checkFromToIndex(fromIndex: Int, toIndex: Int, length: Int): Int {
     }
 }
 
-inline fun String.toHttpUrlOrNull(): Url? {
+inline fun String.toUrlOrNull(): Url? {
     return try {
         Url(this)
     } catch (e: URLParserException) {

@@ -34,8 +34,8 @@ expect class RSA_PEM {
     @JvmField
     var Val_InverseQ: ByteArray?
 
-    @Throws(Exception::class)
-    fun FromPEM(base64: CharArray, privateKey: Boolean): RSA_PEM
-
-
+    companion object {
+        @Throws(Exception::class)
+        fun FromPEM(base64: CharArray, privateKey: Boolean): RSA_PEM
+    }
 }

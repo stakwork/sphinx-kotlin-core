@@ -1,6 +1,7 @@
 package chat.sphinx.features.network.relay_call
 
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.concepts.network.call.buildRequest
 import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
@@ -15,6 +16,7 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.response.message
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -22,11 +24,16 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializer
+import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.EMPTY_REQUEST
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
 @Suppress("NOTHING_TO_INLINE")
@@ -74,16 +81,19 @@ private suspend inline fun RelayDataHandler.retrieveRelayData(): Pair<Authorizat
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(AssertionError::class, NullPointerException::class, CancellationException::class)
-private suspend inline fun<RequestBody: Any> Moshi.requestBodyToJson(
-    dispatchers: CoroutineDispatchers,
-    requestBodyJsonAdapter: Class<RequestBody>,
-    requestBody: RequestBody
+private suspend inline fun RequestBody.requestBodyToJson(
+    dispatchers: CoroutineDispatchers
 ): String =
     withContext(dispatchers.default) {
-        adapter(requestBodyJsonAdapter).toJson(requestBody)
+        Json.encodeToString(RequestBodySerializer, this@requestBodyToJson)
     } ?: throw NullPointerException(
-        "Failed to convert RequestBody ${requestBodyJsonAdapter.simpleName} to Json"
+        "Failed to convert RequestBody ${this::class.simpleName} to Json"
     )
+
+
+
+@Serializer(forClass = RequestBody::class)
+object RequestBodySerializer
 
 @Suppress("BlockingMethodInNonBlockingContext")
 class NetworkRelayCallImpl(
@@ -110,7 +120,7 @@ class NetworkRelayCallImpl(
     ///////////////////
     override fun <T: Any> get(
         url: String,
-        responseJsonClass: Class<T>,
+        responseJsonSerializer: KSerializer<T>,
         headers: Map<String, String>?,
         useExtendedNetworkCallClient: Boolean
     ): Flow<LoadResponse<T, ResponseError>> = flow {
@@ -120,7 +130,7 @@ class NetworkRelayCallImpl(
         try {
             val requestBuilder = buildRequest(url, headers)
 
-            val response = call(responseJsonClass, requestBuilder.build(), useExtendedNetworkCallClient)
+            val response = call(responseJsonSerializer, requestBuilder.build(), useExtendedNetworkCallClient)
 
             emit(Response.Success(response))
         } catch (e: Exception) {
@@ -148,29 +158,26 @@ class NetworkRelayCallImpl(
         }
     }
 
-    override fun <T: Any, V: Any> put(
+    override fun <Result: Any, Input: Any> put(
         url: String,
-        responseJsonClass: Class<T>,
-        requestBodyJsonClass: Class<V>?,
-        requestBody: V?,
+        responseJsonSerializer: KSerializer<Result>,
+        requestBodyPair: Pair<Input, KSerializer<Input>>?,
         mediaType: String?,
         headers: Map<String, String>?
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
         emit(LoadResponse.Loading)
 
         try {
             val requestBuilder = buildRequest(url, headers)
 
-            val requestBodyJson: String? = if (requestBody == null || requestBodyJsonClass == null) {
-                null
-            } else {
-                moshi.requestBodyToJson(dispatchers, requestBodyJsonClass, requestBody)
+            val requestBodyJson: String? = requestBodyPair?.let { (requestBody, requestBodySerializer) ->
+                Json.encodeToString(requestBodySerializer, requestBody)
             }
 
             val reqBody = requestBodyJson?.toRequestBody(mediaType?.toMediaType())
 
-            val response = call(responseJsonClass, requestBuilder.put(reqBody ?: EMPTY_REQUEST).build())
+            val response = call(responseJsonSerializer, requestBuilder.put(reqBody ?: EMPTY_REQUEST).build())
 
             emit(Response.Success(response))
         } catch (e: Exception) {
@@ -179,26 +186,25 @@ class NetworkRelayCallImpl(
 
     }
 
-    override fun <T: Any, V: Any> post(
+    override fun <Result: Any, Input: Any> post(
         url: String,
-        responseJsonClass: Class<T>,
-        requestBodyJsonClass: Class<V>,
-        requestBody: V,
+        responseJsonSerializer: KSerializer<Result>,
+        requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String?,
         headers: Map<String, String>?
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
         emit(LoadResponse.Loading)
 
         try {
             val requestBuilder = buildRequest(url, headers)
 
-            val requestBodyJson: String = moshi
-                .requestBodyToJson(dispatchers, requestBodyJsonClass, requestBody)
+            val (requestBody, requestBodySerializer) = requestBodyPair
+            val requestBodyJson: String = Json.encodeToString(requestBodySerializer, requestBody)
 
             val reqBody = requestBodyJson.toRequestBody(mediaType?.toMediaType())
 
-            val response = call(responseJsonClass, requestBuilder.post(reqBody).build())
+            val response = call(responseJsonSerializer, requestBuilder.post(reqBody).build())
 
             emit(Response.Success(response))
         } catch (e: Exception) {
@@ -207,30 +213,26 @@ class NetworkRelayCallImpl(
 
     }
 
-    override fun <T: Any, V: Any> delete(
+    override fun <Result: Any, Input: Any> delete(
         url: String,
-        responseJsonClass: Class<T>,
-        requestBodyJsonClass: Class<V>?,
-        requestBody: V?,
+        responseJsonSerializer: KSerializer<Result>,
+        requestBodyPair: Pair<Input, KSerializer<Input>>?,
         mediaType: String?,
         headers: Map<String, String>?
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
         emit(LoadResponse.Loading)
 
         try {
             val requestBuilder = buildRequest(url, headers)
 
-            val requestBodyJson: String? =
-                if (requestBody == null || requestBodyJsonClass == null) {
-                    null
-                } else {
-                    moshi.requestBodyToJson(dispatchers, requestBodyJsonClass, requestBody)
-                }
+            val requestBodyJson: String? = requestBodyPair?.let { (requestBody, requestBodySerializer) ->
+                Json.encodeToString(requestBodySerializer, requestBody)
+            }
 
             val reqBody: RequestBody? = requestBodyJson?.toRequestBody(mediaType?.toMediaType())
 
-            val response = call(responseJsonClass, requestBuilder.delete(reqBody ?: EMPTY_REQUEST).build())
+            val response = call(responseJsonSerializer, requestBuilder.delete(reqBody ?: EMPTY_REQUEST).build())
 
             emit(Response.Success(response))
         } catch (e: Exception) {
@@ -253,7 +255,7 @@ class NetworkRelayCallImpl(
 
     @Throws(NullPointerException::class, IOException::class)
     override suspend fun <T: Any> call(
-        responseJsonClass: Class<T>,
+        responseJsonSerializer: KSerializer<T>,
         request: Request,
         useExtendedNetworkCallClient: Boolean
     ): T {
@@ -291,10 +293,10 @@ class NetworkRelayCallImpl(
         )
 
         return withContext(default) {
-            moshi.adapter(responseJsonClass).fromJson(body.source())
+            Json.decodeFromString(responseJsonSerializer, body.string())
         } ?: throw IOException(
             """
-                Failed to convert Json to ${responseJsonClass.simpleName}
+                Failed to convert Json to ${responseJsonSerializer.descriptor}
                 NetworkResponse: $networkResponse
             """.trimIndent()
         )
@@ -354,7 +356,7 @@ class NetworkRelayCallImpl(
     /// NetworkRelayCall ///
     ////////////////////////
     override fun <T: Any, V: RelayResponse<T>> relayGet(
-        responseJsonClass: Class<V>,
+        responseJsonSerializer: KSerializer<V>,
         relayEndpoint: String,
         additionalHeaders: Map<String, String>?,
         relayData: Pair<AuthorizationToken, RelayUrl>?,
@@ -367,7 +369,7 @@ class NetworkRelayCallImpl(
 
             get(
                 nnRelayData.second.value + relayEndpoint,
-                responseJsonClass,
+                responseJsonSerializer,
                 mapRelayHeaders(nnRelayData, additionalHeaders),
                 useExtendedNetworkCallClient
             )
@@ -382,25 +384,23 @@ class NetworkRelayCallImpl(
 
     }
 
-    override fun <T: Any, RequestBody: Any, V: RelayResponse<T>> relayPut(
-        responseJsonClass: Class<V>,
+    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayPut(
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>?,
-        requestBody: RequestBody?,
+        requestBodyPair: Pair<Input, KSerializer<Input>>?,
         mediaType: String?,
         additionalHeaders: Map<String, String>?,
         relayData: Pair<AuthorizationToken, RelayUrl>?
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
-        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
+        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
             val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
                 ?: relayDataHandler.retrieveRelayData()
 
             put(
                 nnRelayData.second.value + relayEndpoint,
-                responseJsonClass,
-                requestBodyJsonClass,
-                requestBody,
+                responseJsonSerializer,
+                requestBodyPair,
                 mediaType,
                 mapRelayHeaders(nnRelayData, additionalHeaders)
             )
@@ -416,21 +416,19 @@ class NetworkRelayCallImpl(
     }
 
     // TODO: Remove and replace all uses with post (DO NOT USE THIS METHOD FOR NEW CODE)
-    override fun <T: Any, RequestBody: Any, V: RelayResponse<T>> relayUnauthenticatedPost(
-        responseJsonClass: Class<V>,
+    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayUnauthenticatedPost(
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>,
-        requestBody: RequestBody,
+        requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String?,
         relayUrl: RelayUrl
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
-        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
+        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
             post(
                 relayUrl.value + relayEndpoint,
-                responseJsonClass,
-                requestBodyJsonClass,
-                requestBody,
+                responseJsonSerializer,
+                requestBodyPair,
                 mediaType
             )
         } catch (e: Exception) {
@@ -444,25 +442,23 @@ class NetworkRelayCallImpl(
 
     }
 
-    override fun <T: Any, RequestBody: Any, V: RelayResponse<T>> relayPost(
-        responseJsonClass: Class<V>,
+    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayPost(
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>,
-        requestBody: RequestBody,
+        requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String?,
         additionalHeaders: Map<String, String>?,
         relayData: Pair<AuthorizationToken, RelayUrl>?
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
-        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
+        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
             val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
                 ?: relayDataHandler.retrieveRelayData()
 
             post(
                 nnRelayData.second.value + relayEndpoint,
-                responseJsonClass,
-                requestBodyJsonClass,
-                requestBody,
+                responseJsonSerializer,
+                requestBodyPair,
                 mediaType,
                 mapRelayHeaders(nnRelayData, additionalHeaders)
             )
@@ -477,25 +473,23 @@ class NetworkRelayCallImpl(
 
     }
 
-    override fun <T: Any, RequestBody: Any, V: RelayResponse<T>> relayDelete(
-        responseJsonClass: Class<V>,
+    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayDelete(
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>?,
-        requestBody: RequestBody?,
+        requestBodyPair: Pair<Input, KSerializer<Input>>?,
         mediaType: String?,
         additionalHeaders: Map<String, String>?,
         relayData: Pair<AuthorizationToken, RelayUrl>?
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
-        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
+        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
             val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
                 ?: relayDataHandler.retrieveRelayData()
 
             delete(
                 nnRelayData.second.value + relayEndpoint,
-                responseJsonClass,
-                requestBodyJsonClass,
-                requestBody,
+                responseJsonSerializer,
+                requestBodyPair,
                 mediaType,
                 mapRelayHeaders(nnRelayData, additionalHeaders)
             )
@@ -510,6 +504,7 @@ class NetworkRelayCallImpl(
 
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     @Throws(NullPointerException::class, AssertionError::class)
     private fun <T: Any, V: RelayResponse<T>> validateRelayResponse(
         flow: Flow<LoadResponse<V, ResponseError>>,

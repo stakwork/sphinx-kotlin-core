@@ -4,33 +4,43 @@ package chat.sphinx.features.socket_io.json
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
 import chat.sphinx.concepts.network.query.invite.model.InviteDto
+import chat.sphinx.concepts.network.query.lightning.model.invoice.InvoiceDto
 import chat.sphinx.concepts.network.query.lightning.model.invoice.LightningPaymentInvoiceDto
 import chat.sphinx.concepts.network.query.message.model.MessageDto
 import chat.sphinx.concepts.socket_io.GroupDto
 import kotlinx.io.errors.IOException
 import kotlinx.serialization.Serializable
-
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlin.reflect.KClass
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(IOException::class)
-internal inline fun<T: Any, V: MessageResponse<T>> Moshi.getMessageResponse(
-    adapter: Class<V>,
-    json: String
-): T {
-    val jsonResolved: String = if (
-        adapter == MessageResponse.ResponseGroup::class.java &&
-        json.contains("\"contact\":{}")
-    ) {
-        json.replace("\"contact\":{}", "\"contact\":null")
-    } else {
-        json
-    }
+internal inline fun String.getMessageResponseGroup(): GroupDtoImpl {
+    val jsonResolved: String = this.replace("\"contact\":{}", "\"contact\":null")
 
-    return adapter(adapter)
-        .fromJson(jsonResolved)
-        ?.response
-        ?: throw JsonDataException("Failed to convert SocketIO Message.response Json to ${adapter.simpleName}")
+    return Json.decodeFromString<MessageResponse.ResponseGroup>(jsonResolved).response
 }
+
+@Suppress("NOTHING_TO_INLINE")
+@Throws(IOException::class)
+internal inline fun String.getMessageResponseMessage(): MessageDto = Json.decodeFromString<MessageResponse.ResponseMessage>(this).response
+
+@Suppress("NOTHING_TO_INLINE")
+@Throws(IOException::class)
+internal inline fun String.getMessageResponseInvite(): InviteDto = Json.decodeFromString<MessageResponse.ResponseInvite>(this).response
+
+@Suppress("NOTHING_TO_INLINE")
+@Throws(IOException::class)
+internal inline fun String.getMessageResponseInvoice(): LightningPaymentInvoiceDto = Json.decodeFromString<MessageResponse.ResponseInvoice>(this).response
+
+@Suppress("NOTHING_TO_INLINE")
+@Throws(IOException::class)
+internal inline fun String.getMessageResponseChat(): ChatDto = Json.decodeFromString<MessageResponse.ResponseChat>(this).response
+
+@Suppress("NOTHING_TO_INLINE")
+@Throws(IOException::class)
+internal inline fun String.getMessageResponseContact(): ContactDto = Json.decodeFromString<MessageResponse.ResponseContact>(this).response
 
 @Serializable
 internal data class GroupDtoImpl(

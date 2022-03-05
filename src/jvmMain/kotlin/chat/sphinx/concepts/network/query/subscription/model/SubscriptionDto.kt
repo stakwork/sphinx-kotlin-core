@@ -1,6 +1,7 @@
 package chat.sphinx.concepts.network.query.subscription.model
 
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -15,8 +16,8 @@ data class SubscriptionDto(
     val end_number: Int?,
     val end_date: String?,
     val count: Int,
-    val ended: Any?,
-    val paused: Any?,
+    val ended: @Polymorphic Any?,
+    val paused: @Polymorphic Any?,
     val created_at: String,
     val updated_at: String,
     val interval: String,

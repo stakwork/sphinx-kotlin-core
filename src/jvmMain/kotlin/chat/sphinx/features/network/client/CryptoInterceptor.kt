@@ -1,5 +1,11 @@
 package chat.sphinx.features.network.client
 
+import chat.sphinx.concepts.network.client.crypto.CryptoScheme
+import chat.sphinx.concepts.network.client.crypto.isCryptoHeader
+import chat.sphinx.concepts.network.client.crypto.retrieveCryptoScheme
+import okhttp3.*
+import okhttp3.ResponseBody.Companion.asResponseBody
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
 import okio.BufferedSource
 import org.cryptonode.jncryptor.AES256JNCryptorInputStream
@@ -68,7 +74,7 @@ class CryptoInterceptor: Interceptor {
         request: Request
     ): Response {
 
-        @Exhaustive
+        Exhaustive@
         when (scheme) {
             is CryptoScheme.Decrypt -> {
                 val response: Response = chain.proceed(request)
@@ -79,7 +85,7 @@ class CryptoInterceptor: Interceptor {
 
                 val responseBody: ResponseBody = response.body ?: return response
 
-                @Exhaustive
+                Exhaustive@
                 when (scheme) {
                     CryptoScheme.Decrypt.JNCryptor -> {
 

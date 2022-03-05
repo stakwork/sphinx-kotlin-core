@@ -3,6 +3,7 @@ package chat.sphinx.concepts.network.query.message.model
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
 import chat.sphinx.utils.platform.File
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.jvm.Volatile
@@ -30,7 +31,7 @@ data class MessageDto(
     val media_key: String?,
     val media_type: String?,
     val media_token: String?,
-    val seen: Any,
+    val seen: @Polymorphic Any,
     val created_at: String,
     val updated_at: String,
     val sender_alias: String?,

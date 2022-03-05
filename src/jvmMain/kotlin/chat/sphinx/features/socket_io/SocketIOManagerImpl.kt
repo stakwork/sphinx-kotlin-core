@@ -3,10 +3,12 @@ package chat.sphinx.features.socket_io
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
+import chat.sphinx.concepts.network.query.message.model.MessageDto
 import chat.sphinx.concepts.relay.RelayDataHandler
+import chat.sphinx.concepts.relay.retrieveRelayUrlAndAuthorizationToken
 import chat.sphinx.concepts.socket_io.*
-import chat.sphinx.features.socket_io.json.MessageResponse
-import chat.sphinx.features.socket_io.json.getMessageResponse
+import chat.sphinx.features.socket_io.json.*
+import chat.sphinx.features.socket_io.json.getMessageResponseChat
 import chat.sphinx.features.socket_io.json.getMessageType
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
@@ -14,9 +16,19 @@ import chat.sphinx.logger.e
 import chat.sphinx.logger.w
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
+import chat.sphinx.response.exception
+import chat.sphinx.response.message
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
-import com.squareup.moshi.Moshi
+import io.socket.client.IO
+import io.socket.client.Manager
+import io.socket.client.Socket
+import io.socket.engineio.client.EngineIOException
+import io.socket.engineio.client.Socket.EVENT_ERROR
+import io.socket.engineio.client.Socket as EngineSocket
+import io.socket.engineio.client.Transport
+import io.socket.engineio.client.transports.Polling
+import io.socket.engineio.client.transports.WebSocket
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CoroutineScope
@@ -26,13 +38,14 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import kotlin.jvm.Volatile
 
 class SocketIOManagerImpl(
     private val dispatchers: CoroutineDispatchers,
-    private val moshi: Moshi,
     private val networkClient: NetworkClient,
     private val relayDataHandler: RelayDataHandler,
     private val LOG: SphinxLogger,
@@ -185,7 +198,7 @@ class SocketIOManagerImpl(
 
             } ?: buildSocket(relayData).let { response ->
 
-                @Exhaustive
+                Exhaustive@
                 when (response) {
                     is Response.Error -> {
                         return response
@@ -317,183 +330,117 @@ class SocketIOManagerImpl(
             if (synchronizedListeners.hasListeners) {
                 try {
 
-                    val type: String = moshi.getMessageType(argsString).type
+                    val type: String = argsString.getMessageType().type
 
                     when (type) {
                         SphinxSocketIOMessage.Type.ChatSeen.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.ChatSeen(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseChat::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseChat()
                             )
                         }
                         SphinxSocketIOMessage.Type.Contact.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Contact(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseContact::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseContact()
                             )
                         }
                         SphinxSocketIOMessage.Type.Invite.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Invite(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseInvite::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseInvite()
                             )
                         }
                         SphinxSocketIOMessage.Type.InvoicePayment.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.InvoicePayment(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseInvoice::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseInvoice()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.Attachment.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.Attachment(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.Boost.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.Boost(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.Confirmation.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.Confirmation(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.Delete.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.Delete(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.Create.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.Create(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.Leave.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.Leave(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.Join.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.Join(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.Kick.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.Kick(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.TribeDelete.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.TribeDelete(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.Member.Request.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.Member.Request(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.Member.Approve.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.Member.Approve(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.Group.Member.Reject.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.Group.Member.Reject(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseGroup::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseGroup()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.KeySend.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.KeySend(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.Message.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.Message(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.Purchase.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.Purchase(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.PurchaseAccept.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.PurchaseAccept(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         SphinxSocketIOMessage.Type.MessageType.PurchaseDeny.JSON_TYPE -> {
                             SphinxSocketIOMessage.Type.MessageType.PurchaseDeny(
-                                moshi.getMessageResponse(
-                                    MessageResponse.ResponseMessage::class.java,
-                                    argsString
-                                )
+                                argsString.getMessageResponseMessage()
                             )
                         }
                         else -> {
                             // Try to handle it as a message
-                            val messageDto: MessageDto = moshi.getMessageResponse(
-                                MessageResponse.ResponseMessage::class.java,
-                                argsString
-                            )
+                            val messageDto: MessageDto = Json.decodeFromString(argsString)
 
                             LOG.w(TAG, "SocketIO EventMessage Type '$type' not handled")
 

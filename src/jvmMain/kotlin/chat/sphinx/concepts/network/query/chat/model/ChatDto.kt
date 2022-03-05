@@ -1,8 +1,9 @@
 package chat.sphinx.concepts.network.query.chat.model
 
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonNames
-import kotlin.jvm.Transient
 
 @Serializable
 data class ChatDto(
@@ -13,21 +14,21 @@ data class ChatDto(
     val type: Int,
     val status: Int?,
     val contact_ids: List<Long>,
-    val is_muted: Any?,
+    val is_muted: @Polymorphic Any?,
     val created_at: String,
     val updated_at: String,
-    val deleted: Any?,
+    val deleted: @Polymorphic Any?,
     val group_key: String?,
     val host: String?,
     val price_to_join: Long?,
     val price_per_message: Long?,
     val escrow_amount: Long?,
     val escrow_millis: Long?,
-    val unlisted: Any?,
-    val private: Any?,
+    val unlisted: @Polymorphic Any?,
+    val private: @Polymorphic Any?,
     @JsonNames("owner_pubkey")
     val owner_pub_key: String?,
-    val seen: Any?,
+    val seen: @Polymorphic Any?,
     val app_url: String?,
     val feed_url: String?,
     val meta: String?,

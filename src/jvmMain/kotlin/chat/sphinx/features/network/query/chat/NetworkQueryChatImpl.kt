@@ -46,7 +46,7 @@ class NetworkQueryChatImpl(
     ///////////
     private val getChatsFlowNullData: Flow<LoadResponse<List<ChatDto>, ResponseError>> by lazy {
         networkRelayCall.relayGet(
-            responseJsonClass = GetChatsRelayResponse::class.java,
+            responseJsonSerializer = GetChatsRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_CHATS,
             relayData = null
         )
@@ -59,7 +59,7 @@ class NetworkQueryChatImpl(
             getChatsFlowNullData
         } else {
             networkRelayCall.relayGet(
-                responseJsonClass = GetChatsRelayResponse::class.java,
+                responseJsonSerializer = GetChatsRelayResponse.serializer(),
                 relayEndpoint = ENDPOINT_CHATS,
                 relayData = relayData
             )
@@ -71,7 +71,7 @@ class NetworkQueryChatImpl(
     ): Flow<LoadResponse<TribeDto, ResponseError>> =
         networkRelayCall.get(
             url = "https://${host.value}/tribes/${uuid.value}",
-            responseJsonClass = TribeDto::class.java,
+            responseJsonSerializer = TribeDto.serializer(),
         )
 
     override fun getFeedContent(
@@ -85,7 +85,7 @@ class NetworkQueryChatImpl(
             } else {
                 "https://${host.value}/feed?url=${feedUrl.value}"
             },
-            responseJsonClass = FeedDto::class.java,
+            responseJsonSerializer = FeedDto.serializer(),
         )
 
 
@@ -98,10 +98,12 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ChatDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = UpdateChatRelayResponse::class.java,
+            responseJsonSerializer = UpdateChatRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_CHATS/${chatId.value}",
-            requestBodyJsonClass = PutChatDto::class.java,
-            requestBody = putChatDto,
+            requestBodyPair = Pair(
+                putChatDto,
+                PutChatDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -111,10 +113,12 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ChatDto, ResponseError>>  =
         networkRelayCall.relayPut(
-            responseJsonClass = UpdateChatRelayResponse::class.java,
+            responseJsonSerializer = UpdateChatRelayResponse.serializer(),
             relayEndpoint = "/kick/${chatId.value}/${contactId.value}",
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                Map::class.java, // TODO: Create map serializer
+            ),
             relayData = relayData
         )
 
@@ -126,10 +130,12 @@ class NetworkQueryChatImpl(
     relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ChatDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = PostGroupRelayResponse::class.java,
+            responseJsonSerializer = PostGroupRelayResponse.serializer(),
             relayEndpoint = "/group/${chatId.value}",
-            requestBodyJsonClass = PostGroupDto::class.java,
-            requestBody = postGroupDto,
+            requestBodyPair = Pair(
+                postGroupDto,
+                PostGroupDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -141,10 +147,12 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ChatDto?, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = PostGroupRelayResponse::class.java,
+            responseJsonSerializer = PostGroupRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_GROUP,
-            requestBodyJsonClass = PostGroupDto::class.java,
-            requestBody = postGroupDto,
+            requestBodyPair = Pair(
+                postGroupDto,
+                PostGroupDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -153,10 +161,12 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<Any?, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = StreamSatsRelayResponse::class.java,
+            responseJsonSerializer = StreamSatsRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_STREAM_SATS,
-            requestBodyJsonClass = PostStreamSatsDto::class.java,
-            requestBody = postStreamSatsDto,
+            requestBodyPair = Pair(
+                postStreamSatsDto,
+                PostStreamSatsDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -175,10 +185,12 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ChatDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = UpdateChatRelayResponse::class.java,
+            responseJsonSerializer = UpdateChatRelayResponse.serializer(),
             relayEndpoint = endpoint,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                Map.serializer()
+            ),
             relayData = relayData
         )
 
@@ -187,10 +199,12 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ChatDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = JoinTribeRelayResponse::class.java,
+            responseJsonSerializer = JoinTribeRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_TRIBE,
-            requestBodyJsonClass = TribeDto::class.java,
-            requestBody = tribeDto,
+            requestBodyPair = Pair(
+                tribeDto,
+                TribeDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -199,9 +213,9 @@ class NetworkQueryChatImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<Map<String, Long>, ResponseError>> =
         networkRelayCall.relayDelete(
-            responseJsonClass = DeleteChatRelayResponse::class.java,
+            responseJsonSerializer = DeleteChatRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_CHAT/${chatId.value}",
-            requestBody = null,
+            requestBodyPair = null,
             relayData = relayData,
         )
 }

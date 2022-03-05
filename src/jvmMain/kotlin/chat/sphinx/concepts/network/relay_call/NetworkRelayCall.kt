@@ -6,6 +6,7 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.KSerializer
 
 /**
  * Methods for GET/PUT/POST/DELETE that are specific to interacting with Relay.
@@ -32,7 +33,7 @@ abstract class NetworkRelayCall: NetworkCall() {
             T: Any,
             V: RelayResponse<T>
             > relayGet(
-        responseJsonClass: Class<V>,
+        responseJsonSerializer: KSerializer<V>,
         relayEndpoint: String,
         additionalHeaders: Map<String, String>? = null,
         relayData: Pair<AuthorizationToken, RelayUrl>? = null,
@@ -51,18 +52,17 @@ abstract class NetworkRelayCall: NetworkCall() {
      * @param [relayData] if not `null`, will override the auto-fetching of persisted user data
      * */
     abstract fun <
-            T: Any,
-            RequestBody: Any,
-            V: RelayResponse<T>
+            Result: Any,
+            Input: Any,
+            Output: RelayResponse<Result>
             > relayPut(
-        responseJsonClass: Class<V>,
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>? = null,
-        requestBody: RequestBody? = null,
+        requestBodyPair: Pair<Input, KSerializer<Input>>? = null,
         mediaType: String? = "application/json",
         additionalHeaders: Map<String, String>? = null,
         relayData: Pair<AuthorizationToken, RelayUrl>? = null,
-    ): Flow<LoadResponse<T, ResponseError>>
+    ): Flow<LoadResponse<Result, ResponseError>>
 
     // TODO: Remove and replace all uses with post (DO NOT USE THIS METHOD FOR NEW CODE)
     /**
@@ -77,17 +77,14 @@ abstract class NetworkRelayCall: NetworkCall() {
      * */
     @Deprecated(message = "do not use")
     abstract fun <
-            T: Any,
-            RequestBody: Any,
-            V: RelayResponse<T>
+            Result: Any, Input: Any, Output: RelayResponse<Result>
             > relayUnauthenticatedPost(
-        responseJsonClass: Class<V>,
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>,
-        requestBody: RequestBody,
+        requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String? = "application/json",
         relayUrl: RelayUrl,
-    ): Flow<LoadResponse<T, ResponseError>>
+    ): Flow<LoadResponse<Result, ResponseError>>
 
     /**
      * POST
@@ -101,18 +98,15 @@ abstract class NetworkRelayCall: NetworkCall() {
      * @param [relayData] if not `null`, will override the auto-fetching of persisted user data
      * */
     abstract fun <
-            T: Any,
-            RequestBody: Any,
-            V: RelayResponse<T>
+            Result: Any, Input: Any, Output: RelayResponse<Result>
             > relayPost(
-        responseJsonClass: Class<V>,
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>,
-        requestBody: RequestBody,
+        requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String? = "application/json",
         additionalHeaders: Map<String, String>? = null,
         relayData: Pair<AuthorizationToken, RelayUrl>? = null,
-    ): Flow<LoadResponse<T, ResponseError>>
+    ): Flow<LoadResponse<Result, ResponseError>>
 
     /**
      * DELETE
@@ -126,17 +120,14 @@ abstract class NetworkRelayCall: NetworkCall() {
      * @param [relayData] if not `null`, will override the auto-fetching of persisted user data
      * */
     abstract fun <
-            T: Any,
-            RequestBody: Any,
-            V: RelayResponse<T>
+            Result: Any, Input: Any, Output: RelayResponse<Result>
             > relayDelete(
-        responseJsonClass: Class<V>,
+        responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
-        requestBodyJsonClass: Class<RequestBody>? = null,
-        requestBody: RequestBody? = null,
+        requestBodyPair: Pair<Input, KSerializer<Input>>? = null,
         mediaType: String? = null,
         additionalHeaders: Map<String, String>? = null,
         relayData: Pair<AuthorizationToken, RelayUrl>? = null,
-    ): Flow<LoadResponse<T, ResponseError>>
+    ): Flow<LoadResponse<Result, ResponseError>>
 
 }

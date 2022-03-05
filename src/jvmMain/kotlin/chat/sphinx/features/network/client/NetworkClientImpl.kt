@@ -7,6 +7,7 @@ import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.utils.build_config.BuildConfigDebug
 import io.matthewnelson.kmp.tor.manager.TorManager
+import io.matthewnelson.kmp.tor.manager.common.state.TorState
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.Job
@@ -19,6 +20,9 @@ import kotlinx.coroutines.sync.withLock
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.util.concurrent.TimeUnit
 import kotlin.jvm.Volatile
 
 class NetworkClientImpl(
@@ -147,7 +151,7 @@ class NetworkClientImpl(
 
                 if (torManager.isTorRequired() == true) {
 
-                    torManager.startTor()
+                    torManager.start()
 
                     var socksPortJob: Job? = null
                     var torStateJob: Job? = null
@@ -181,7 +185,7 @@ class NetworkClientImpl(
                                     if (state is TorState.Off) {
                                         if (retry >= 0) {
                                             LOG.d(TAG, "Tor failed to start, retrying: $retry")
-                                            torManager.startTor()
+                                            torManager.start()
                                             retry--
                                         } else {
                                             socksPortJob?.cancel()
@@ -228,7 +232,7 @@ class NetworkClientImpl(
                         proxy(null)
                         currentClientSocksProxyAddress = null
 
-                        torManager.stopTor()
+                        torManager.stopQuietly()
 
                         LOG.d(
                             TAG,

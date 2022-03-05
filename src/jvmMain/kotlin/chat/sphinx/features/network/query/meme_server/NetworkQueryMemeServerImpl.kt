@@ -1,6 +1,7 @@
 package chat.sphinx.features.network.query.meme_server
 
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.concepts.network.call.buildRequest
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.*
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
@@ -12,10 +13,7 @@ import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.io_utils.InputStreamProvider
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
-import chat.sphinx.wrapper.meme_server.AuthenticationChallenge
-import chat.sphinx.wrapper.meme_server.AuthenticationId
-import chat.sphinx.wrapper.meme_server.AuthenticationSig
-import chat.sphinx.wrapper.meme_server.AuthenticationToken
+import chat.sphinx.wrapper.meme_server.*
 import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.relay.AuthorizationToken
@@ -29,7 +27,6 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.internal.closeQuietly
 import okio.BufferedSink
-import okio.IOException
 import okio.source
 import okio.use
 import org.cryptonode.jncryptor.AES256JNCryptorOutputStream

@@ -1,13 +1,40 @@
 package chat.sphinx.features.crypto_rsa
 
+import chat.sphinx.concepts.crypto_rsa.KeySize
+import chat.sphinx.concepts.crypto_rsa.RSA
+import chat.sphinx.concepts.crypto_rsa.SignatureAlgorithm
+import chat.sphinx.crypto.common.clazzes.EncryptedString
+import chat.sphinx.crypto.common.clazzes.UnencryptedByteArray
+import chat.sphinx.crypto.common.clazzes.UnencryptedString
+import chat.sphinx.crypto.common.extensions.isValidUTF8
+import chat.sphinx.crypto.common.extensions.toCharArray
+import chat.sphinx.platform.rsajava.RSA_PEM
+import chat.sphinx.response.Response
+import chat.sphinx.response.ResponseError
+import chat.sphinx.wrapper.rsa.*
+import io.ktor.util.*
+import io.ktor.utils.io.core.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.SecureRandom
+import java.security.Signature
+import java.security.interfaces.RSAPrivateKey
+import java.security.interfaces.RSAPublicKey
+import javax.crypto.Cipher
+import kotlin.text.toByteArray
+
 @Suppress("SpellCheckingInspection")
 actual open class RSAImpl : RSA() {
 
+    @OptIn(InternalAPI::class)
     actual override suspend fun generateKeyPair(
-        keySize: chat.sphinx.concepts.crypto_rsa.KeySize,
-        dispatcher: kotlinx.coroutines.CoroutineDispatcher?,
-        pkcsType: chat.sphinx.wrapper.rsa.PKCSType
-    ): chat.sphinx.response.Response<chat.sphinx.wrapper.rsa.RSAKeyPair, chat.sphinx.response.ResponseError> {
+        keySize: KeySize,
+        dispatcher: CoroutineDispatcher?,
+        pkcsType: PKCSType
+    ): Response<RSAKeyPair, ResponseError> {
         try {
             val generator: KeyPairGenerator = KeyPairGenerator.getInstance(RSAAlgorithm.ALGORITHM_RSA)
             generator.initialize(keySize.value, SecureRandom())
@@ -21,8 +48,8 @@ actual open class RSAImpl : RSA() {
             if (pkcsType is PKCSType.PKCS8) {
                 return Response.Success(
                     RSAKeyPair(
-                        RsaPrivateKey(keys.private.encoded.encodeBase64ToByteArray().toCharArray()),
-                        RsaPublicKey(keys.public.encoded.encodeBase64ToByteArray().toCharArray())
+                        RsaPrivateKey(keys.private.encoded.encodeBase64().toCharArray()),
+                        RsaPublicKey(keys.public.encoded.encodeBase64().toCharArray())
                     )
                 ).also {
                     keys.private.encoded?.fill('0'.code.toByte())
@@ -46,18 +73,19 @@ actual open class RSAImpl : RSA() {
         }
     }
 
+    @OptIn(InternalAPI::class)
     actual override suspend fun decrypt(
-        rsaPrivateKey: chat.sphinx.wrapper.rsa.RsaPrivateKey,
-        text: chat.sphinx.crypto.common.clazzes.EncryptedString,
-        dispatcher: kotlinx.coroutines.CoroutineDispatcher
-    ): chat.sphinx.response.Response<chat.sphinx.crypto.common.clazzes.UnencryptedByteArray, chat.sphinx.response.ResponseError>  {
+        rsaPrivateKey: RsaPrivateKey,
+        text: EncryptedString,
+        dispatcher: CoroutineDispatcher
+    ): Response<UnencryptedByteArray, ResponseError>  {
         if (text.value.isEmpty()) {
             return Response.Error(
                 ResponseError("EncryptedString was empty")
             )
         }
 
-        val dataBytes: ByteArray = text.value.decodeBase64ToArray()
+        val dataBytes: ByteArray = text.value.decodeBase64Bytes()
             ?: return Response.Error(
                 ResponseError("EncryptedString was not base64 encoded")
             )
@@ -154,12 +182,13 @@ actual open class RSAImpl : RSA() {
         }
     }
 
+    @OptIn(InternalAPI::class)
     actual override suspend fun encrypt(
-        rsaPublicKey: chat.sphinx.wrapper.rsa.RsaPublicKey,
-        text: chat.sphinx.crypto.common.clazzes.UnencryptedString,
+        rsaPublicKey: RsaPublicKey,
+        text: UnencryptedString,
         formatOutput: Boolean,
-        dispatcher: kotlinx.coroutines.CoroutineDispatcher
-    ): chat.sphinx.response.Response<chat.sphinx.crypto.common.clazzes.EncryptedString, chat.sphinx.response.ResponseError> {
+        dispatcher:CoroutineDispatcher
+    ): Response<EncryptedString, ResponseError> {
         if (text.value.isEmpty()) {
             return Response.Error(
                 ResponseError("UnencryptedString was empty")
@@ -232,11 +261,11 @@ actual open class RSAImpl : RSA() {
     }
 
     actual override suspend fun sign(
-        rsaPrivateKey: chat.sphinx.wrapper.rsa.RsaPrivateKey,
+        rsaPrivateKey: RsaPrivateKey,
         text: String,
-        algorithm: chat.sphinx.concepts.crypto_rsa.SignatureAlgorithm,
-        dispatcher: kotlinx.coroutines.CoroutineDispatcher
-    ): chat.sphinx.response.Response<chat.sphinx.wrapper.rsa.RsaSignedString, chat.sphinx.response.ResponseError> {
+        algorithm: SignatureAlgorithm,
+        dispatcher: CoroutineDispatcher
+    ): Response<RsaSignedString, ResponseError> {
         if (text.isEmpty()) {
             return Response.Error(
                 ResponseError("String value to sign was empty")
@@ -270,11 +299,11 @@ actual open class RSAImpl : RSA() {
     }
 
     actual override suspend fun verifySignature(
-        rsaPublicKey: chat.sphinx.wrapper.rsa.RsaPublicKey,
-        signedString: chat.sphinx.wrapper.rsa.RsaSignedString,
-        algorithm: chat.sphinx.concepts.crypto_rsa.SignatureAlgorithm,
-        dispatcher: kotlinx.coroutines.CoroutineDispatcher
-    ): chat.sphinx.response.Response<Boolean, chat.sphinx.response.ResponseError> {
+        rsaPublicKey: RsaPublicKey,
+        signedString: RsaSignedString,
+        algorithm: SignatureAlgorithm,
+        dispatcher: CoroutineDispatcher
+    ): Response<Boolean, ResponseError> {
         if (signedString.signature.value.isEmpty()) {
             return Response.Error(
                 ResponseError("RsaSignature was empty")

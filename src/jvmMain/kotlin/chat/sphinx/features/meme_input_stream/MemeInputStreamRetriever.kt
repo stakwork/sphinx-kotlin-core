@@ -2,26 +2,30 @@ package chat.sphinx.features.meme_input_stream
 
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.network.client.crypto.CryptoHeader
+import chat.sphinx.concepts.network.client.crypto.CryptoScheme
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
+import chat.sphinx.wrapper.meme_server.headerKey
+import chat.sphinx.wrapper.meme_server.headerValue
 import chat.sphinx.wrapper.message.media.MediaKeyDecrypted
 import com.stakwork.koi.InputStream
-import io.ktor.client.*
 import io.ktor.http.*
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.internal.closeQuietly
 
 
 internal data class MemeInputStreamRetriever(
-    val url: Url,
+    val url: HttpUrl,
     val authenticationToken: AuthenticationToken?,
     val mediaKeyDecrypted: MediaKeyDecrypted?
 ) {
     @Suppress("BlockingMethodInNonBlockingContext")
     suspend fun getMemeInputStream(
         dispatchers: CoroutineDispatchers,
-        okHttpClient: HttpClient
+        okHttpClient: OkHttpClient
     ): InputStream? {
         val request = Request.Builder().apply {
             url(url)

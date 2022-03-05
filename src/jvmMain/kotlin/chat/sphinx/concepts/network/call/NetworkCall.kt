@@ -4,6 +4,8 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.io.errors.IOException
+import kotlinx.serialization.KSerializer
+import okhttp3.Request
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(IllegalArgumentException::class)
@@ -38,7 +40,7 @@ abstract class NetworkCall {
      * */
     abstract fun <T: Any> get(
         url: String,
-        responseJsonClass: Class<T>,
+        responseJsonSerializer: KSerializer<T>,
         headers: Map<String, String>? = null,
         useExtendedNetworkCallClient: Boolean = false,
     ): Flow<LoadResponse<T, ResponseError>>
@@ -67,14 +69,13 @@ abstract class NetworkCall {
      * @param [mediaType] the media type for the request body, defaults to "application/json"
      * @param [headers] any headers that need to be added to the request
      * */
-    abstract fun <T: Any, RequestBody: Any> put(
+    abstract fun <Result: Any, Input: Any> put(
         url: String,
-        responseJsonClass: Class<T>,
-        requestBodyJsonClass: Class<RequestBody>? = null,
-        requestBody: RequestBody? = null,
+        responseJsonSerializer: KSerializer<Result>,
+        requestBodyPair: Pair<Input, KSerializer<Input>>?,
         mediaType: String? = "application/json",
         headers: Map<String, String>? = null,
-    ): Flow<LoadResponse<T, ResponseError>>
+    ): Flow<LoadResponse<Result, ResponseError>>
 
     /**
      * POST
@@ -86,14 +87,13 @@ abstract class NetworkCall {
      * @param [mediaType] the media type for the request body, defaults to "application/json"
      * @param [headers] any headers that need to be added to the request
      * */
-    abstract fun <T: Any, RequestBody: Any> post(
+    abstract fun <Result: Any, Input: Any> post(
         url: String,
-        responseJsonClass: Class<T>,
-        requestBodyJsonClass: Class<RequestBody>,
-        requestBody: RequestBody,
+        responseJsonSerializer: KSerializer<Result>,
+        requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String? = "application/json",
         headers: Map<String, String>? = null,
-    ): Flow<LoadResponse<T, ResponseError>>
+    ): Flow<LoadResponse<Result, ResponseError>>
 
     /**
      * DELETE
@@ -105,18 +105,17 @@ abstract class NetworkCall {
      * @param [mediaType] OPTIONAL: the media type for the request body
      * @param [headers] any headers that need to be added to the request
      * */
-    abstract fun <T: Any, RequestBody: Any> delete(
+    abstract fun <Result: Any, Input: Any> delete(
         url: String,
-        responseJsonClass: Class<T>,
-        requestBodyJsonClass: Class<RequestBody>? = null,
-        requestBody: RequestBody? = null,
+        responseJsonSerializer: KSerializer<Result>,
+        requestBodyPair: Pair<Input, KSerializer<Input>>? = null,
         mediaType: String? = null,
         headers: Map<String, String>? = null,
-    ): Flow<LoadResponse<T, ResponseError>>
+    ): Flow<LoadResponse<Result, ResponseError>>
 
     @Throws(NullPointerException::class, IOException::class)
     abstract suspend fun <T: Any> call(
-        responseJsonClass: Class<T>,
+        responseJsonSerializer: KSerializer<T>,
         request: Request,
         useExtendedNetworkCallClient: Boolean = false
     ): T

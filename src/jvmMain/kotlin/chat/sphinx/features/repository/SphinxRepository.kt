@@ -94,6 +94,8 @@ import chat.sphinx.wrapper.rsa.RsaPublicKey
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import com.soywiz.klock.Date
+import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
@@ -105,6 +107,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.core.toByteArray
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.math.absoluteValue
 import kotlin.text.toCharArray
 
@@ -1615,8 +1620,7 @@ abstract class SphinxRepository(
 
                         val balanceDto: BalanceDto? = try {
                             withContext(default) {
-                                moshi.adapter(BalanceDto::class.java)
-                                    .fromJson(balanceJsonString)
+                                Json.decodeFromString(balanceJsonString)
                             }
                         } catch (e: Exception) {
                             null
@@ -1648,8 +1652,7 @@ abstract class SphinxRepository(
 
                         try {
                             val jsonString: String = withContext(default) {
-                                moshi.adapter(BalanceDto::class.java)
-                                    .toJson(loadResponse.value)
+                                Json.encodeToString(loadResponse.value)
                             } ?: throw NullPointerException("Converting BalanceDto to Json failed")
 
                             balanceLock.withLock {
@@ -3325,7 +3328,7 @@ abstract class SphinxRepository(
         chatLock.withLock {
             withContext(io) {
                 queries.chatUpdateContentSeenAt(
-                    DateTime(Date()),
+                    DateTime(DateTimeTz.nowLocal()),
                     chatId
                 )
             }
@@ -4234,7 +4237,7 @@ abstract class SphinxRepository(
 
     override suspend fun didCancelRestore() {
         val now = DateTime.getFormatRelay().format(
-            Date(DateTime.getToday00().time)
+            Date(DateTime.getToday00())
         )
 
         authenticationStorage.putString(
@@ -4510,22 +4513,23 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            moshi.adapter(DeletePeopleProfileDto::class.java).fromJson(body)
-                ?.let { deletePeopleProfileDto ->
-                    networkQuerySaveProfile.deletePeopleProfile(
-                        deletePeopleProfileDto
-                    ).collect { loadResponse ->
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {
-                            }
-                            is Response.Error -> {
-                            }
-                            is Response.Success -> {
-                                response = Response.Success(true)
-                            }
+            Json.decodeFromString<DeletePeopleProfileDto>(
+                body
+            ).let { deletePeopleProfileDto ->
+                networkQuerySaveProfile.deletePeopleProfile(
+                    deletePeopleProfileDto
+                ).collect { loadResponse ->
+                    when (loadResponse) {
+                        is LoadResponse.Loading -> {
+                        }
+                        is Response.Error -> {
+                        }
+                        is Response.Success -> {
+                            response = Response.Success(true)
                         }
                     }
                 }
+            }
         }.join()
 
         return response ?: Response.Error(ResponseError("Profile delete failed"))
@@ -4537,7 +4541,7 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            moshi.adapter(PeopleProfileDto::class.java).fromJson(body)?.let { profile ->
+            Json.decodeFromString<PeopleProfileDto>(body)?.let { profile ->
                 networkQuerySaveProfile.savePeopleProfile(
                     profile
                 ).collect { saveProfileResponse ->

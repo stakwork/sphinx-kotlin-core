@@ -79,13 +79,26 @@ kotlin {
             }
         }
         val jvmMain by getting {
+            val okHttpVersion = "4.9.3"
+
             dependencies {
                 api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.1.16")
-                implementation("com.squareup.okhttp3:okhttp:4.9.3")
+                api("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
+                implementation("com.squareup.okhttp3:okhttp:$okHttpVersion")
+                implementation("com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
+                implementation("org.jsoup:jsoup:1.14.3")
+                implementation("com.squareup.sqldelight:sqlite-driver:1.5.3")
+                implementation("io.socket:socket.io-client:1.0.0")
+                implementation("io.socket:engine.io-client:1.0.0")
+                implementation("org.cryptonode.jncryptor:jncryptor:1.2.0")
             }
         }
         val jvmTest by getting
-        val nativeMain by getting
+        val nativeMain by getting {
+            dependencies {
+                implementation("com.squareup.sqldelight:native-driver:1.5.3")
+            }
+        }
         val nativeTest by getting
     }
 }

@@ -13,8 +13,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.io.errors.IOException
-import okio.BufferedSink
-import okio.Source
+import okio.*
+import kotlin.io.use
 
 class MediaCacheHandlerImpl(
     private val applicationScope: CoroutineScope,

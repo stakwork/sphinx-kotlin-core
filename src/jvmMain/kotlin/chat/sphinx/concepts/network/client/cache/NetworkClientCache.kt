@@ -1,7 +1,7 @@
 package chat.sphinx.concepts.network.client.cache
 
 import chat.sphinx.concepts.network.client.NetworkClient
-import io.ktor.client.*
+import okhttp3.OkHttpClient
 
 abstract class NetworkClientCache: NetworkClient() {
 
@@ -9,5 +9,5 @@ abstract class NetworkClientCache: NetworkClient() {
         const val MAX_STALE_VALUE = 60 * 60 * 24 * 30 // 1 month
     }
 
-    abstract suspend fun getCachingClient(): HttpClient
+    abstract suspend fun getCachingClient(): OkHttpClient
 }

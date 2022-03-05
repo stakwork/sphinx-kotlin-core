@@ -23,10 +23,9 @@
 * */
 package chat.sphinx.platform.rsajava
 
-import okio.base64.decodeBase64ToArray
-import okio.base64.encodeBase64ToByteArray
-import okio.base64.encodeBase64
-import okio.base64.Base64
+import chat.sphinx.crypto.common.extensions.toByteArray
+import com.soywiz.krypto.encoding.base64
+import io.ktor.util.*
 import java.io.ByteArrayOutputStream
 import java.lang.Exception
 import java.lang.RuntimeException
@@ -40,6 +39,7 @@ import java.security.spec.RSAPrivateKeySpec
 import java.security.spec.RSAPublicKeySpec
 import java.util.regex.Pattern
 import kotlin.experimental.and
+import kotlin.text.toCharArray
 
 /**
  * RSA PEM格式秘钥对的解析和导出
@@ -52,35 +52,35 @@ import kotlin.experimental.and
 actual class RSA_PEM {
     /**modulus 模数，公钥、私钥都有 */
     @JvmField
-    var Key_Modulus: ByteArray? = null
+    actual var Key_Modulus: ByteArray? = null
 
     /**publicExponent 公钥指数，公钥、私钥都有 */
     @JvmField
-    var Key_Exponent: ByteArray? = null
+    actual var Key_Exponent: ByteArray? = null
 
     /**privateExponent 私钥指数，只有私钥的时候才有 */
     @JvmField
-    var Key_D: ByteArray? = null
+    actual var Key_D: ByteArray? = null
     //以下参数只有私钥才有 https://docs.microsoft.com/zh-cn/dotnet/api/system.security.cryptography.rsaparameters?redirectedfrom=MSDN&view=netframework-4.8
     /**prime1 */
     @JvmField
-    var Val_P: ByteArray? = null
+    actual var Val_P: ByteArray? = null
 
     /**prime2 */
     @JvmField
-    var Val_Q: ByteArray? = null
+    actual var Val_Q: ByteArray? = null
 
     /**exponent1 */
     @JvmField
-    var Val_DP: ByteArray? = null
+    actual var Val_DP: ByteArray? = null
 
     /**exponent2 */
     @JvmField
-    var Val_DQ: ByteArray? = null
+    actual var Val_DQ: ByteArray? = null
 
     /**coefficient */
     @JvmField
-    var Val_InverseQ: ByteArray? = null
+    actual var Val_InverseQ: ByteArray? = null
 
     private constructor() {}
 
@@ -198,6 +198,7 @@ actual class RSA_PEM {
         return ToPEM_Bytes(convertToPublic, true, true)
     }
 
+    @OptIn(InternalAPI::class)
     @Throws(Exception::class)
     fun ToPEM_Bytes(
         convertToPublic: Boolean,
@@ -249,7 +250,8 @@ actual class RSA_PEM {
                 byts = writeLen(index2, byts, ms)
             }
             byts = writeLen(index1, byts, ms)
-            byts.encodeBase64ToByteArray(Base64.Default)
+            byts.encodeBase64().decodeBase64Bytes()
+//            byts.encodeBase64ToByteArray(Base64.Default)
         } else {
             /****生成私钥 */
 
@@ -297,7 +299,8 @@ actual class RSA_PEM {
                 byts = writeLen(index2, byts, ms)
             }
             byts = writeLen(index1, byts, ms)
-            byts.encodeBase64ToByteArray(Base64.Default)
+            byts.base64.encodeToByteArray()
+//            byts.encodeBase64ToByteArray(Base64.Default)
         }
     }
 
@@ -354,28 +357,29 @@ actual class RSA_PEM {
      * 将RSA中的密钥对转换成XML格式
      * ，如果convertToPublic含私钥的RSA将只返回公钥，仅含公钥的RSA不受影响
      */
+    @OptIn(InternalAPI::class)
     fun ToXML(convertToPublic: Boolean): String {
         val str = StringBuilder()
         str.append("<RSAKeyValue>")
-        str.append("<Modulus>" + Key_Modulus!!.encodeBase64(Base64.Default) + "</Modulus>")
-        str.append("<Exponent>" + Key_Exponent!!.encodeBase64(Base64.Default) + "</Exponent>")
+        str.append("<Modulus>" + Key_Modulus!!.encodeBase64() + "</Modulus>")
+        str.append("<Exponent>" + Key_Exponent!!.encodeBase64() + "</Exponent>")
         if (Key_D == null || convertToPublic) {
             /****生成公钥 */
             //NOOP
         } else {
             /****生成私钥 */
-            str.append("<P>" + Val_P!!.encodeBase64(Base64.Default) + "</P>")
-            str.append("<Q>" + Val_Q!!.encodeBase64(Base64.Default) + "</Q>")
-            str.append("<DP>" + Val_DP!!.encodeBase64(Base64.Default) + "</DP>")
-            str.append("<DQ>" + Val_DQ!!.encodeBase64(Base64.Default) + "</DQ>")
-            str.append("<InverseQ>" + Val_InverseQ!!.encodeBase64(Base64.Default) + "</InverseQ>")
-            str.append("<D>" + Key_D!!.encodeBase64(Base64.Default) + "</D>")
+            str.append("<P>" + Val_P!!.encodeBase64() + "</P>")
+            str.append("<Q>" + Val_Q!!.encodeBase64() + "</Q>")
+            str.append("<DP>" + Val_DP!!.encodeBase64() + "</DP>")
+            str.append("<DQ>" + Val_DQ!!.encodeBase64() + "</DQ>")
+            str.append("<InverseQ>" + Val_InverseQ!!.encodeBase64() + "</InverseQ>")
+            str.append("<D>" + Key_D!!.encodeBase64() + "</D>")
         }
         str.append("</RSAKeyValue>")
         return str.toString()
     }
 
-    companion object {
+    actual companion object {
         /**转成正整数，如果是负数，需要加前导0转成正整数 */
         fun BigX(bigb: ByteArray?): BigInteger {
             var bigb = bigb
@@ -443,9 +447,9 @@ actual class RSA_PEM {
         }
 
         @Throws(Exception::class)
-        fun FromPEM(base64: CharArray, privateKey: Boolean): RSA_PEM {
+        actual fun FromPEM(base64: CharArray, privateKey: Boolean): RSA_PEM {
             val param = RSA_PEM()
-            val dataX = base64.decodeBase64ToArray() ?: throw Exception("PEM内容无效")
+            val dataX = base64.toByteArray() ?: throw Exception("PEM内容无效")
             val data = ShortArray(dataX.size) //转成正整数的bytes数组，不然byte是负数难搞
             for (i in dataX.indices) {
                 data[i] = (dataX[i] and 0xff.toByte()) as Short
@@ -681,6 +685,7 @@ actual class RSA_PEM {
         /***
          * 将XML格式密钥转成PEM，支持公钥xml、私钥xml
          */
+        @OptIn(InternalAPI::class)
         @JvmStatic
         @Throws(Exception::class)
         fun FromXML(xml: String?): RSA_PEM {
@@ -694,7 +699,7 @@ actual class RSA_PEM {
             while (tagM.find()) {
                 val tag = tagM.group(1)
                 val b64 = tagM.group(2)
-                val `val` = b64.decodeBase64ToArray()
+                val `val` = b64.decodeBase64Bytes()
                 when (tag) {
                     "Modulus" -> rtv.Key_Modulus = `val`
                     "Exponent" -> rtv.Key_Exponent = `val`

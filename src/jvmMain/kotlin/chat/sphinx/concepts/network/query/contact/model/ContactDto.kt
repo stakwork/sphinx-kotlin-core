@@ -1,8 +1,9 @@
 package chat.sphinx.concepts.network.query.contact.model
 
 import chat.sphinx.concepts.network.query.invite.model.InviteDto
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
-import kotlin.jvm.Transient
+import kotlinx.serialization.Transient
 
 @Serializable
 data class ContactDto(
@@ -12,21 +13,21 @@ data class ContactDto(
     val node_alias: String?,
     val alias: String?,
     val photo_url: String?,
-    val private_photo: Any?,
-    val is_owner: Any?,
-    val deleted: Any?,
+    val private_photo: @Polymorphic Any?,
+    val is_owner: @Polymorphic Any?,
+    val deleted: @Polymorphic Any?,
     val auth_token: String?,
     val status: Int?,
     val contact_key: String?,
     val device_id: String?,
     val created_at: String,
     val updated_at: String,
-    val from_group: Any?,
+    val from_group: @Polymorphic Any?,
     val notification_sound: String?,
     val tip_amount: Long?,
     val invite: InviteDto?,
-    val pending: Any?,
-    val blocked: Any?,
+    val pending: @Polymorphic Any?,
+    val blocked: @Polymorphic Any?,
 ) {
     @Transient
     val privatePhotoActual: Boolean =

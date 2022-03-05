@@ -1,5 +1,6 @@
 package chat.sphinx.concepts.network.query.meme_server.model
 
+import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -38,7 +39,7 @@ data class PostMemeServerUploadDto(
     val expiry: String?,
     val width: Long,
     val height: Long,
-    val template: Any?,
+    val template: @Polymorphic Any?,
 ) {
     @Transient
     val templateActual: Boolean =
