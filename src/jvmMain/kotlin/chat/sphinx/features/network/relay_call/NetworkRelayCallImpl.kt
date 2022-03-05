@@ -18,6 +18,7 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
@@ -25,7 +26,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.Serializer
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -140,7 +143,7 @@ class NetworkRelayCallImpl(
     
     override fun <T: Any> getList(
         url: String,
-        responseJsonClass: Class<T>,
+        responseJsonSerializer: KSerializer<T>,
         headers: Map<String, String>?,
         useExtendedNetworkCallClient: Boolean,
     ): Flow<LoadResponse<List<T>, ResponseError>> = flow {
@@ -150,7 +153,7 @@ class NetworkRelayCallImpl(
         try {
             val requestBuilder = buildRequest(url, headers)
 
-            val response = callList(responseJsonClass, requestBuilder.build(), useExtendedNetworkCallClient)
+            val response = callList(responseJsonSerializer, requestBuilder.build(), useExtendedNetworkCallClient)
 
             emit(Response.Success(response))
         } catch (e: Exception) {
@@ -304,7 +307,7 @@ class NetworkRelayCallImpl(
 
     @Throws(NullPointerException::class, IOException::class)
     override suspend fun <T: Any> callList(
-        responseJsonClass: Class<T>,
+        responseJsonSerializer: KSerializer<T>,
         request: Request,
         useExtendedNetworkCallClient: Boolean
     ): List<T> {
@@ -340,13 +343,14 @@ class NetworkRelayCallImpl(
             """.trimIndent()
         )
 
-        val listMyData = Types.newParameterizedType(List::class.java, responseJsonClass)
-
         return withContext(default) {
-            moshi.adapter<List<T>>(listMyData).fromJson(body.source())
+            Json.decodeFromString(
+                ListSerializer(responseJsonSerializer),
+                body.string()
+            )
         } ?: throw IOException(
             """
-                Failed to convert Json to ${responseJsonClass.simpleName}
+                Failed to convert Json to ${responseJsonSerializer::class.simpleName}
                 NetworkResponse: $networkResponse
             """.trimIndent()
         )
@@ -511,11 +515,8 @@ class NetworkRelayCallImpl(
         callMethod: String,
         endpoint: String,
     ): Flow<LoadResponse<T, ResponseError>> = flow {
-
         flow.collect { loadResponse ->
-
-            Exhaustive@
-            when (loadResponse) {
+            when(loadResponse) {
                 is LoadResponse.Loading -> {
                     emit(loadResponse)
                 }
@@ -523,7 +524,6 @@ class NetworkRelayCallImpl(
                     emit(loadResponse)
                 }
                 is Response.Success -> {
-
                     if (loadResponse.value.success) {
 
                         loadResponse.value.response?.let { nnResponse ->
@@ -541,23 +541,17 @@ class NetworkRelayCallImpl(
                             emit(handleException(LOG, callMethod, endpoint, NullPointerException(msg)))
 
                         }
-
                     } else {
-
                         val msg = """
                                     RelayResponse.success: false
                                     RelayResponse.error: ${loadResponse.value.error}
                                 """.trimIndent()
 
                         emit(handleException(LOG, callMethod, endpoint, Exception(msg)))
-
                     }
                 }
-
             }
-
         }
-
     }
 
 }

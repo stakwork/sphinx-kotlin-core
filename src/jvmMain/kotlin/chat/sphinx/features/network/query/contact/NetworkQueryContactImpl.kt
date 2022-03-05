@@ -17,6 +17,7 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.serialization.PolymorphicSerializer
 
 class NetworkQueryContactImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -56,7 +57,7 @@ class NetworkQueryContactImpl(
             getContactsFlowNullData
         } else {
             networkRelayCall.relayGet(
-                responseJsonClass = GetContactsRelayResponse::class.java,
+                responseJsonSerializer = GetContactsRelayResponse.serializer(),
                 relayEndpoint = "$ENDPOINT_CONTACTS?from_group=false",
                 relayData = relayData,
                 useExtendedNetworkCallClient = true,
@@ -68,7 +69,7 @@ class NetworkQueryContactImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<GetLatestContactsResponse, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = GetLatestContactsRelayResponse::class.java,
+            responseJsonSerializer = GetLatestContactsRelayResponse.serializer(),
             relayEndpoint = if (date != null) {
                 "$ENDPOINT_LATEST_CONTACTS?date=${MessagePagination.getFormatPaginationPercentEscaped().format(date?.value)}"
             } else {
@@ -85,7 +86,7 @@ class NetworkQueryContactImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<GetTribeMembersResponse, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = GetTribeMembersRelayResponse::class.java,
+            responseJsonSerializer = GetTribeMembersRelayResponse.serializer(),
             relayEndpoint = "/contacts/${chatId.value}?offset=$offset&limit=$limit",
             relayData = relayData
         )
@@ -99,10 +100,12 @@ class NetworkQueryContactImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = ContactRelayResponse::class.java,
+            responseJsonSerializer = ContactRelayResponse.serializer(),
             relayEndpoint = "/contacts/${contactId.value}",
-            requestBodyJsonClass = PutContactDto::class.java,
-            requestBody = putContactDto,
+            requestBodyPair = Pair(
+                putContactDto,
+                PutContactDto.serializer()
+            ),
             relayData = relayData,
         )
 
@@ -121,10 +124,12 @@ class NetworkQueryContactImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = ContactRelayResponse::class.java,
+            responseJsonSerializer = ContactRelayResponse.serializer(),
             relayEndpoint = endpoint,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            Pair(
+                mapOf(Pair("", "")),
+                PolymorphicSerializer(Map::class)
+            ),
             relayData = relayData
         )
 
@@ -141,13 +146,15 @@ class NetworkQueryContactImpl(
         pubkey: String?
     ): Flow<LoadResponse<GenerateTokenResponse, ResponseError>> {
         return networkRelayCall.relayUnauthenticatedPost(
-            responseJsonClass = GenerateTokenRelayResponse::class.java,
+            responseJsonSerializer = GenerateTokenRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_GENERATE_TOKEN,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(
-                Pair("token", token.value),
-                Pair("password", password),
-                Pair("pubkey", pubkey),
+            requestBodyPair = Pair(
+                mapOf(
+                    Pair("token", token.value),
+                    Pair("password", password),
+                    Pair("pubkey", pubkey),
+                ),
+                PolymorphicSerializer(Map::class)
             ),
             relayUrl = relayUrl
         )
@@ -158,10 +165,12 @@ class NetworkQueryContactImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = ContactRelayResponse::class.java,
+            responseJsonSerializer = ContactRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_CONTACTS,
-            requestBodyJsonClass = PostContactDto::class.java,
-            requestBody = postContactDto,
+            requestBodyPair = Pair(
+                postContactDto,
+                PostContactDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -176,12 +185,12 @@ class NetworkQueryContactImpl(
         var response: Response<Any, ResponseError> = Response.Success(true)
 
         networkRelayCall.relayDelete(
-            DeleteContactRelayResponse::class.java,
+            responseJsonSerializer = DeleteContactRelayResponse.serializer(),
             "/contacts/${contactId.value}",
-            requestBody = null
+//            requestBodyPair = null
         ).collect { loadResponse ->
             if (loadResponse is Response.Error<*>) {
-                response = loadResponse
+                response = loadResponse as Response<Any, ResponseError>
             }
         }
 
@@ -194,12 +203,14 @@ class NetworkQueryContactImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = CreateInviteRelayResponse::class.java,
+            responseJsonSerializer = CreateInviteRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_CREATE_INVITE,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(
-                Pair("nickname", nickname),
-                Pair("welcome_message", welcomeMessage),
+            requestBodyPair = Pair(
+                mapOf(
+                    Pair("nickname", nickname),
+                    Pair("welcome_message", welcomeMessage),
+                ),
+                PolymorphicSerializer(Map::class)
             ),
             relayData = relayData
         )

@@ -32,7 +32,7 @@ class NetworkQueryFeedSearchImpl(
                 "$TRIBES_DEFAULT_SERVER_URL/search_podcasts?q=$searchTerm"
             else
                 "$TRIBES_DEFAULT_SERVER_URL/search_youtube?q=$searchTerm",
-            responseJsonClass = FeedSearchResultDto::class.java,
+            responseJsonSerializer = FeedSearchResultDto.serializer(),
         )
 
 }

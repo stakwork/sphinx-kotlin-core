@@ -13,6 +13,7 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.PolymorphicSerializer
 
 class NetworkQueryAuthorizeExternalImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -26,10 +27,12 @@ class NetworkQueryAuthorizeExternalImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<VerifyExternalDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = VerifyExternalRelayResponse::class.java,
+            responseJsonSerializer = VerifyExternalRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_VERIFY_EXTERNAL,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                PolymorphicSerializer(Map::class)
+            ),
             relayData = relayData
         )
 
@@ -38,7 +41,7 @@ class NetworkQueryAuthorizeExternalImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<SignBase64Dto, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = SignBase64RelayResponse::class.java,
+            responseJsonSerializer = SignBase64RelayResponse.serializer(),
             relayEndpoint = "/signer/$base64" ,
             relayData = relayData
         )
@@ -51,9 +54,11 @@ class NetworkQueryAuthorizeExternalImpl(
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.post(
             url = "https://$host/verify/$challenge?token=$token",
-            responseJsonClass = Any::class.java,
-            requestBodyJsonClass = VerifyExternalInfoDto::class.java,
-            requestBody = info,
+            responseJsonSerializer = PolymorphicSerializer(Any::class) ,
+            requestBodyPair = Pair(
+                info,
+                VerifyExternalInfoDto.serializer()
+            )
         )
 
     override fun getPersonInfo(
@@ -62,6 +67,6 @@ class NetworkQueryAuthorizeExternalImpl(
     ): Flow<LoadResponse<PersonInfoDto, ResponseError>> =
         networkRelayCall.get(
             url = "https://$host/person/$publicKey",
-            responseJsonClass = PersonInfoDto::class.java,
+            responseJsonSerializer = PersonInfoDto.serializer(),
         )
 }

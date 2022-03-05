@@ -1,5 +1,8 @@
 package chat.sphinx.concepts.network.query.verify_external.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class PersonInfoDto(
     val owner_pubkey: String,
     val owner_alias: String,

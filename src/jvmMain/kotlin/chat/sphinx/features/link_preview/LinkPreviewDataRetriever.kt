@@ -10,7 +10,6 @@ import chat.sphinx.features.link_preview.util.getFavIconUrl
 import chat.sphinx.features.link_preview.util.getImageUrl
 import chat.sphinx.features.link_preview.util.getTitle
 import chat.sphinx.response.LoadResponse
-import chat.sphinx.response.Response
 import chat.sphinx.wrapper.chat.ChatHost
 import chat.sphinx.wrapper.chat.ChatUUID
 import chat.sphinx.wrapper.tribe.TribeJoinLink
@@ -23,6 +22,8 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
+import okhttp3.internal.closeQuietly
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import kotlin.jvm.Volatile
@@ -131,8 +132,8 @@ internal class TribePreviewDataRetriever(val tribeJoinLink: TribeJoinLink): Link
             Exhaustive@
             when (response) {
                 is LoadResponse.Loading -> {}
-                is Response.Error -> {}
-                is Response.Success -> {
+                is chat.sphinx.response.Response.Error -> {}
+                is chat.sphinx.response.Response.Success -> {
                     data = TribePreviewData(
                         TribePreviewName(response.value.name),
                         response.value.description.toPreviewDescriptionOrNull(),

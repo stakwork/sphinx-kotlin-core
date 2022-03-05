@@ -31,7 +31,7 @@ class NetworkQuerySaveProfileImpl(
                 host,
                 key
             ),
-            responseJsonClass = GetPeopleProfileDto::class.java,
+            responseJsonSerializer = GetPeopleProfileDto.serializer(),
         )
 
 
@@ -41,9 +41,11 @@ class NetworkQuerySaveProfileImpl(
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.relayPost(
             relayEndpoint = ENDPOINT_PROFILE,
-            requestBody = profile,
-            requestBodyJsonClass = PeopleProfileDto::class.java,
-            responseJsonClass = SaveProfileResponse::class.java,
+            requestBodyPair = Pair(
+                profile,
+                PeopleProfileDto.serializer()
+            ),
+            responseJsonSerializer = SaveProfileResponse.serializer(),
             relayData = relayData
         )
 
@@ -53,9 +55,11 @@ class NetworkQuerySaveProfileImpl(
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.relayDelete(
             relayEndpoint = ENDPOINT_PROFILE,
-            requestBody = deletePeopleProfileDto,
-            requestBodyJsonClass = DeletePeopleProfileDto::class.java,
-            responseJsonClass = SaveProfileResponse::class.java,
+            requestBodyPair = Pair(
+                deletePeopleProfileDto,
+                DeletePeopleProfileDto.serializer()
+            ),
+            responseJsonSerializer = SaveProfileResponse.serializer(),
             relayData = relayData,
             additionalHeaders = mapOf("Content-Type" to "application/json;charset=utf-8")
         )

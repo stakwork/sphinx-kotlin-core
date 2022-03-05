@@ -41,7 +41,7 @@ class NetworkQueryLightningImpl(
     ///////////
     private val getInvoicesFlowNullData: Flow<LoadResponse<InvoicesDto, ResponseError>> by lazy {
         networkRelayCall.relayGet(
-            responseJsonClass = GetInvoicesRelayResponse::class.java,
+            responseJsonSerializer = GetInvoicesRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_INVOICES,
             relayData = null
         )
@@ -54,7 +54,7 @@ class NetworkQueryLightningImpl(
             getInvoicesFlowNullData
         } else {
             networkRelayCall.relayGet(
-                responseJsonClass = GetInvoicesRelayResponse::class.java,
+                responseJsonSerializer = GetInvoicesRelayResponse.serializer(),
                 relayEndpoint = ENDPOINT_INVOICES,
                 relayData = relayData
             )
@@ -62,7 +62,7 @@ class NetworkQueryLightningImpl(
 
     private val getChannelsFlowNullData: Flow<LoadResponse<ChannelsDto, ResponseError>> by lazy {
         networkRelayCall.relayGet(
-            responseJsonClass = GetChannelsRelayResponse::class.java,
+            responseJsonSerializer = GetChannelsRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_CHANNELS,
             relayData = null
         )
@@ -75,7 +75,7 @@ class NetworkQueryLightningImpl(
             getChannelsFlowNullData
         } else {
             networkRelayCall.relayGet(
-                responseJsonClass = GetChannelsRelayResponse::class.java,
+                responseJsonSerializer = GetChannelsRelayResponse.serializer(),
                 relayEndpoint = ENDPOINT_CHANNELS,
                 relayData = relayData
             )
@@ -83,7 +83,7 @@ class NetworkQueryLightningImpl(
 
     private val getBalanceFlowNullData: Flow<LoadResponse<BalanceDto, ResponseError>> by lazy {
         networkRelayCall.relayGet(
-            responseJsonClass = GetBalanceRelayResponse::class,
+            responseJsonSerializer = GetBalanceRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_BALANCE,
             relayData = null
         )
@@ -96,7 +96,7 @@ class NetworkQueryLightningImpl(
             getBalanceFlowNullData
         } else {
             networkRelayCall.relayGet(
-                responseJsonClass = GetBalanceRelayResponse::class.java,
+                responseJsonSerializer = GetBalanceRelayResponse.serializer(),
                 relayEndpoint = ENDPOINT_BALANCE,
                 relayData = relayData
             )
@@ -104,7 +104,7 @@ class NetworkQueryLightningImpl(
 
     private val getBalanceAllFlowNullData: Flow<LoadResponse<BalanceAllDto, ResponseError>> by lazy {
         networkRelayCall.relayGet(
-            responseJsonClass = GetBalanceAllRelayResponse::class.java,
+            responseJsonSerializer = GetBalanceAllRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_BALANCE_ALL,
             relayData = null
         )
@@ -117,7 +117,7 @@ class NetworkQueryLightningImpl(
             getBalanceAllFlowNullData
         } else {
             networkRelayCall.relayGet(
-                responseJsonClass = GetBalanceAllRelayResponse::class.java,
+                responseJsonSerializer = GetBalanceAllRelayResponse.serializer(),
                 relayEndpoint = ENDPOINT_BALANCE_ALL,
                 relayData = relayData
             )
@@ -156,7 +156,7 @@ class NetworkQueryLightningImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<RouteSuccessProbabilityDto, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = CheckRouteRelayResponse::class.java,
+            responseJsonSerializer = CheckRouteRelayResponse.serializer(),
             relayEndpoint = endpoint,
             relayData = relayData
         )
@@ -165,7 +165,7 @@ class NetworkQueryLightningImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<String, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = GetLogsRelayResponse::class.java,
+            responseJsonSerializer = GetLogsRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_LOGS,
             relayData = relayData,
         )
@@ -175,10 +175,12 @@ class NetworkQueryLightningImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<LightningPaymentInvoiceDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = PostInvoicePaymentRelayResponse::class.java,
+            responseJsonSerializer = PostInvoicePaymentRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_INVOICES,
-            requestBodyJsonClass = PostRequestPaymentDto::class.java,
-            requestBody = postPaymentDto,
+            requestBodyPair = Pair(
+                postPaymentDto,
+                PostRequestPaymentDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -187,10 +189,12 @@ class NetworkQueryLightningImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<PaymentMessageDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = PayLightningPaymentRequestRelayResponse::class.java,
+            responseJsonSerializer = PayLightningPaymentRequestRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_INVOICES,
-            requestBodyJsonClass = PayRequestDto::class.java,
-            requestBody = payRequestDto,
+            requestBodyPair = Pair(
+                payRequestDto,
+                PayRequestDto.serializer()
+            ),
             relayData = relayData
         )
     

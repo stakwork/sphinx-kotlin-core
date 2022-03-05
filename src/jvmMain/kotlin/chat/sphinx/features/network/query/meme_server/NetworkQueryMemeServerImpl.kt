@@ -21,6 +21,7 @@ import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
+import kotlinx.serialization.PolymorphicSerializer
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -56,7 +57,7 @@ class NetworkQueryMemeServerImpl(
     ): Flow<LoadResponse<MemeServerAuthenticationDto, ResponseError>> =
         networkRelayCall.get(
             url = String.format(ENDPOINT_ASK_AUTHENTICATION, memeServerHost.value),
-            responseJsonClass = MemeServerAuthenticationDto::class.java,
+            responseJsonSerializer = MemeServerAuthenticationDto.serializer(),
         )
 
     override fun signChallenge(
@@ -64,7 +65,7 @@ class NetworkQueryMemeServerImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<MemeServerChallengeSigDto, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = MemeServerChallengeSigRelayResponse::class.java,
+            responseJsonSerializer = MemeServerChallengeSigRelayResponse.serializer(),
             relayEndpoint = String.format(ENDPOINT_SIGNER, challenge.value),
             relayData = relayData,
         )
@@ -83,9 +84,11 @@ class NetworkQueryMemeServerImpl(
                 sig.value,
                 ownerPubKey.value
             ),
-            responseJsonClass = MemeServerAuthenticationTokenDto::class.java,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            responseJsonSerializer = MemeServerAuthenticationTokenDto.serializer(),
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                PolymorphicSerializer(Map::class)
+            )
         )
 
     override suspend fun getPaymentTemplates(
@@ -95,7 +98,7 @@ class NetworkQueryMemeServerImpl(
         networkRelayCall.getList(
             url = String.format(ENDPOINT_TEMPLATES, memeServerHost.value),
             headers = mapOf(Pair(authenticationToken.headerKey, authenticationToken.headerValue)),
-            responseJsonClass = PaymentTemplateDto::class.java,
+            responseJsonSerializer = PaymentTemplateDto.serializer(),
         )
 
     @OptIn(RawPasswordAccess::class)
@@ -161,7 +164,7 @@ class NetworkQueryMemeServerImpl(
             requestBuilder.post(requestBody)
 
             val response = networkRelayCall.call(
-                PostMemeServerUploadDto::class.java,
+                PostMemeServerUploadDto.serializer(),
                 requestBuilder.build(),
                 useExtendedNetworkCallClient = true
             )
@@ -221,7 +224,7 @@ class NetworkQueryMemeServerImpl(
             requestBuilder.post(requestBody)
 
             val response = networkRelayCall.call(
-                PostMemeServerUploadDto::class.java,
+                PostMemeServerUploadDto.serializer(),
                 requestBuilder.build(),
                 useExtendedNetworkCallClient = true,
             )

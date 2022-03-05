@@ -9,6 +9,8 @@ import chat.sphinx.logger.d
 import chat.sphinx.logger.e
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
+import chat.sphinx.response.exception
+import chat.sphinx.response.message
 import chat.sphinx.utils.platform.getCurrentTimeInMillis
 import chat.sphinx.wrapper.contact.Contact
 import chat.sphinx.wrapper.meme_server.*
@@ -193,10 +195,10 @@ class MemeServerTokenHandlerImpl(
                 Exhaustive@
                 when (loadResponse) {
                     is LoadResponse.Loading -> {}
-                    is Response.Error<*> -> {
+                    is Response.Error -> {
                         LOG.e(TAG, loadResponse.message, loadResponse.exception)
                     }
-                    is Response.Success<*> -> {
+                    is Response.Success -> {
                         id = loadResponse.value.id.toAuthenticationId()
                         challenge = loadResponse.value.challenge.toAuthenticationChallenge()
                     }
@@ -212,10 +214,10 @@ class MemeServerTokenHandlerImpl(
                         Exhaustive@
                         when (loadResponse) {
                             is LoadResponse.Loading -> {}
-                            is Response.Error<*> -> {
+                            is Response.Error -> {
                                 LOG.e(TAG, loadResponse.message, loadResponse.exception)
                             }
-                            is Response.Success<*> -> {
+                            is Response.Success -> {
                                 sig = loadResponse.value.sig.toAuthenticationSig()
                             }
                         }
@@ -232,10 +234,10 @@ class MemeServerTokenHandlerImpl(
                             Exhaustive@
                             when (loadResponse) {
                                 is LoadResponse.Loading -> {}
-                                is Response.Error<*> -> {
+                                is Response.Error -> {
                                     LOG.e(TAG, loadResponse.message, loadResponse.exception)
                                 }
-                                is Response.Success<*> -> {
+                                is Response.Success -> {
                                     loadResponse.value.token.toAuthenticationToken()?.let { nnToken ->
                                         token = nnToken
                                         LOG.d(

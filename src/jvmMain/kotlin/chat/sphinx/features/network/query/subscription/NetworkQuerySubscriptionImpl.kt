@@ -15,6 +15,7 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.PolymorphicSerializer
 
 class NetworkQuerySubscriptionImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -30,7 +31,7 @@ class NetworkQuerySubscriptionImpl(
     ///////////
     private val getSubscriptionsFlowNullData: Flow<LoadResponse<List<SubscriptionDto>, ResponseError>> by lazy {
         networkRelayCall.relayGet(
-            responseJsonClass = GetSubscriptionsRelayResponse::class.java,
+            responseJsonSerializer = GetSubscriptionsRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_SUBSCRIPTIONS,
             relayData = null
         )
@@ -43,7 +44,7 @@ class NetworkQuerySubscriptionImpl(
             getSubscriptionsFlowNullData
         } else {
             networkRelayCall.relayGet(
-                responseJsonClass = GetSubscriptionsRelayResponse::class.java,
+                responseJsonSerializer = GetSubscriptionsRelayResponse.serializer(),
                 relayEndpoint = ENDPOINT_SUBSCRIPTIONS,
                 relayData = relayData
             )
@@ -54,7 +55,7 @@ class NetworkQuerySubscriptionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = SubscriptionRelayResponse::class.java,
+            responseJsonSerializer = SubscriptionRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}",
             relayData = relayData
         )
@@ -64,7 +65,7 @@ class NetworkQuerySubscriptionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<List<SubscriptionDto>, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = GetSubscriptionsRelayResponse::class.java,
+            responseJsonSerializer = GetSubscriptionsRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_SUBSCRIPTIONS/contact/${contactId.value}",
             relayData = relayData
         )
@@ -78,10 +79,12 @@ class NetworkQuerySubscriptionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = SubscriptionRelayResponse::class.java,
+            responseJsonSerializer = SubscriptionRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}",
-            requestBodyJsonClass = PutSubscriptionDto::class.java,
-            requestBody = putSubscriptionDto,
+            requestBodyPair = Pair(
+                putSubscriptionDto,
+                PutSubscriptionDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -90,10 +93,12 @@ class NetworkQuerySubscriptionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = SubscriptionRelayResponse::class.java,
+            responseJsonSerializer = SubscriptionRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}/pause",
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                PolymorphicSerializer(Map::class)
+            ),
             relayData = relayData
         )
 
@@ -102,10 +107,12 @@ class NetworkQuerySubscriptionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = SubscriptionRelayResponse::class.java,
+            responseJsonSerializer = SubscriptionRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}/restart",
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                PolymorphicSerializer(Map::class)
+            ),
             relayData = relayData
         )
 
@@ -117,10 +124,12 @@ class NetworkQuerySubscriptionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = SubscriptionRelayResponse::class.java,
+            responseJsonSerializer = SubscriptionRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_SUBSCRIPTIONS,
-            requestBodyJsonClass = PostSubscriptionDto::class.java,
-            requestBody = postSubscriptionDto,
+            requestBodyPair = Pair(
+                postSubscriptionDto,
+                PostSubscriptionDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -132,9 +141,8 @@ class NetworkQuerySubscriptionImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.relayDelete(
-            responseJsonClass = DeleteSubscriptionRelayResponse::class.java,
+            responseJsonSerializer = DeleteSubscriptionRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}",
-            requestBody = null,
             relayData = relayData
         )
 }

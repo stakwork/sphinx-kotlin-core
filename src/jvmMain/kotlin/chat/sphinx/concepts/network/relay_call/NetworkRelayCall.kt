@@ -130,4 +130,30 @@ abstract class NetworkRelayCall: NetworkCall() {
         relayData: Pair<AuthorizationToken, RelayUrl>? = null,
     ): Flow<LoadResponse<Result, ResponseError>>
 
+    /**
+     * DELETE
+     *
+     * @param [responseJsonClass] the class to serialize the response json into
+     * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
+     * @param [mediaType] OPTIONAL: the media type for the request body
+     * @param [additionalHeaders] any additional headers to add to the call
+     * @param [relayData] if not `null`, will override the auto-fetching of persisted user data
+     * */
+    fun <
+            Result: Any, Output: RelayResponse<Result>
+            > relayDelete(
+        responseJsonSerializer: KSerializer<Output>,
+        relayEndpoint: String,
+        mediaType: String? = null,
+        additionalHeaders: Map<String, String>? = null,
+        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+    ): Flow<LoadResponse<Result, ResponseError>> = relayDelete<Result, Any, Output>(
+        responseJsonSerializer,
+        relayEndpoint,
+        requestBodyPair = null,
+        mediaType,
+        additionalHeaders,
+        relayData
+    )
+
 }

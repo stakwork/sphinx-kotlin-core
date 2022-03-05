@@ -16,6 +16,7 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.serialization.PolymorphicSerializer
 
 class NetworkQueryMessageImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -42,7 +43,7 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<GetMessagesResponse, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = GetMessagesRelayResponse::class.java,
+            responseJsonSerializer = GetMessagesRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_MSGS + (messagePagination?.value ?: "") + "&order=desc",
             relayData = relayData
         )
@@ -53,7 +54,7 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<List<TransactionDto>, ResponseError>> =
         networkRelayCall.relayGet(
-            responseJsonClass = GetPaymentsRelayResponse::class.java,
+            responseJsonSerializer = GetPaymentsRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_PAYMENTS?offset=$offset&limit=$limit",
             relayData = relayData
         )
@@ -63,14 +64,16 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<MessageDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = MessageRelayResponse::class.java,
+            responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = if (postMessageDto.media_key_map != null) {
                 ENDPOINT_ATTACHMENT
             } else {
                 ENDPOINT_MESSAGES
             },
-            requestBodyJsonClass = PostMessageDto::class.java,
-            requestBody = postMessageDto,
+            requestBodyPair = Pair(
+                postMessageDto,
+                PostMessageDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -79,10 +82,12 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<MessageDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = MessageRelayResponse::class.java,
+            responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_PAYMENT,
-            requestBodyJsonClass = PostPaymentDto::class.java,
-            requestBody = postPaymentDto,
+            requestBodyPair = Pair(
+                postPaymentDto,
+                PostPaymentDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -91,10 +96,12 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<MessageDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = MessageRelayResponse::class.java,
+            responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_INVOICES,
-            requestBodyJsonClass = PostPaymentRequestDto::class.java,
-            requestBody = postPaymentRequestDto,
+            requestBodyPair = Pair(
+                postPaymentRequestDto,
+                PostPaymentRequestDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -103,10 +110,12 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<MessageDto, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonClass = MessageRelayResponse::class.java,
+            responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_INVOICES,
-            requestBodyJsonClass = PutPaymentRequestDto::class.java,
-            requestBody = putPaymentRequestDto,
+            requestBodyPair = Pair(
+                putPaymentRequestDto,
+                PutPaymentRequestDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -115,10 +124,12 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<KeySendPaymentDto, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = KeySendPaymentRelayResponse::class.java,
+            responseJsonSerializer = KeySendPaymentRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_PAYMENT,
-            requestBodyJsonClass = PostPaymentDto::class.java,
-            requestBody = postPaymentDto,
+            requestBodyPair = Pair(
+                postPaymentDto,
+                PostPaymentDto.serializer()
+            ),
             relayData = relayData
         )
 
@@ -142,10 +153,12 @@ class NetworkQueryMessageImpl(
         }
 
         return networkRelayCall.relayPost(
-            responseJsonClass = MessageRelayResponse::class.java,
+            responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_MESSAGES,
-            requestBodyJsonClass = PostBoostMessage::class.java,
-            requestBody = postBoostMessageDto,
+            requestBodyPair = Pair(
+                postBoostMessageDto,
+                PostBoostMessage.serializer()
+            ),
             relayData = relayData
         )
     }
@@ -166,10 +179,12 @@ class NetworkQueryMessageImpl(
             )
 
         return networkRelayCall.relayPost(
-            responseJsonClass = MessageRelayResponse::class.java,
+            responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_PAY_ATTACHMENT,
-            requestBodyJsonClass = PostPayAttachmentDto::class.java,
-            requestBody = payAttachmentDto,
+            requestBodyPair = Pair(
+                payAttachmentDto,
+                PostPayAttachmentDto.serializer()
+            ),
             relayData = relayData
         )
     }
@@ -180,10 +195,12 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<Any?, ResponseError>> =
         networkRelayCall.relayPost(
-            responseJsonClass = ReadMessagesRelayResponse::class.java,
+            responseJsonSerializer = ReadMessagesRelayResponse.serializer(),
             relayEndpoint = String.format(ENDPOINT_MESSAGES_READ, chatId.value),
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", "")),
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                PolymorphicSerializer(Map::class)
+            ),
             relayData = relayData
         )
 
@@ -202,10 +219,8 @@ class NetworkQueryMessageImpl(
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<MessageDto, ResponseError>> =
         networkRelayCall.relayDelete(
-            responseJsonClass = MessageRelayResponse::class.java,
+            responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = String.format(ENDPOINT_DELETE_MESSAGE, messageId.value),
-            requestBodyJsonClass = null,
-            requestBody = null,
             relayData = relayData
         )
 
@@ -216,14 +231,14 @@ class NetworkQueryMessageImpl(
         type: MessageType,
         relayData: Pair<AuthorizationToken, RelayUrl>?
     ): Flow<LoadResponse<PutMemberResponseDto, ResponseError>> =
-        networkRelayCall.relayPut(
-            responseJsonClass = PutMemberRelayResponse::class.java,
+        networkRelayCall.relayPut<PutMemberResponseDto, Any, PutMemberRelayResponse>(
+            responseJsonSerializer = PutMemberRelayResponse.serializer(),
             relayEndpoint = if (type.isMemberApprove()) {
                 String.format(ENDPOINT_MEMBER_APPROVED, contactId.value, messageId.value)
             } else {
                 String.format(ENDPOINT_MEMBER_REJECTED, contactId.value, messageId.value)
             },
-            requestBody = null,
+            requestBodyPair = null,
             relayData = relayData
         )
 }

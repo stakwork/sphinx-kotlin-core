@@ -12,6 +12,7 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.invite.InviteString
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.PolymorphicSerializer
 
 class NetworkQueryInviteImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -30,7 +31,7 @@ class NetworkQueryInviteImpl(
     override fun getLowestNodePrice(): Flow<LoadResponse<HubLowestNodePriceResponse, ResponseError>> {
         return networkRelayCall.get(
             url = HUB_URL + ENDPOINT_LOWEST_PRICE,
-            responseJsonClass = HubLowestNodePriceResponse::class.java,
+            responseJsonSerializer = HubLowestNodePriceResponse.serializer(),
         )
     }
 
@@ -40,10 +41,12 @@ class NetworkQueryInviteImpl(
     ): Flow<LoadResponse<HubRedeemInviteResponse, ResponseError>> {
         return networkRelayCall.post(
             url = HUB_URL + ENDPOINT_SIGNUP,
-            responseJsonClass = HubRedeemInviteResponse::class.java,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(
-                Pair("invite_string", inviteString.value),
+            responseJsonSerializer = HubRedeemInviteResponse.serializer(),
+            requestBodyPair = Pair(
+                mapOf(
+                    Pair("invite_string", inviteString.value),
+                ),
+                PolymorphicSerializer(Map::class)
             )
         )
     }
@@ -53,11 +56,13 @@ class NetworkQueryInviteImpl(
         inviteString: String
     ): Flow<LoadResponse<RedeemInviteResponseDto, ResponseError>> {
         return networkRelayCall.relayPost(
-            responseJsonClass = RedeemInviteRelayResponse::class.java,
+            responseJsonSerializer = RedeemInviteRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_SIGNUP_FINISH,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(
-                Pair("invite_string", inviteString),
+            requestBodyPair = Pair(
+                mapOf(
+                    Pair("invite_string", inviteString),
+                ),
+                PolymorphicSerializer(Map::class)
             )
         )
     }
@@ -66,10 +71,12 @@ class NetworkQueryInviteImpl(
         inviteString: InviteString
     ): Flow<LoadResponse<PayInviteDto, ResponseError>> {
         return networkRelayCall.relayPost(
-            responseJsonClass = PayInviteResponse::class.java,
+            responseJsonSerializer = PayInviteResponse.serializer(),
             relayEndpoint = "/invites/${inviteString.value}/pay" ,
-            requestBodyJsonClass = Map::class.java,
-            requestBody = mapOf(Pair("", ""))
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                PolymorphicSerializer(Map::class)
+            )
         )
     }
 
