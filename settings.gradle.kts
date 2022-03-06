@@ -14,7 +14,7 @@ pluginManagement {
     resolutionStrategy {
         eachPlugin {
             if (requested.id.id == "com.squareup.sqldelight") {
-                useModule("com.squareup.sqldelight:gradle-plugin:1.5.0")
+                useModule("com.squareup.sqldelight:gradle-plugin:1.5.1")
             }
         }
     }

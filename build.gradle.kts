@@ -52,6 +52,7 @@ kotlin {
         val kotlinVersion = "1.5.1"
         val okioVersion = "3.0.0"
         val klockVersion = "2.5.1"
+        val sqlDelightVersion = "1.5.1"
 
         val commonMain by getting {
             dependencies {
@@ -61,7 +62,7 @@ kotlin {
                 api("org.jetbrains.kotlinx:kotlinx-io:0.1.16")
                 api("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
                 implementation("com.squareup.okio:okio:3.0.0")
-                implementation("com.squareup.sqldelight:coroutines-extensions:1.5.0")
+                implementation("com.squareup.sqldelight:coroutines-extensions:$sqlDelightVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
                 implementation("io.ktor:ktor-client-core:1.6.7")
                 implementation("io.ktor:ktor-client-cio:1.6.7")
@@ -87,7 +88,7 @@ kotlin {
                 implementation("com.squareup.okhttp3:okhttp:$okHttpVersion")
                 implementation("com.squareup.okhttp3:logging-interceptor:$okHttpVersion")
                 implementation("org.jsoup:jsoup:1.14.3")
-                implementation("com.squareup.sqldelight:sqlite-driver:1.5.3")
+                implementation("com.squareup.sqldelight:sqlite-driver:$sqlDelightVersion")
                 implementation("io.socket:socket.io-client:1.0.0")
                 implementation("io.socket:engine.io-client:1.0.0")
                 implementation("org.cryptonode.jncryptor:jncryptor:1.2.0")
@@ -96,7 +97,7 @@ kotlin {
         val jvmTest by getting
         val nativeMain by getting {
             dependencies {
-                implementation("com.squareup.sqldelight:native-driver:1.5.3")
+                implementation("com.squareup.sqldelight:native-driver:$sqlDelightVersion")
             }
         }
         val nativeTest by getting
