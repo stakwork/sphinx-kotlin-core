@@ -1,8 +1,8 @@
 package chat.sphinx.wrapper.feed
 
-import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
+import okio.Path
 
 inline val FeedItem.isPodcast: Boolean
     get() = feed?.feedType?.isPodcast() == true
@@ -29,7 +29,7 @@ data class FeedItem(
     val link: FeedUrl?,
     val feedId: FeedId,
     val duration: FeedItemDuration?,
-    override var localFile: File?
+    override var localFile: Path?
 ): DownloadableFeedItem {
 
     var feed: Feed? = null

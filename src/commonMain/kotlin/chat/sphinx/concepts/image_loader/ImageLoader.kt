@@ -1,6 +1,6 @@
 package chat.sphinx.concepts.image_loader
 
-import chat.sphinx.utils.platform.File
+import okio.Path
 
 abstract class ImageLoader<ImageView> {
 
@@ -18,7 +18,7 @@ abstract class ImageLoader<ImageView> {
 
     abstract suspend fun load(
         imageView: ImageView,
-        file: File,
+        file: Path,
         options: ImageLoaderOptions? = null
     ): Disposable
 

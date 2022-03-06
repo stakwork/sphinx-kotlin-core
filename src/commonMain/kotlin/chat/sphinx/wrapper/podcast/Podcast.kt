@@ -1,6 +1,5 @@
 package chat.sphinx.wrapper.podcast
 
-import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.ItemId
 import chat.sphinx.wrapper.PhotoUrl
@@ -11,6 +10,7 @@ import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.lightning.toSat
 import chat.sphinx.wrapper.toItemId
+import okio.Path
 import kotlin.jvm.Volatile
 import kotlin.math.roundToInt
 
@@ -142,7 +142,7 @@ data class Podcast(
     }
 
     fun getCurrentEpisodeDuration(
-        durationRetrieverHandler: (url: String, localFile: File?) -> Long
+        durationRetrieverHandler: (url: String, localFile: Path?) -> Long
     ): Long {
         if (episodeDuration == null) {
 
@@ -170,7 +170,7 @@ data class Podcast(
 
     @Throws(ArithmeticException::class)
     fun getPlayingProgress(
-        durationRetrieverHandle: (url: String, localFile: File?) -> Long
+        durationRetrieverHandle: (url: String, localFile: Path?) -> Long
     ): Int {
         val currentEpisodeDuration = getCurrentEpisodeDuration(durationRetrieverHandle)
         if (currentEpisodeDuration > 0) {
@@ -188,7 +188,7 @@ data class Podcast(
     fun didStartPlayingEpisode(
         episode: PodcastEpisode,
         time: Int,
-        durationRetrieverHandle: (url: String, localFile: File?) -> Long
+        durationRetrieverHandle: (url: String, localFile: Path?) -> Long
     ) {
         val episodeId = episode.id.value
         val didChangeEpisode = this.episodeId != episodeId
@@ -242,7 +242,7 @@ data class Podcast(
 
     fun endEpisodeUpdate(
         episodeId: String,
-        durationRetrieverHandle: (url: String, localFile: File?) -> Long
+        durationRetrieverHandle: (url: String, localFile: Path?) -> Long
     ) {
         playingEpisode?.let { episode ->
             val nextEpisode = getNextEpisode(episodeId)
@@ -253,7 +253,7 @@ data class Podcast(
     private fun didEndPlayingEpisode(
         episode: PodcastEpisode,
         nextEpisode: PodcastEpisode,
-        durationRetrieverHandle: (url: String, localFile: File?) -> Long
+        durationRetrieverHandle: (url: String, localFile: Path?) -> Long
     ) {
         episode.playing = false
 

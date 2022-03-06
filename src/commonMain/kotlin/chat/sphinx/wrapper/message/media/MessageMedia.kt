@@ -1,14 +1,14 @@
 package chat.sphinx.wrapper.message.media
 
-import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.media.token.*
+import okio.Path
 
 abstract class MessageMedia {
     abstract val mediaKey: MediaKey?
     abstract val mediaType: MediaType
     abstract val mediaToken: MediaToken
-    abstract val localFile: File?
+    abstract val localFile: Path?
 
     abstract val mediaKeyDecrypted: MediaKeyDecrypted?
     abstract val mediaKeyDecryptionError: Boolean

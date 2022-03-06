@@ -69,8 +69,8 @@ import chat.sphinx.wrapper.message.media.MediaKeyDecrypted;
 import chat.sphinx.wrapper.message.media.MediaToken;
 import chat.sphinx.wrapper.message.media.MediaType;
 import chat.sphinx.wrapper.rsa.RsaPublicKey;
-import chat.sphinx.utils.platform.File;
 import kotlin.collections.List;
+import okio.Path;
 
 CREATE TABLE chatDbo(
     id                          INTEGER         AS ChatId NOT NULL PRIMARY KEY,
@@ -770,7 +770,7 @@ CREATE TABLE messageMediaDbo(
     media_key_decrypted         TEXT            AS MediaKeyDecrypted,
     media_type                  TEXT            AS MediaType NOT NULL,
     media_token                 TEXT            AS MediaToken NOT NULL,
-    local_file                  TEXT            AS File
+    local_file                  TEXT            AS Path
 );
 
 messageMediaGetById:
@@ -1099,7 +1099,7 @@ CREATE TABLE feedItemDbo(
     link                        TEXT               AS FeedUrl,
     feed_id                     TEXT               AS FeedId NOT NULL,
     duration                    INTEGER            AS FeedItemDuration,
-    local_file                  TEXT               AS File
+    local_file                  TEXT               AS Path
 );
 
 feedItemUpsert {

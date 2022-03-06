@@ -1,8 +1,8 @@
 package chat.sphinx.wrapper.podcast
 
-import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.feed.*
+import okio.Path
 
 data class PodcastEpisode(
     override val id: FeedId,
@@ -14,7 +14,7 @@ data class PodcastEpisode(
     override val enclosureUrl: FeedUrl,
     override val enclosureLength: FeedEnclosureLength?,
     override val enclosureType: FeedEnclosureType?,
-    override var localFile: File?,
+    override var localFile: Path?,
 ): DownloadableFeedItem {
 
     var playing: Boolean = false
