@@ -27,9 +27,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.internal.closeQuietly
-import okio.BufferedSink
-import okio.source
-import okio.use
+import okio.*
 import org.cryptonode.jncryptor.AES256JNCryptorOutputStream
 import java.io.File
 
@@ -106,13 +104,13 @@ class NetworkQueryMemeServerImpl(
     override suspend fun uploadAttachmentEncrypted(
         authenticationToken: AuthenticationToken,
         mediaType: MediaType,
-        file: File,
+        file: Path,
         password: Password,
         memeServerHost: MediaHost
     ): Response<PostMemeServerUploadDto, ResponseError> {
 
         val passwordCopy: CharArray = password.value.copyOf()
-        val tmpFile = File(file.absolutePath + ".tmp")
+        val tmpFile = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.resolve(file).toFile()
 
         return try {
             // will throw an exception if the media type is invalid
@@ -125,7 +123,7 @@ class NetworkQueryMemeServerImpl(
 
             val fileBody: RequestBody = withContext(io) {
 
-                val clearInputStream = file.inputStream()
+                val clearInputStream = file.toFile().inputStream()
 
                 try {
                     if (tmpFile.exists() && !tmpFile.delete()) {

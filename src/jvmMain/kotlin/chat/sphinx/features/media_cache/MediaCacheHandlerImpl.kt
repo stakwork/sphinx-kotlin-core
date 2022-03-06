@@ -12,23 +12,20 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.io.errors.IOException
 import okio.*
-import java.io.File
 import java.io.InputStream
 import kotlin.io.use
 
 class MediaCacheHandlerImpl(
     private val applicationScope: CoroutineScope,
-    cacheDir: File,
+    cacheDir: Path,
     dispatchers: CoroutineDispatchers,
 ): MediaCacheHandler(), CoroutineDispatchers by dispatchers {
 
     init {
-        if (!cacheDir.exists()) {
-            if (!cacheDir.mkdirs()) {
-                throw IllegalStateException("Failed to create root MediaCache directory: ${cacheDir.getAbsolutePath()}")
-            }
+        if (!FileSystem.SYSTEM.exists(cacheDir)) {
+            FileSystem.SYSTEM.createDirectories(cacheDir)
         } else {
-            require(cacheDir.isDirectory()) {
+            require(cacheDir.toFile().isDirectory) {
                 "cacheDir must be a directory"
             }
         }
@@ -50,31 +47,31 @@ class MediaCacheHandlerImpl(
         private val cacheDirLock = SynchronizedObject()
     }
 
-    private val audioCache: File by lazy {
-        File(cacheDir, AUDIO_CACHE_DIR).also {
-            it.mkdir()
+    private val audioCache: Path by lazy {
+        cacheDir.resolve(AUDIO_CACHE_DIR).also {
+            FileSystem.SYSTEM.createDirectory(it)
         }
     }
 
-    private val imageCache: File by lazy {
-        File(cacheDir, IMAGE_CACHE_DIR).also {
-            it.mkdir()
+    private val imageCache: Path by lazy {
+        cacheDir.resolve(IMAGE_CACHE_DIR).also {
+            FileSystem.SYSTEM.createDirectory(it)
         }
     }
 
-    private val videoCache: File by lazy {
-        File(cacheDir, VIDEO_CACHE_DIR).also {
-            it.mkdirs()
+    private val videoCache: Path by lazy {
+        cacheDir.resolve(VIDEO_CACHE_DIR).also {
+            FileSystem.SYSTEM.createDirectory(it)
         }
     }
 
-    private val paidTextCache: File by lazy {
-        File(cacheDir, PAID_TEXT_CACHE_DIR).also {
-            it.mkdirs()
+    private val paidTextCache: Path by lazy {
+        cacheDir.resolve(PAID_TEXT_CACHE_DIR).also {
+            FileSystem.SYSTEM.createDirectory(it)
         }
     }
 
-    override fun createFile(mediaType: MediaType): File? {
+    override fun createFile(mediaType: MediaType): Path? {
         return when (mediaType) {
             is MediaType.Audio -> {
                 mediaType.value.split("/").lastOrNull()?.let { fileType ->
@@ -143,42 +140,42 @@ class MediaCacheHandlerImpl(
         }
     }
 
-    override fun createAudioFile(extension: String): File =
+    override fun createAudioFile(extension: String): Path =
         createFileImpl(audioCache, AUD, extension)
 
-    override fun createImageFile(extension: String): File =
+    override fun createImageFile(extension: String): Path =
         createFileImpl(imageCache, IMG, extension)
 
-    override fun createVideoFile(extension: String): File =
+    override fun createVideoFile(extension: String): Path =
         createFileImpl(videoCache, VID, extension)
 
-    override fun createPaidTextFile(extension: String): File =
+    override fun createPaidTextFile(extension: String): Path =
         createFileImpl(paidTextCache, TXT, extension)
 
-    private fun createFileImpl(cacheDir: File, prefix: String, extension: String): File {
-        if (!cacheDir.exists()) {
+    private fun createFileImpl(cacheDir: Path, prefix: String, extension: String): Path {
+        if (!FileSystem.SYSTEM.exists(cacheDir)) {
             synchronized(cacheDirLock) {
-                if (!cacheDir.exists()) {
-                    cacheDir.mkdirs()
+                if (!FileSystem.SYSTEM.exists(cacheDir)) {
+                    FileSystem.SYSTEM.createDirectories(cacheDir)
                 }
             }
         }
 
         val ext = extension.replace(".", "")
         val sdf = DateFormat(DATE_FORMAT)
-        return File(cacheDir, "${prefix}_${sdf.format(DateTimeTz.nowLocal())}.$ext")
+        return cacheDir.resolve("${prefix}_${sdf.format(DateTimeTz.nowLocal())}.$ext")
     }
 
     // TODO: Implement file deletion on caller scope cancellation
     @Suppress("BlockingMethodInNonBlockingContext")
-    override suspend fun copyTo(from: File, to: File): File {
-        copyToImpl(from.source(), to.sink().buffer()).join()
+    override suspend fun copyTo(from: Path, to: Path): Path {
+        copyToImpl(from, to).join()
         return to
     }
 
     @Suppress("BlockingMethodInNonBlockingContext")
-    override suspend fun copyTo(from: InputStream, to: File): File {
-        copyToImpl(from.source(), to.sink().buffer()).join()
+    override suspend fun copyTo(from: InputStream, to: Path): Path {
+        copyToImpl(from.source(), FileSystem.SYSTEM.sink(to).buffer()).join()
         return to
     }
 
@@ -197,6 +194,13 @@ class MediaCacheHandlerImpl(
 
                 }
             }
+        }
+    }
+
+    @Suppress("BlockingMethodInNonBlockingContext")
+    private fun copyToImpl(from: Path, to: Path): Job {
+        return applicationScope.launch(io) {
+            FileSystem.SYSTEM.copy(from, to)
         }
     }
 }

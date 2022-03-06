@@ -106,6 +106,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okio.FileSystem
+import okio.Path
 import java.io.File
 import java.io.InputStream
 import kotlin.math.absoluteValue
@@ -2257,7 +2259,7 @@ abstract class SphinxRepository(
                                     provisionalId,
                                     chatDbo.id,
                                     MediaKeyDecrypted(media.first.value.joinToString("")),
-                                    media.third.file,
+                                    media.third.filePath,
                                 )
                             }
 
@@ -2298,7 +2300,7 @@ abstract class SphinxRepository(
                                     provisionalId,
                                     chatDbo.id,
                                     MediaKeyDecrypted(media.first.value.joinToString("")),
-                                    media.third.file
+                                    media.third.filePath
                                 )
                             }
                         }
@@ -2346,7 +2348,7 @@ abstract class SphinxRepository(
                 val response = networkQueryMemeServer.uploadAttachmentEncrypted(
                     token,
                     media.third.mediaType,
-                    media.third.file,
+                    media.third.filePath,
                     media.first,
                     MediaHost.DEFAULT,
                 )
@@ -2552,7 +2554,7 @@ abstract class SphinxRepository(
                     loadResponse.value.apply {
                         if (media != null) {
                             setMediaKeyDecrypted(media.first.value.joinToString(""))
-                            setMediaLocalFile(media.third.file)
+                            setMediaLocalFile(media.third.filePath)
                         }
 
                         if (messageContentDecrypted != null) {
@@ -5144,23 +5146,23 @@ abstract class SphinxRepository(
                     !message.status.isDeleted() &&
                     (!message.isPaidPendingMessage || sent)
                 ) {
-                    val streamToFile: File? = mediaCacheHandler.createFile(
+                    val streamToFilePath: Path? = mediaCacheHandler.createFile(
                         message.messageMedia?.mediaType ?: media.mediaType
                     )
 
-                    if (streamToFile != null) {
+                    if (streamToFilePath != null) {
                         memeServerTokenHandler.retrieveAuthenticationToken(host)?.let { token ->
                             memeInputStreamHandler.retrieveMediaInputStream(
                                 url.value,
                                 token,
                                 media.mediaKeyDecrypted,
                             )?.let { stream ->
-                                mediaCacheHandler.copyTo(stream, streamToFile)
+                                mediaCacheHandler.copyTo(stream, streamToFilePath)
                                 messageLock.withLock {
                                     withContext(io) {
                                         queries.transaction {
                                             queries.messageMediaUpdateFile(
-                                                streamToFile,
+                                                streamToFilePath,
                                                 messageId
                                             )
 
@@ -5176,9 +5178,9 @@ abstract class SphinxRepository(
                                 // hold downloadLock until table change propagates to UI
                                 delay(200L)
 
-                            } ?: streamToFile.delete()
+                            } ?: FileSystem.SYSTEM.delete(streamToFilePath)
 
-                        } ?: streamToFile.delete()
+                        } ?: FileSystem.SYSTEM.delete(streamToFilePath)
                     }
                 }
 
@@ -5207,7 +5209,7 @@ abstract class SphinxRepository(
 
     override fun downloadMediaIfApplicable(
         feedItem: DownloadableFeedItem,
-        downloadCompleteCallback: (downloadedFile: File) -> Unit
+        downloadCompleteCallback: (downloadedFilePath: Path) -> Unit
     ) {
         val feedItemId: FeedId = feedItem.id
 
@@ -5243,11 +5245,11 @@ abstract class SphinxRepository(
                     contentType != null &&
                     localFile == null
                 ) {
-                    val streamToFile: File? = mediaCacheHandler.createFile(
+                    val streamToFilePath: Path? = mediaCacheHandler.createFile(
                         contentType.value.toMediaType()
                     )
 
-                    if (streamToFile != null) {
+                    if (streamToFilePath != null) {
                         memeInputStreamHandler.retrieveMediaInputStream(
                             url,
                             authenticationToken = null,
@@ -5258,13 +5260,13 @@ abstract class SphinxRepository(
                                 title = "Completing Download",
                                 message = "Finishing up download of file",
                             )
-                            mediaCacheHandler.copyTo(stream, streamToFile)
+                            mediaCacheHandler.copyTo(stream, streamToFilePath)
 
                             feedItemLock.withLock {
                                 withContext(io) {
                                     queries.transaction {
                                         queries.feedItemUpdateLocalFile(
-                                            streamToFile,
+                                            streamToFilePath,
                                             feedItemId
                                         )
                                     }
@@ -5278,8 +5280,8 @@ abstract class SphinxRepository(
                             )
                             // hold downloadLock until table change propagates to UI
                             delay(200L)
-                            downloadCompleteCallback.invoke(streamToFile)
-                        } ?: streamToFile.delete()
+                            downloadCompleteCallback.invoke(streamToFilePath)
+                        } ?: FileSystem.SYSTEM.delete(streamToFilePath)
                     }
                 } else {
                     val title = if (localFile != null) {
@@ -5324,8 +5326,8 @@ abstract class SphinxRepository(
 
         localFile?.let {
             try {
-                if (it.exists()) {
-                    it.delete()
+                if (FileSystem.SYSTEM.exists(it)) {
+                    FileSystem.SYSTEM.delete(it)
                 }
 
                 feedItemLock.withLock {

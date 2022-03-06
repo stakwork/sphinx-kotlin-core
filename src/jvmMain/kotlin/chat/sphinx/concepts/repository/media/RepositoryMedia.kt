@@ -8,6 +8,7 @@ import chat.sphinx.wrapper.feed.FeedDestination
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.message.Message
 import chat.sphinx.wrapper.message.MessageUUID
+import okio.Path
 
 interface RepositoryMedia {
 
@@ -22,7 +23,7 @@ interface RepositoryMedia {
 
     fun downloadMediaIfApplicable(
         feedItem: DownloadableFeedItem,
-        downloadCompleteCallback: (downloadedFile: File) -> Unit
+        downloadCompleteCallback: (downloadedFilePath: Path) -> Unit
     )
 
     fun inProgressDownloadIds(): List<FeedId>

@@ -3,6 +3,7 @@ package chat.sphinx.features.repository.model.message
 import chat.sphinx.concepts.coredb.MessageMediaDbo
 import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.message.media.*
+import okio.FileSystem
 import okio.Path
 import kotlin.jvm.Volatile
 
@@ -16,13 +17,13 @@ class MessageMediaDboWrapper(val messageMediaDbo: MessageMediaDbo): MessageMedia
 
     @Volatile
     @Suppress("PropertyName")
-    var _localFile: File? = messageMediaDbo.local_file
+    var _localFile: Path? = messageMediaDbo.local_file
 
     override val localFile: Path?
         get() = try {
-            _localFile?.let { file ->
-                if (file.exists() && file.isFile()) {
-                    file
+            _localFile?.let { filePath ->
+                if (FileSystem.SYSTEM.exists(filePath) && filePath.toFile().isFile) {
+                    filePath
                 } else {
                     null
                 }

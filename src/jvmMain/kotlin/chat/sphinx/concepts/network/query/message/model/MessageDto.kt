@@ -6,6 +6,8 @@ import chat.sphinx.utils.platform.File
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import okio.FileSystem
+import okio.Path
 import kotlin.jvm.Volatile
 
 @Serializable
@@ -78,12 +80,12 @@ data class MessageDto(
 
     @Transient
     @Volatile
-    var mediaLocalFile: File? = null
+    var mediaLocalFile: Path? = null
         private set
 
-    fun setMediaLocalFile(file: File) {
+    fun setMediaLocalFile(file: Path) {
         mediaLocalFile = try {
-            if (file.exists() && file.isFile()) {
+            if (FileSystem.SYSTEM.exists(file) && FileSystem.SYSTEM.listOrNull(file) == null) {
                 file
             } else {
                 null

@@ -59,9 +59,9 @@ class SendMessage private constructor(
                 return Pair(false, ValidationError.EMPTY_DESTINATION)
             }
 
-            val file: File? = attachmentInfo?.file?.let {
+            val file: File? = attachmentInfo?.filePath?.toFile()?.let {
                 try {
-                    if (it.exists() && it.isFile()) {
+                    if (it.exists() && it.isFile) {
                         it
                     } else {
                         null

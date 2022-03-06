@@ -1,16 +1,16 @@
 package chat.sphinx.concepts.media_cache
 
 import chat.sphinx.wrapper.message.media.MediaType
-import java.io.File
+import okio.Path
 import java.io.InputStream
 
 abstract class MediaCacheHandler {
-    abstract fun createFile(mediaType: MediaType): File?
-    abstract fun createAudioFile(extension: String): File
-    abstract fun createImageFile(extension: String): File
-    abstract fun createVideoFile(extension: String): File
-    abstract fun createPaidTextFile(extension: String): File
+    abstract fun createFile(mediaType: MediaType): Path?
+    abstract fun createAudioFile(extension: String): Path
+    abstract fun createImageFile(extension: String): Path
+    abstract fun createVideoFile(extension: String): Path
+    abstract fun createPaidTextFile(extension: String): Path
 
-    abstract suspend fun copyTo(from: File, to: File): File
-    abstract suspend fun copyTo(from: InputStream, to: File): File
+    abstract suspend fun copyTo(from: Path, to: Path): Path
+    abstract suspend fun copyTo(from: InputStream, to: Path): Path
 }
