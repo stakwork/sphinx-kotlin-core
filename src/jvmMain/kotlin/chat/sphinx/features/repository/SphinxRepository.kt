@@ -70,7 +70,6 @@ import chat.sphinx.logger.d
 import chat.sphinx.logger.e
 import chat.sphinx.logger.w
 import chat.sphinx.response.*
-import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.contact.*
@@ -99,7 +98,6 @@ import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
-import com.stakwork.koi.InputStream
 import io.ktor.http.parsing.*
 import io.ktor.util.*
 import kotlinx.coroutines.*
@@ -110,6 +108,8 @@ import kotlinx.io.core.toByteArray
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
+import java.io.InputStream
 import kotlin.math.absoluteValue
 import kotlin.text.toCharArray
 
@@ -2103,12 +2103,12 @@ abstract class SphinxRepository(
 
     private val provisionalMessageLock = Mutex()
 
-    @OptIn(io.ktor.util.InternalAPI::class)
+    @OptIn(InternalAPI::class)
     private fun messageText(sendMessage: SendMessage): String? {
         try {
             if (sendMessage.giphyData != null) {
                 return sendMessage.giphyData?.let {
-                    "${GiphyData.MESSAGE_PREFIX}${it.toJson().toByteArray().encodeBase64()}"
+                    "${GiphyData.MESSAGE_PREFIX}${it.toJson().encodeBase64()}"
                 }
             }
         } catch (e: Exception) {
@@ -4237,7 +4237,7 @@ abstract class SphinxRepository(
 
     override suspend fun didCancelRestore() {
         val now = DateTime.getFormatRelay().format(
-            Date(DateTime.getToday00())
+            DateTime.getToday00().value
         )
 
         authenticationStorage.putString(

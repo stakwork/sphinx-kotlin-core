@@ -7,14 +7,13 @@ import chat.sphinx.wrapper.meme_server.AuthenticationToken
 import chat.sphinx.wrapper.meme_server.headerKey
 import chat.sphinx.wrapper.meme_server.headerValue
 import chat.sphinx.wrapper.message.media.MediaKeyDecrypted
-import com.stakwork.koi.InputStream
-import io.ktor.http.*
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.internal.closeQuietly
+import java.io.InputStream
 
 
 internal data class MemeInputStreamRetriever(
@@ -59,6 +58,5 @@ internal data class MemeInputStreamRetriever(
         }
 
         return response?.body?.source()?.inputStream()
-
     }
 }

@@ -3,18 +3,27 @@ package chat.sphinx.features.network.client
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.client.cache.NetworkClientCache
+import chat.sphinx.concepts.network.tor.SocksProxyAddress
+import chat.sphinx.concepts.network.tor.toSocksProxyAddress
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.utils.build_config.BuildConfigDebug
+import io.matthewnelson.kmp.tor.controller.common.config.TorConfig
+import io.matthewnelson.kmp.tor.controller.common.events.TorEvent
 import io.matthewnelson.kmp.tor.manager.TorManager
+import io.matthewnelson.kmp.tor.manager.common.TorControlManager
+import io.matthewnelson.kmp.tor.manager.common.TorOperationManager
+import io.matthewnelson.kmp.tor.manager.common.event.TorManagerEvent
+import io.matthewnelson.kmp.tor.manager.common.state.TorNetworkState
 import io.matthewnelson.kmp.tor.manager.common.state.TorState
+import io.matthewnelson.kmp.tor.manager.common.state.isOff
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.Cache
@@ -25,6 +34,12 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import kotlin.jvm.Volatile
 
+inline fun TorManager.isTorRequired(): Boolean {
+    // TODO: Implement a check to see if
+    return true
+}
+
+
 class NetworkClientImpl(
     private val debug: BuildConfigDebug,
     private val cache: Cache,
@@ -33,9 +48,16 @@ class NetworkClientImpl(
     private val torManager: TorManager,
     private val LOG: SphinxLogger,
 ) : NetworkClientCache(),
-    TorManagerListener,
     CoroutineDispatchers by dispatchers
 {
+    // only expose necessary interfaces
+    val torOperationManager: TorOperationManager get() = torManager
+    val torControlManager: TorControlManager get() = torManager
+
+    private val listener = TorManagerListener()
+    val eventLines: StateFlow<String> get() = listener.eventLines
+    val addressInfo: StateFlow<TorManagerEvent.AddressInfo> get() = listener.addressInfo
+    val state: StateFlow<TorManagerEvent.State> get() = listener.state
 
     companion object {
         const val TAG = "NetworkClientImpl"
@@ -161,15 +183,15 @@ class NetworkClientImpl(
                             try {
                                 // wait for Tor to start and publish its socks address after
                                 // being bootstrapped.
-                                torManager.socksProxyAddressStateFlow.collect { socksAddress ->
-                                    if (socksAddress != null) {
+                                addressInfo.collect { addressInfo ->
+                                    addressInfo.toSocksProxyAddress()?.let {
                                         proxy(
                                             Proxy(
                                                 Proxy.Type.SOCKS,
-                                                InetSocketAddress(socksAddress.host, socksAddress.port)
+                                                InetSocketAddress(it.host, it.port)
                                             )
                                         )
-                                        currentClientSocksProxyAddress = socksAddress
+                                        currentClientSocksProxyAddress = it
 
                                         throw Exception()
                                     }
@@ -181,8 +203,8 @@ class NetworkClientImpl(
                             var retry: Int = 3
                             delay(250L)
                             try {
-                                torManager.torStateFlow.collect { state ->
-                                    if (state is TorState.Off) {
+                                state.collect {
+                                    if (it.isOff) {
                                         if (retry >= 0) {
                                             LOG.d(TAG, "Tor failed to start, retrying: $retry")
                                             torManager.start()
@@ -193,7 +215,7 @@ class NetworkClientImpl(
                                         }
                                     }
 
-                                    if (state is TorState.On) {
+                                    if (it.isOn) {
                                         throw Exception()
                                     }
                                 }
@@ -207,16 +229,10 @@ class NetworkClientImpl(
                     // Tor failed to start, but we still want to set the proxy port
                     // so we don't leak _any_ network requests.
                     if (
-                        currentClientSocksProxyAddress == null &&
-                        torManager.torStateFlow.value == TorState.Off
+                        currentClientSocksProxyAddress == null && torManager.state is TorState.Off
                     ) {
-                        val socksPort: Int = try {
-                            // could be `auto` if user set it to that, which will mean we won't
-                            // know the port just yet so use the default setting,
-                            torManager.getSocksPortSetting().toInt()
-                        } catch (e: NumberFormatException) {
-                            TorManager.DEFAULT_SOCKS_PORT
-                        }
+
+                        val socksPort: Int = addressInfo.value.toSocksProxyAddress()?.port ?: TorConfig.Setting.Ports.Socks().default.value.toInt()
 
                         proxy(
                             Proxy(
@@ -224,7 +240,7 @@ class NetworkClientImpl(
                                 InetSocketAddress("127.0.0.1", socksPort)
                             )
                         )
-                        currentClientSocksProxyAddress = SocksProxyAddress("127.0.0.1:$socksPort")
+                        currentClientSocksProxyAddress = SocksProxyAddress("127.0.0.1", socksPort)
                     }
 
                     // check again in case the setting has changed
@@ -285,7 +301,8 @@ class NetworkClientImpl(
     //////////////////////////
     /// TorManagerListener ///
     //////////////////////////
-    override suspend fun onTorRequirementChange(required: Boolean) {
+    // TODO: Handle this changing...
+    suspend fun onTorRequirementChange(required: Boolean) {
         cachingClientLock.withLock {
             clientLock.withLock {
                 client?.let { nnClient ->
@@ -309,7 +326,7 @@ class NetworkClientImpl(
         }
     }
 
-    override suspend fun onTorSocksProxyAddressChange(socksProxyAddress: SocksProxyAddress?) {
+    suspend fun onTorSocksProxyAddressChange(socksProxyAddress: SocksProxyAddress?) {
         if (socksProxyAddress == null) {
             return
         }
@@ -330,6 +347,137 @@ class NetworkClientImpl(
     }
 
     init {
-        torManager.addTorManagerListener(this)
+        startTor()
+    }
+
+    fun startTor() {
+        torManager.debug(true)
+        torManager.addListener(listener)
+
+        // TODO: Move to SampleView along with stop/restart buttons
+        torManager.startQuietly()
+    }
+
+    fun stopTor() {
+        // just in case setupOnCloseIntercept fails.
+        torManager.destroy(stopCleanly = false) {
+            // will not be invoked if TorManager has already been destroyed
+//            Log.w(this.javaClass.simpleName, "onCloseRequest intercept failed. Tor did not stop cleanly.")
+        }
+    }
+
+    /**
+     * Must call [TorManager.destroy] to stop Tor and clean up so that the
+     * Application does not hang on exit.
+     *
+     * See [stop] also.
+     * */
+    private fun onClose() {
+        // `destroy` launches a coroutine using TorManager's scope in order
+        // to stop Tor cleanly via it's control port. This takes ~500ms if Tor
+        // is running.
+        //
+        // Upon destruction completion, Platform.exit() will be invoked.
+        torManager.destroy(stopCleanly = true) {
+            // onCompletion
+//            Platform.exit()
+        }
+    }
+
+    private class TorManagerListener: TorManagerEvent.Listener() {
+        private val _eventLines: MutableStateFlow<String> = MutableStateFlow("")
+        val eventLines: StateFlow<String> = _eventLines.asStateFlow()
+        private val events: MutableList<String> = ArrayList(50)
+
+        fun addLine(line: String) {
+            synchronized(this) {
+                if (events.size > 49) {
+                    events.removeAt(0)
+                }
+                events.add(line)
+                // TODO: Log the line....
+                _eventLines.value = events.joinToString("\n")
+            }
+        }
+
+        private val _addressInfo: MutableStateFlow<TorManagerEvent.AddressInfo> =
+            MutableStateFlow(TorManagerEvent.AddressInfo())
+        val addressInfo: StateFlow<TorManagerEvent.AddressInfo> = _addressInfo.asStateFlow()
+        override fun managerEventAddressInfo(info: TorManagerEvent.AddressInfo) {
+            _addressInfo.value = info
+        }
+
+        private val _state: MutableStateFlow<TorManagerEvent.State> =
+            MutableStateFlow(TorManagerEvent.State(TorState.Off, TorNetworkState.Disabled))
+        val state: StateFlow<TorManagerEvent.State> = _state.asStateFlow()
+
+        override fun managerEventState(state: TorManagerEvent.State) {
+            _state.value = state
+        }
+
+        override fun onEvent(event: TorManagerEvent) {
+            addLine(event.toString())
+            if (event is TorManagerEvent.Log.Error) {
+                event.value.printStackTrace()
+            }
+            when (event) {
+                is TorManagerEvent.Log.Error -> {
+
+                }
+                TorManagerEvent.Action.Controller -> {
+
+                }
+                TorManagerEvent.Action.Restart -> {
+
+                }
+                TorManagerEvent.Action.Start -> {
+
+                }
+                TorManagerEvent.Action.Stop -> {
+
+                }
+                is TorManagerEvent.Log.Debug -> {
+
+                }
+                is TorManagerEvent.Log.Info -> {
+
+                }
+                is TorManagerEvent.Log.Warn -> {
+
+                }
+                is TorManagerEvent.Lifecycle<*> -> {
+
+                }
+                is TorManagerEvent.AddressInfo -> {
+                    event.splitSocks()
+
+
+                }
+                is TorManagerEvent.State -> {
+
+                }
+            }
+
+            super.onEvent(event)
+        }
+
+        override fun onEvent(event: TorEvent.Type.SingleLineEvent, output: String) {
+            addLine("event=${event.javaClass.simpleName}, output=$output")
+        }
+
+        override fun onEvent(event: TorEvent.Type.MultiLineEvent, output: List<String>) {
+            addLine("multi-line event: ${event.javaClass.simpleName}. See Logs.")
+
+            // these events are many many many lines and should be moved
+            // off the main thread if ever needed to be dealt with.
+            @OptIn(DelicateCoroutinesApi::class)
+            GlobalScope.launch {
+//                Log.d("SampleListener", "-------------- multi-line event START: ${event.javaClass.simpleName} --------------")
+//                for (line in output) {
+//                    Log.d("SampleListener", line)
+//                }
+//                Log.d("SampleListener", "--------------- multi-line event END: ${event.javaClass.simpleName} ---------------")
+            }
+        }
     }
 }

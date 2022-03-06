@@ -3,6 +3,7 @@ package chat.sphinx.features.crypto_rsa
 import chat.sphinx.concepts.crypto_rsa.KeySize
 import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.crypto_rsa.SignatureAlgorithm
+import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.EncryptedString
 import chat.sphinx.crypto.common.clazzes.UnencryptedByteArray
 import chat.sphinx.crypto.common.clazzes.UnencryptedString
@@ -13,7 +14,6 @@ import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.rsa.*
 import io.ktor.util.*
-import io.ktor.utils.io.core.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
@@ -24,10 +24,9 @@ import java.security.Signature
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import javax.crypto.Cipher
-import kotlin.text.toByteArray
 
 @Suppress("SpellCheckingInspection")
-actual open class RSAImpl : RSA() {
+actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
 
     @OptIn(InternalAPI::class)
     actual override suspend fun generateKeyPair(
@@ -182,7 +181,7 @@ actual open class RSAImpl : RSA() {
         }
     }
 
-    @OptIn(InternalAPI::class)
+    @OptIn(InternalAPI::class, UnencryptedDataAccess::class)
     actual override suspend fun encrypt(
         rsaPublicKey: RsaPublicKey,
         text: UnencryptedString,

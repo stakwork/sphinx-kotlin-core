@@ -31,7 +31,7 @@ configurations {
 kotlin {
     jvm {
         compilations.all {
-            kotlinOptions.jvmTarget = "1.8"
+            kotlinOptions.jvmTarget = JavaVersion.VERSION_11.toString()
         }
         withJava()
         testRuns["test"].executionTask.configure {

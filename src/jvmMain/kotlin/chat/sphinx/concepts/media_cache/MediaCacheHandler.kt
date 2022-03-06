@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.media_cache
 
-import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.message.media.MediaType
-import com.stakwork.koi.InputStream
+import java.io.File
+import java.io.InputStream
 
 abstract class MediaCacheHandler {
     abstract fun createFile(mediaType: MediaType): File?

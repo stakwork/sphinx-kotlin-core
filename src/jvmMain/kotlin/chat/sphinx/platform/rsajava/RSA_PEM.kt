@@ -169,7 +169,7 @@ actual class RSA_PEM {
 
     /**得到公钥Java对象 */
     @get:Throws(Exception::class)
-    val rSAPublicKey: RSAPublicKey
+    val rsaPublicKey: RSAPublicKey
         get() {
             val spec = RSAPublicKeySpec(BigX(Key_Modulus), BigX(Key_Exponent))
             val factory = KeyFactory.getInstance("RSA")
@@ -178,7 +178,7 @@ actual class RSA_PEM {
 
     /**得到私钥Java对象 */
     @get:Throws(Exception::class)
-    val rSAPrivateKey: RSAPrivateKey
+    val rsaPrivateKey: RSAPrivateKey
         get() {
             if (Key_D == null) {
                 throw Exception("当前为公钥，无法获得私钥")

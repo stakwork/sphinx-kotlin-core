@@ -1,7 +1,7 @@
 package chat.sphinx.wrapper.io_utils
 
-import chat.sphinx.utils.platform.File
-import com.stakwork.koi.InputStream
+import java.io.File
+import java.io.InputStream
 
 
 @Suppress("NOTHING_TO_INLINE")

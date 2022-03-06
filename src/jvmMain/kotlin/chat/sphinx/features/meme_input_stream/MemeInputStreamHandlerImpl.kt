@@ -5,8 +5,8 @@ import chat.sphinx.concepts.meme_input_stream.MemeInputStreamHandler
 import chat.sphinx.concepts.network.client.cache.NetworkClientCache
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
 import chat.sphinx.wrapper.message.media.MediaKeyDecrypted
-import com.stakwork.koi.InputStream
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.io.InputStream
 
 class MemeInputStreamHandlerImpl(
     private val dispatchers: CoroutineDispatchers,

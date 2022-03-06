@@ -2,11 +2,9 @@ package chat.sphinx.features.media_cache
 
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
-import chat.sphinx.utils.platform.File
 import chat.sphinx.wrapper.message.media.MediaType
 import com.soywiz.klock.DateFormat
 import com.soywiz.klock.DateTimeTz
-import com.stakwork.koi.InputStream
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CoroutineScope
@@ -14,6 +12,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.io.errors.IOException
 import okio.*
+import java.io.File
+import java.io.InputStream
 import kotlin.io.use
 
 class MediaCacheHandlerImpl(
