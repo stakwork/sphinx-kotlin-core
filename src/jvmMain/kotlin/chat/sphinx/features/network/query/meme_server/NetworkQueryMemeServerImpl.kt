@@ -11,7 +11,6 @@ import chat.sphinx.features.network.query.meme_server.model.MemeServerChallengeS
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
-import chat.sphinx.wrapper.io_utils.InputStreamProvider
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.meme_server.*
 import chat.sphinx.wrapper.message.media.MediaType
@@ -29,7 +28,6 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.internal.closeQuietly
 import okio.*
 import org.cryptonode.jncryptor.AES256JNCryptorOutputStream
-import java.io.File
 
 class NetworkQueryMemeServerImpl(
     dispatchers: CoroutineDispatchers,
@@ -184,7 +182,7 @@ class NetworkQueryMemeServerImpl(
     override suspend fun uploadAttachment(
         authenticationToken: AuthenticationToken,
         mediaType: MediaType,
-        stream: InputStreamProvider,
+        source: Source,
         fileName: String,
         contentLength: Long?,
         memeServerHost: MediaHost,
@@ -209,7 +207,7 @@ class NetworkQueryMemeServerImpl(
                 }
 
                 override fun writeTo(sink: BufferedSink) {
-                    stream.newInputStream().source().use { source -> sink.writeAll(source) }
+                    source.use { source -> sink.writeAll(source) }
                 }
             }
 

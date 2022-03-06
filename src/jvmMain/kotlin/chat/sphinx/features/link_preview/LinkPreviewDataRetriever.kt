@@ -110,7 +110,7 @@ internal class TribePreviewDataRetriever(val tribeJoinLink: TribeJoinLink): Link
     @Volatile
     private var previewData: TribePreviewData? = null
 
-    suspend fun getTribePreview(networkQueryChat: NetworkQueryChat): TribePreviewData? =
+    suspend fun getTribePreview(networkQueryChat: chat.sphinx.concepts.network.query.chat.NetworkQueryChat): TribePreviewData? =
         previewData ?: lock.withLock {
             previewData ?: retrievePreview(networkQueryChat)
                 .also {
@@ -121,7 +121,7 @@ internal class TribePreviewDataRetriever(val tribeJoinLink: TribeJoinLink): Link
 
         }
 
-    private suspend fun retrievePreview(networkQueryChat: NetworkQueryChat): TribePreviewData? {
+    private suspend fun retrievePreview(networkQueryChat: chat.sphinx.concepts.network.query.chat.NetworkQueryChat): TribePreviewData? {
 
         var data: TribePreviewData? = null
 

@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class GetChatsRelayResponse(
     override val success: Boolean,
-    override val response: List<ChatDto>?,
+    override val response: List<chat.sphinx.concepts.network.query.chat.model.ChatDto>?,
     override val error: String?
 ): RelayResponse<List<ChatDto>>()

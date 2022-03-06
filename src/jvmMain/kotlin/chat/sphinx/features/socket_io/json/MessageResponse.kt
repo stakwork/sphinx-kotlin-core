@@ -36,7 +36,7 @@ internal inline fun String.getMessageResponseInvoice(): LightningPaymentInvoiceD
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(IOException::class)
-internal inline fun String.getMessageResponseChat(): ChatDto = Json.decodeFromString<MessageResponse.ResponseChat>(this).response
+internal inline fun String.getMessageResponseChat(): chat.sphinx.concepts.network.query.chat.model.ChatDto = Json.decodeFromString<MessageResponse.ResponseChat>(this).response
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(IOException::class)
@@ -44,7 +44,7 @@ internal inline fun String.getMessageResponseContact(): ContactDto = Json.decode
 
 @Serializable
 internal data class GroupDtoImpl(
-    override val chat: ChatDto,
+    override val chat: chat.sphinx.concepts.network.query.chat.model.ChatDto,
     override val contact: ContactDto?,
     override val message: MessageDto
 ): GroupDto()
@@ -53,7 +53,7 @@ internal sealed class MessageResponse<T> {
     abstract val response: T
 
     @Serializable
-    internal class ResponseChat(override val response: ChatDto): MessageResponse<ChatDto>()
+    internal class ResponseChat(override val response: chat.sphinx.concepts.network.query.chat.model.ChatDto): MessageResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto>()
 
     @Serializable
     internal class ResponseContact(override val response: ContactDto): MessageResponse<ContactDto>()

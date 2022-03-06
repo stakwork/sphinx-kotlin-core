@@ -7,7 +7,6 @@ import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
 import chat.sphinx.concepts.meme_input_stream.MemeInputStreamHandler
 import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
-import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.chat.model.*
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
@@ -77,7 +76,6 @@ import chat.sphinx.wrapper.dashboard.*
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.invite.Invite
 import chat.sphinx.wrapper.invite.InviteStatus
-import chat.sphinx.wrapper.io_utils.InputStreamProvider
 import chat.sphinx.wrapper.lightning.*
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.*
@@ -108,8 +106,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
-import java.io.File
-import java.io.InputStream
+import okio.Source
+import okio.source
 import kotlin.math.absoluteValue
 import kotlin.text.toCharArray
 
@@ -125,7 +123,7 @@ abstract class SphinxRepository(
     private val memeInputStreamHandler: MemeInputStreamHandler,
     private val memeServerTokenHandler: MemeServerTokenHandler,
     private val networkQueryMemeServer: NetworkQueryMemeServer,
-    private val networkQueryChat: NetworkQueryChat,
+    private val networkQueryChat: chat.sphinx.concepts.network.query.chat.NetworkQueryChat,
     private val networkQueryContact: NetworkQueryContact,
     private val networkQueryLightning: NetworkQueryLightning,
     private val networkQueryMessage: NetworkQueryMessage,
@@ -226,7 +224,7 @@ abstract class SphinxRepository(
                         else -> null
                     }
 
-                    val chatDto: ChatDto? = when (msg) {
+                    val chatDto: chat.sphinx.concepts.network.query.chat.model.ChatDto? = when (msg) {
                         is SphinxSocketIOMessage.Type.MessageType -> msg.dto.chat
                         is SphinxSocketIOMessage.Type.Group -> msg.dto.chat
                         else -> null
@@ -509,7 +507,7 @@ abstract class SphinxRepository(
     }
 
     private suspend fun processChatDtos(
-        chats: List<ChatDto>,
+        chats: List<chat.sphinx.concepts.network.query.chat.model.ChatDto>,
         contacts: Map<ContactId, ContactDto>? = null
     ): Response<Boolean, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
@@ -595,7 +593,7 @@ abstract class SphinxRepository(
                 try {
                     networkQueryChat.updateChat(
                         chatId,
-                        PutChatDto(meta = metaData.toJson())
+                        chat.sphinx.concepts.network.query.chat.model.PutChatDto(meta = metaData.toJson())
                     ).collect {}
                 } catch (e: AssertionError) {
                 }
@@ -629,12 +627,12 @@ abstract class SphinxRepository(
                 queries.chatUpdateMetaData(metaData, chatId)
             }
 
-            val destinationsArray: MutableList<PostStreamSatsDestinationDto> =
+            val destinationsArray: MutableList<chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDestinationDto> =
                 ArrayList(destinations.size)
 
             for (destination in destinations) {
                 destinationsArray.add(
-                    PostStreamSatsDestinationDto(
+                    chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDestinationDto(
                         destination.address.value,
                         destination.type.value,
                         destination.split.value,
@@ -645,7 +643,7 @@ abstract class SphinxRepository(
             val streamSatsText =
                 StreamSatsText(podcastId, episodeId, metaData.timeSeconds.toLong(), metaData.speed, clipMessageUUID?.value)
 
-            val postStreamSatsDto = PostStreamSatsDto(
+            val postStreamSatsDto = chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDto(
                 metaData.satsPerMinute.value,
                 chatId.value,
                 streamSatsText.toJson(),
@@ -1314,7 +1312,7 @@ abstract class SphinxRepository(
     }
 
     override suspend fun updateProfilePic(
-        stream: InputStreamProvider,
+        source: Source,
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
@@ -1330,7 +1328,7 @@ abstract class SphinxRepository(
                 val networkResponse = networkQueryMemeServer.uploadAttachment(
                     authenticationToken = token,
                     mediaType = mediaType,
-                    stream = stream,
+                    source = source,
                     fileName = fileName,
                     contentLength = contentLength,
                     memeServerHost = memeServerHost,
@@ -1451,8 +1449,8 @@ abstract class SphinxRepository(
         chatId: ChatId,
         alias: ChatAlias?,
         profilePic: PublicAttachmentInfo?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
+    ): Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> {
+        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> = Response.Error(
             ResponseError("updateChatProfileInfo failed to execute")
         )
 
@@ -1461,7 +1459,7 @@ abstract class SphinxRepository(
         } else if (profilePic != null) {
             response = updateChatProfilePic(
                 chatId,
-                profilePic.stream,
+                profilePic.source,
                 profilePic.mediaType,
                 profilePic.fileName,
                 profilePic.contentLength
@@ -1473,12 +1471,12 @@ abstract class SphinxRepository(
 
     suspend fun updateChatProfilePic(
         chatId: ChatId,
-        stream: InputStreamProvider,
+        source: Source,
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
+    ): Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> {
+        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> = Response.Error(
             ResponseError("updateChatProfilePic failed to execute")
         )
         val memeServerHost = MediaHost.DEFAULT
@@ -1491,7 +1489,7 @@ abstract class SphinxRepository(
                 val networkResponse = networkQueryMemeServer.uploadAttachment(
                     authenticationToken = token,
                     mediaType = mediaType,
-                    stream = stream,
+                    source = source,
                     fileName = fileName,
                     contentLength = contentLength,
                     memeServerHost = memeServerHost,
@@ -1509,7 +1507,7 @@ abstract class SphinxRepository(
 
                         networkQueryChat.updateChat(
                             chatId,
-                            PutChatDto(
+                            chat.sphinx.concepts.network.query.chat.model.PutChatDto(
                                 my_photo_url = newUrl.value,
                             )
                         ).collect { loadResponse ->
@@ -1556,15 +1554,15 @@ abstract class SphinxRepository(
     private suspend fun updateChatProfileAlias(
         chatId: ChatId,
         alias: ChatAlias?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
+    ): Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> {
+        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> = Response.Error(
             ResponseError("updateChatProfilePic failed to execute")
         )
 
         applicationScope.launch(mainImmediate) {
             networkQueryChat.updateChat(
                 chatId,
-                PutChatDto(
+                chat.sphinx.concepts.network.query.chat.model.PutChatDto(
                     my_alias = alias?.value
                 )
             ).collect { loadResponse ->
@@ -3337,16 +3335,16 @@ abstract class SphinxRepository(
 
     override fun joinTribe(
         tribeDto: TribeDto
-    ): Flow<LoadResponse<ChatDto, ResponseError>> = flow {
+    ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
-        var response: Response<ChatDto, ResponseError>? = null
+        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>? = null
         val memeServerHost = MediaHost.DEFAULT
 
         emit(LoadResponse.Loading)
 
         applicationScope.launch(mainImmediate) {
 
-            tribeDto.myPhotoUrl = tribeDto.profileImgFile?.let { imgFile ->
+            tribeDto.myPhotoUrl = tribeDto.profileImgFile?.toFile()?.let { imgFile ->
                 // If an image file is provided we should upload it
                 val token = memeServerTokenHandler.retrieveAuthenticationToken(memeServerHost)
                     ?: throw RuntimeException("MemeServerAuthenticationToken retrieval failure")
@@ -3354,9 +3352,7 @@ abstract class SphinxRepository(
                 val networkResponse = networkQueryMemeServer.uploadAttachment(
                     authenticationToken = token,
                     mediaType = MediaType.Image("${MediaType.IMAGE}/${imgFile.extension}"),
-                    stream = object : InputStreamProvider() {
-                        override fun newInputStream(): InputStream = imgFile.inputStream()
-                    },
+                    source = imgFile.source(),
                     fileName = imgFile.name,
                     contentLength = imgFile.length(),
                     memeServerHost = memeServerHost,
@@ -4611,7 +4607,7 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             try {
-                val imgUrl: String? = createTribe.img?.let { imgFile ->
+                val imgUrl: String? = createTribe.img?.toFile()?.let { imgFile ->
                     // If an image file is provided we should upload it
                     val token =
                         memeServerTokenHandler.retrieveAuthenticationToken(memeServerHost)
@@ -4620,9 +4616,7 @@ abstract class SphinxRepository(
                     val networkResponse = networkQueryMemeServer.uploadAttachment(
                         authenticationToken = token,
                         mediaType = MediaType.Image("${MediaType.IMAGE}/${imgFile.extension}"),
-                        stream = object : InputStreamProvider() {
-                            override fun newInputStream(): InputStream = imgFile.inputStream()
-                        },
+                        source = imgFile.source(),
                         fileName = imgFile.name,
                         contentLength = imgFile.length(),
                         memeServerHost = memeServerHost,
@@ -4695,7 +4689,7 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             try {
-                val imgUrl: String? = (createTribe.img?.let { imgFile ->
+                val imgUrl: String? = (createTribe.img?.toFile()?.let { imgFile ->
                     val token =
                         memeServerTokenHandler.retrieveAuthenticationToken(memeServerHost)
                             ?: throw RuntimeException("MemeServerAuthenticationToken retrieval failure")
@@ -4703,9 +4697,7 @@ abstract class SphinxRepository(
                     val networkResponse = networkQueryMemeServer.uploadAttachment(
                         authenticationToken = token,
                         mediaType = MediaType.Image("${MediaType.IMAGE}/${imgFile.extension}"),
-                        stream = object : InputStreamProvider() {
-                            override fun newInputStream(): InputStream = imgFile.inputStream()
-                        },
+                        source = imgFile.source(),
                         fileName = imgFile.name,
                         contentLength = imgFile.length(),
                         memeServerHost = memeServerHost,

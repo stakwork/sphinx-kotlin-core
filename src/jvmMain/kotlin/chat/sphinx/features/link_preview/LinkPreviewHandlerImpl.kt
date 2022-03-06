@@ -11,7 +11,7 @@ import chat.sphinx.wrapper.tribe.TribeJoinLink
 class LinkPreviewHandlerImpl(
     private val dispatchers: CoroutineDispatchers,
     private val networkClient: NetworkClient,
-    private val networkQueryChat: NetworkQueryChat,
+    private val networkQueryChat: chat.sphinx.concepts.network.query.chat.NetworkQueryChat,
 ) : LinkPreviewHandler() {
 
     override suspend fun retrieveHtmlPreview(url: String): HtmlPreviewData? {
