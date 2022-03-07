@@ -3,6 +3,8 @@ package chat.sphinx.features.network.query.save_profile
 import chat.sphinx.concepts.network.query.save_profile.model.PeopleProfileDto
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
+import chat.sphinx.response.exception
+import chat.sphinx.response.message
 import chat.sphinx.test.network.query.NetworkQueryTestHelper
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.test.runBlockingTest
@@ -27,7 +29,7 @@ class NetworkQuerySaveProfileImplUnitTest: NetworkQueryTestHelper() {
 
                     Exhaustive@
                     when (loadResponse) {
-                        is Response.Error<*> -> {
+                        is Response.Error -> {
                             loadResponse.exception?.printStackTrace()
                             fail(loadResponse.message)
                         }

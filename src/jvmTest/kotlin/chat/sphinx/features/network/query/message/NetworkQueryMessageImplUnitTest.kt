@@ -2,7 +2,10 @@ package chat.sphinx.features.network.query.message
 
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
+import chat.sphinx.response.exception
+import chat.sphinx.response.message
 import chat.sphinx.test.network.query.NetworkQueryTestHelper
+import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.message.MessagePagination
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.test.runBlockingTest
@@ -21,11 +24,11 @@ class NetworkQueryMessageImplUnitTest: NetworkQueryTestHelper() {
 
                     Exhaustive@
                     when (loadResponse) {
-                        is Response.Error<*> -> {
+                        is Response.Error -> {
                             loadResponse.exception?.printStackTrace()
                             fail(loadResponse.message)
                         }
-                        is Response.Success<*> -> {}
+                        is Response.Success -> {}
                         is LoadResponse.Loading -> {}
                     }
 
@@ -85,7 +88,7 @@ class NetworkQueryMessageImplUnitTest: NetworkQueryTestHelper() {
 
                     Exhaustive@
                     when (loadResponse) {
-                        is Response.Error<*> -> {
+                        is Response.Error -> {
                             loadResponse.exception?.printStackTrace()
                             fail(loadResponse.message)
                         }

@@ -1,15 +1,13 @@
-package chat.sphinx.feature_relay
+package chat.sphinx.features.relay
 
-import chat.sphinx.concept_relay.RelayDataHandler
-import chat.sphinx.features.relay.RelayDataHandlerImpl
-import chat.sphinx.test_tor_manager.TestTorManager
-import chat.sphinx.wrapper_relay.AuthorizationToken
-import chat.sphinx.wrapper_relay.RelayUrl
-import io.matthewnelson.k_openssl.isSalted
-import io.matthewnelson.test_feature_authentication_core.AuthenticationCoreDefaultsTestHelper
+import chat.sphinx.concepts.relay.RelayDataHandler
+import chat.sphinx.crypto.k_openssl.isSalted
+import chat.sphinx.test.features.authentication.core.AuthenticationCoreDefaultsTestHelper
+import chat.sphinx.test.tor_manager.TestTorManager
+import chat.sphinx.wrapper.relay.AuthorizationToken
+import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.test.runBlockingTest
-import org.junit.Assert
-import org.junit.Test
+import kotlin.test.*
 
 class RelayDataHandlerImplUnitTest: AuthenticationCoreDefaultsTestHelper() {
 
@@ -31,10 +29,10 @@ class RelayDataHandlerImplUnitTest: AuthenticationCoreDefaultsTestHelper() {
     @Test
     fun `login is required for anything to work`() =
         testDispatcher.runBlockingTest {
-            Assert.assertFalse(relayHandler.persistRelayUrl(RelayUrl(RAW_URL)))
-            Assert.assertNull(relayHandler.retrieveRelayUrl())
-            Assert.assertFalse(relayHandler.persistAuthorizationToken(AuthorizationToken(RAW_JWT)))
-            Assert.assertNull(relayHandler.retrieveAuthorizationToken())
+            assertFalse(relayHandler.persistRelayUrl(RelayUrl(RAW_URL)))
+            assertNull(relayHandler.retrieveRelayUrl())
+            assertFalse(relayHandler.persistAuthorizationToken(AuthorizationToken(RAW_JWT)))
+            assertNull(relayHandler.retrieveAuthorizationToken())
         }
 
     @Test
@@ -42,15 +40,15 @@ class RelayDataHandlerImplUnitTest: AuthenticationCoreDefaultsTestHelper() {
         testDispatcher.runBlockingTest {
             login()
 
-            Assert.assertTrue(relayHandler.persistRelayUrl(RelayUrl(RAW_URL)))
+            assertTrue(relayHandler.persistRelayUrl(RelayUrl(RAW_URL)))
             testStorage.getString(RelayDataHandlerImpl.RELAY_URL_KEY, null)?.let { encryptedUrl ->
-                Assert.assertTrue(encryptedUrl.isSalted)
-            } ?: Assert.fail("Failed to persist relay url to storage")
+                assertTrue(encryptedUrl.isSalted)
+            } ?: fail("Failed to persist relay url to storage")
 
-            Assert.assertTrue(relayHandler.persistAuthorizationToken(AuthorizationToken(RAW_JWT)))
+            assertTrue(relayHandler.persistAuthorizationToken(AuthorizationToken(RAW_JWT)))
             testStorage.getString(RelayDataHandlerImpl.RELAY_AUTHORIZATION_KEY, null)?.let { encryptedJwt ->
-                Assert.assertTrue(encryptedJwt.isSalted)
-            } ?: Assert.fail("Failed to persist relay jwt to storage")
+                assertTrue(encryptedJwt.isSalted)
+            } ?: fail("Failed to persist relay jwt to storage")
         }
 
     @Test
@@ -60,15 +58,15 @@ class RelayDataHandlerImplUnitTest: AuthenticationCoreDefaultsTestHelper() {
 
             relayHandler.persistAuthorizationToken(AuthorizationToken(RAW_JWT))
             testStorage.getString(RelayDataHandlerImpl.RELAY_AUTHORIZATION_KEY, null)?.let { encryptedJwt ->
-                Assert.assertTrue(encryptedJwt.isSalted)
-            } ?: Assert.fail("Failed to persist relay jwt to storage")
+                assertTrue(encryptedJwt.isSalted)
+            } ?: fail("Failed to persist relay jwt to storage")
 
             relayHandler.persistAuthorizationToken(null)
             val notInStorage = "NOT_IN_STORAGE"
             testStorage.getString(RelayDataHandlerImpl.RELAY_AUTHORIZATION_KEY, notInStorage).let { jwt ->
                 // default value is returned if persisted value is null
                 if (jwt != notInStorage) {
-                    Assert.fail("Java Web Token was not cleared from storage")
+                    fail("Java Web Token was not cleared from storage")
                 }
             }
         }

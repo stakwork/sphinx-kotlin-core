@@ -11,7 +11,6 @@ import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
-import chat.sphinx.concepts.network.tor.TorManager
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.crypto.common.clazzes.Password
 import chat.sphinx.features.network.client.NetworkClientImpl
@@ -21,24 +20,31 @@ import chat.sphinx.features.network.query.invite.NetworkQueryInviteImpl
 import chat.sphinx.features.network.query.lightning.NetworkQueryLightningImpl
 import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
+import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
 import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeExternalImpl
+import chat.sphinx.features.network.query.version.NetworkQueryVersionImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
 import chat.sphinx.features.relay.RelayDataHandlerImpl
 import chat.sphinx.logger.LogType
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.test.features.authentication.core.AuthenticationCoreDefaultsTestHelper
 import chat.sphinx.test.features.authentication.core.TestEncryptionKeyHandler
+import chat.sphinx.test.tor_manager.TestTorManager
 import chat.sphinx.utils.build_config.BuildConfigDebug
+import chat.sphinx.utils.platform.getFileSystem
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
-import com.squareup.moshi.Moshi
+import io.ktor.util.*
+import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.coroutines.test.runBlockingTest
 import okhttp3.Cache
-import okio.base64.decodeBase64ToArray
+import okio.FileSystem
+import okio.fakefilesystem.FakeFileSystem
 import org.cryptonode.jncryptor.AES256JNCryptor
 import kotlin.jvm.JvmStatic
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.text.toCharArray
 
 /**
  * This class uses a test account setup on SphinxRelay to help ensure API compatibility.
@@ -80,17 +86,17 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
             println("***********************************************\n\n")
         }
 
+        @OptIn(InternalAPI::class)
         fun setProperties(keyExport: String, password: CharArray) {
             keyExport
-                .decodeBase64ToArray()
-                ?.toString(charset("UTF-8"))
+                .encodeBase64()
                 ?.split("::")
                 ?.let { decodedSplit ->
                     if (decodedSplit.elementAtOrNull(0) != "keys") {
                         return
                     }
 
-                    decodedSplit.elementAt(1).decodeBase64ToArray()?.let { toDecrypt ->
+                    decodedSplit.elementAt(1).decodeBase64Bytes().let { toDecrypt ->
                         val decryptedSplit = AES256JNCryptor()
                             .decryptData(toDecrypt, password)
                             .toString(charset("UTF-8"))
@@ -143,10 +149,6 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
             }
         }
 
-    protected open val moshi: Moshi by lazy {
-        Moshi.Builder().build()
-    }
-
     private class TestSphinxLogger: SphinxLogger() {
         override fun log(tag: String, message: String, type: LogType, throwable: Throwable?) {}
     }
@@ -160,11 +162,10 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
      * */
     open val useLoggingInterceptors: Boolean = false
 
-    @get:Rule
-    val testDirectory = TemporaryFolder()
+    val testDirectory = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
 
     open val okHttpCache: Cache by lazy {
-        Cache(testDirectory.newFile("okhttp_test_cache"), 2000000L /*2MB*/)
+        Cache(testDirectory.resolve("okhttp_test_cache").toFile(), 2000000L /*2MB*/)
     }
 
     protected open val networkClient: NetworkClient by lazy {
@@ -192,7 +193,6 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
     protected open val networkRelayCall: NetworkRelayCall by lazy {
         NetworkRelayCallImpl(
             dispatchers,
-            moshi,
             networkClient,
             relayDataHandler,
             testLogger
@@ -237,7 +237,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
 
     @BeforeTest
     fun setupNetworkQueryTestHelper() = testDispatcher.runBlockingTest {
-        testDirectory.create()
+        FakeFileSystem().createDirectory(testDirectory)
         getCredentials()?.let { creds ->
             // Set our raw private/public keys in the test handler so when we login
             // for the first time the generated keys will be these
@@ -260,6 +260,6 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
 
     @AfterTest
     fun tearDownNetworkQueryTestHelper() {
-        testDirectory.delete()
+        FakeFileSystem().delete(testDirectory)
     }
 }
