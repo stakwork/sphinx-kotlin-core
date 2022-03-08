@@ -8,5 +8,7 @@ Most of the core logic is in commonMain and we are using a few multiplatform dep
 
 - [Replace use of okhttp with a multiplatform dependency](https://github.com/stakwork/sphinx-kotlin-core/issues/1)
 - [Replace the RSAImpl with a multiplatform dependency](https://github.com/stakwork/sphinx-kotlin-core/issues/2)
+- [Make Implmementation classes internal](https://github.com/stakwork/sphinx-kotlin-core/issues/3)
+
 
 The repo still has a dependency on OkHTTP which isn't yet a multiplatform libray.
