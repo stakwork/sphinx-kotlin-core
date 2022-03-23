@@ -24,7 +24,7 @@ package chat.sphinx.features.authentication.core.components
  * [wrongPinAttemptsUntilLockedOut] and [wrongPinLockoutDuration] are
  * greater than 0.
  * */
-abstract class AuthenticationManagerInitializer(
+open class AuthenticationManagerInitializer(
     val minimumUserInputLength: Int = 8,
     val maximumUserInputLength: Int = 42,
     val wrongPinAttemptsUntilLockedOut: Int = 0,

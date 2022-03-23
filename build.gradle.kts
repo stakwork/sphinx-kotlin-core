@@ -38,14 +38,14 @@ kotlin {
             useJUnitPlatform()
         }
     }
-    val hostOs = System.getProperty("os.name")
-    val isMingwX64 = hostOs.startsWith("Windows")
-    val nativeTarget = when {
-        hostOs == "Mac OS X" -> macosX64("native")
-        hostOs == "Linux" -> linuxX64("native")
-        isMingwX64 -> mingwX64("native")
-        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
-    }
+//    val hostOs = System.getProperty("os.name")
+//    val isMingwX64 = hostOs.startsWith("Windows")
+//    val nativeTarget = when {
+//        hostOs == "Mac OS X" -> macosX64("native")
+//        hostOs == "Linux" -> linuxX64("native")
+//        isMingwX64 -> mingwX64("native")
+//        else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
+//    }
 
     
     sourceSets {
@@ -53,6 +53,7 @@ kotlin {
         val okioVersion = "3.0.0"
         val klockVersion = "2.5.1"
         val sqlDelightVersion = "1.5.1"
+        val kmpTorVersion = "0.4.6.10+0.1.0-alpha4"
 
         val commonMain by getting {
             dependencies {
@@ -68,7 +69,10 @@ kotlin {
                 implementation("io.ktor:ktor-client-cio:1.6.7")
                 implementation("com.squareup.okio:okio:$okioVersion")
                 implementation("com.soywiz.korlibs.klock:klock:$klockVersion")
-                implementation("io.matthewnelson.kotlin-components:kmp-tor:0.4.6.10+0.1.0-alpha4")
+                implementation("io.matthewnelson.kotlin-components:kmp-tor:$kmpTorVersion")
+                implementation("com.google.dagger:hilt-android:2.41")
+//                kapt("com.google.dagger:hilt-compiler:2.41")
+                implementation("com.russhwolf:multiplatform-settings:0.8.1")
             }
         }
         val commonTest by getting {
@@ -95,12 +99,13 @@ kotlin {
             }
         }
         val jvmTest by getting
-        val nativeMain by getting {
-            dependencies {
-                api("com.squareup.sqldelight:native-driver:$sqlDelightVersion")
-            }
-        }
-        val nativeTest by getting
+//        val nativeMain by getting {
+//            dependencies {
+//                api("com.squareup.sqldelight:native-driver:$sqlDelightVersion")
+//                implementation("io.matthewnelson.kotlin-components:kmp-tor-manager-jvm:$kmpTorVersion")
+//            }
+//        }
+//        val nativeTest by getting
     }
 }
 
