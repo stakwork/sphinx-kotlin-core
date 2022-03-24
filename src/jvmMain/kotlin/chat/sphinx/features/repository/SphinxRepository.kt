@@ -136,7 +136,7 @@ abstract class SphinxRepository(
     private val networkQueryFeedSearch: NetworkQueryFeedSearch,
     private val rsa: RSA,
     private val socketIOManager: SocketIOManager,
-    private val sphinxNotificationManager: SphinxNotificationManager,
+    private val sphinxNotificationManager: SphinxNotificationManager?,
     protected val LOG: SphinxLogger,
 ) : ChatRepository,
     ContactRepository,
@@ -5223,7 +5223,7 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             downloadLock.withLock {
-                sphinxNotificationManager.notify(
+                sphinxNotificationManager?.notify(
                     notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                     title = "Downloading Item",
                     message = "Downloading item for local playback",
@@ -5249,7 +5249,7 @@ abstract class SphinxRepository(
                             authenticationToken = null,
                             mediaKeyDecrypted = null,
                         )?.let { stream ->
-                            sphinxNotificationManager.notify(
+                            sphinxNotificationManager?.notify(
                                 notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                                 title = "Completing Download",
                                 message = "Finishing up download of file",
@@ -5267,7 +5267,7 @@ abstract class SphinxRepository(
                                 }
                             }
 
-                            sphinxNotificationManager.notify(
+                            sphinxNotificationManager?.notify(
                                 notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                                 title = "Download complete",
                                 message = "item can now be accessed offline",
@@ -5288,7 +5288,7 @@ abstract class SphinxRepository(
                     } else {
                         "Failed to initiate download because of missing media type information"
                     }
-                    sphinxNotificationManager.notify(
+                    sphinxNotificationManager?.notify(
                         notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                         title = title,
                         message = message,
