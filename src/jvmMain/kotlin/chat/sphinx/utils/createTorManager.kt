@@ -57,11 +57,11 @@ actual fun createTorManager(
 
     val configProvider = object: TorConfigProviderJvm() {
         override val workDir: Path = Path(tmpDir).builder {
-            addSegment("kmptor-javafx-sample")
+            addSegment("sphinx-jvm")
             addSegment("work")
         }
         override val cacheDir: Path = Path(tmpDir).builder {
-            addSegment("kmptor-javafx-sample")
+            addSegment("sphinx-jvm")
             addSegment("cache")
         }
 

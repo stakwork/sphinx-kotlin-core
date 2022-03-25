@@ -1,6 +1,6 @@
 package chat.sphinx.di.container
 
-import chat.sphinx.di.networkCache
+import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.features.link_preview.LinkPreviewHandlerImpl
 import chat.sphinx.features.meme_input_stream.MemeInputStreamHandlerImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
@@ -23,6 +23,17 @@ import chat.sphinx.utils.createTorManager
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import okhttp3.Cache
+import okio.FileSystem
+
+/**
+ * TODO: Get cache through alternative means...
+ */
+fun Cache.Companion.networkCache(): Cache {
+    return Cache(
+        FileSystem.SYSTEM_TEMPORARY_DIRECTORY.resolve("networkCache").toFile(),
+        22
+    )
+}
 
 class NetworkModule(
     appModule: AppModule,
@@ -36,14 +47,14 @@ class NetworkModule(
         appModule.dispatchers,
         appModule.sphinxLogger
     )
-    private val relayDataHandlerImpl = RelayDataHandlerImpl(
+    val relayDataHandlerImpl = RelayDataHandlerImpl(
         authenticationModule.authenticationStorage,
         authenticationModule.authenticationCoreManager,
         appModule.dispatchers,
         authenticationModule.encryptionKeyHandler,
         torManager
     )
-    val relayDataHandler = relayDataHandlerImpl
+    val relayDataHandler: RelayDataHandler = relayDataHandlerImpl
     private val networkClientImpl = NetworkClientImpl(
         appModule.buildConfigDebug,
         Cache.networkCache(),

@@ -7,10 +7,10 @@ import chat.sphinx.authentication.SphinxKeyRestore
 import chat.sphinx.features.background.login.BackgroundLoginHandlerImpl
 import chat.sphinx.features.crypto_rsa.RSAAlgorithm
 import chat.sphinx.features.crypto_rsa.RSAImpl
+import chat.sphinx.features.relay.RelayDataHandlerImpl
 
 class AuthenticationModule(
     appModule: AppModule,
-    networkModule: NetworkModule
 ) {
     val sphinxAuthenticationCoreStorage = SphinxAuthenticationCoreStorage(
         appModule.dispatchers
@@ -32,13 +32,16 @@ class AuthenticationModule(
         authenticationCoreManager,
         authenticationStorage
     )
-    val sphinxKeyRestore = SphinxKeyRestore(
+    fun sphinxKeyRestore(
+        relayDataHandlerImpl: RelayDataHandlerImpl
+    ): SphinxKeyRestore = SphinxKeyRestore(
         sphinxAuthenticationCoreManager,
         sphinxAuthenticationCoreStorage,
         sphinxEncryptionKeyHandler,
-        networkModule.relayDataHandler
+        relayDataHandlerImpl
     )
-    val keyRestore = sphinxKeyRestore
 
-
+    fun keyRestore(
+        relayDataHandlerImpl: RelayDataHandlerImpl
+    ): SphinxKeyRestore = sphinxKeyRestore(relayDataHandlerImpl)
 }

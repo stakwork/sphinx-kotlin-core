@@ -19,14 +19,14 @@ repositories {
     mavenCentral()
 }
 
-configurations {
-    all {
-        exclude(
-            "io.matthewnelson.kotlin-components",
-            "kmp-tor-macosx64"
-        )
-    }
-}
+//configurations {
+//    all {
+//        exclude(
+//            "io.matthewnelson.kotlin-components",
+//            "kmp-tor-macosx64"
+//        )
+//    }
+//}
 
 kotlin {
     jvm {
@@ -53,7 +53,7 @@ kotlin {
         val okioVersion = "3.0.0"
         val klockVersion = "2.5.1"
         val sqlDelightVersion = "1.5.1"
-        val kmpTorVersion = "0.4.6.10+0.1.0-alpha4"
+        val kmpTorVersion = "0.4.6.10+0.1.0-beta1"
 
         val commonMain by getting {
             dependencies {
@@ -69,9 +69,8 @@ kotlin {
                 implementation("io.ktor:ktor-client-cio:1.6.7")
                 implementation("com.squareup.okio:okio:$okioVersion")
                 implementation("com.soywiz.korlibs.klock:klock:$klockVersion")
-                implementation("io.matthewnelson.kotlin-components:kmp-tor:$kmpTorVersion")
-                implementation("com.google.dagger:hilt-android:2.41")
-//                kapt("com.google.dagger:hilt-compiler:2.41")
+                api("io.matthewnelson.kotlin-components:kmp-tor:$kmpTorVersion")
+
                 implementation("com.russhwolf:multiplatform-settings:0.8.1")
             }
         }
