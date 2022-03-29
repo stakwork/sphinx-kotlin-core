@@ -28,6 +28,10 @@ abstract class AuthenticationCoreStorage: AuthenticationStorage {
     protected abstract suspend fun saveCredentialString(credentialString: CredentialString)
     protected abstract suspend fun retrieveCredentialString(): CredentialString?
 
+    suspend fun hasCredential(): Boolean {
+        return retrieveCredentialString() != null
+    }
+
     @JvmSynthetic
     @Synchronized
     internal suspend fun saveCredentials(credentials: Credentials) {
