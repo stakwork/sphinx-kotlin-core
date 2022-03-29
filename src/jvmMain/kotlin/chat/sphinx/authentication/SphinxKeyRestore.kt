@@ -110,6 +110,7 @@ class SphinxKeyRestore(
 
                         if (flowResponse is AuthenticateFlowResponse.Error) {
                             // TODO: Implement
+                            emit(KeyRestoreResponse.Error.FailedToSecureKeys)
                         }
                 }
 

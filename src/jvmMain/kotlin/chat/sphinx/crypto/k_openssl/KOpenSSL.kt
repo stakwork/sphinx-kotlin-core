@@ -15,11 +15,26 @@
 * */
 package chat.sphinx.crypto.k_openssl
 
+import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.clazzes.*
+import chat.sphinx.crypto.common.extensions.toByteArray
 import io.ktor.util.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlin.coroutines.cancellation.CancellationException
+//import okio.base64.decodeBase64ToArray
+//import okio.base64.encodeBase64
+import org.bouncycastle_ktx.crypto.generators.PKCS5S2ParametersGenerator
+import org.bouncycastle_ktx.crypto.params.KeyParameter
+import java.security.InvalidAlgorithmParameterException
+import java.security.InvalidKeyException
+import java.security.NoSuchAlgorithmException
+import java.security.spec.InvalidKeySpecException
+import javax.crypto.BadPaddingException
+import javax.crypto.IllegalBlockSizeException
+import javax.crypto.NoSuchPaddingException
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 @OptIn(InternalAPI::class)
 inline val CharSequence.isSalted: Boolean
@@ -45,11 +60,19 @@ abstract class KOpenSSL {
      * @return [UnencryptedString]
      * */
     @Throws(
+        ArrayIndexOutOfBoundsException::class,
+        BadPaddingException::class,
         CancellationException::class,
         CharacterCodingException::class,
         IllegalArgumentException::class,
+        IllegalBlockSizeException::class,
         IllegalStateException::class, // bouncy castle DecoderException wrapper
         IndexOutOfBoundsException::class,
+        InvalidAlgorithmParameterException::class,
+        InvalidKeyException::class,
+        InvalidKeySpecException::class,
+        NoSuchAlgorithmException::class,
+        NoSuchPaddingException::class
     )
     abstract suspend fun decrypt(
         password: Password,
@@ -64,11 +87,19 @@ abstract class KOpenSSL {
      * @return [UnencryptedByteArray]
      * */
     @Throws(
+        ArrayIndexOutOfBoundsException::class,
+        BadPaddingException::class,
         CancellationException::class,
         CharacterCodingException::class,
         IllegalArgumentException::class,
+        IllegalBlockSizeException::class,
         IllegalStateException::class, // bouncy castle DecoderException wrapper
-        IndexOutOfBoundsException::class
+        IndexOutOfBoundsException::class,
+        InvalidAlgorithmParameterException::class,
+        InvalidKeyException::class,
+        InvalidKeySpecException::class,
+        NoSuchAlgorithmException::class,
+        NoSuchPaddingException::class
     )
     abstract suspend fun decrypt(
         hashIterations: HashIterations,
@@ -83,11 +114,19 @@ abstract class KOpenSSL {
      * @return [EncryptedString]
      * */
     @Throws(
+        ArrayIndexOutOfBoundsException::class,
         AssertionError::class,
+        BadPaddingException::class,
         CancellationException::class,
         IllegalArgumentException::class,
+        IllegalBlockSizeException::class,
         IllegalStateException::class, // bouncy castle EncoderException wrapper
         IndexOutOfBoundsException::class,
+        InvalidAlgorithmParameterException::class,
+        InvalidKeyException::class,
+        InvalidKeySpecException::class,
+        NoSuchAlgorithmException::class,
+        NoSuchPaddingException::class
     )
     abstract suspend fun encrypt(
         password: Password,
@@ -102,11 +141,19 @@ abstract class KOpenSSL {
      * @return [EncryptedString]
      * */
     @Throws(
+        ArrayIndexOutOfBoundsException::class,
         AssertionError::class,
+        BadPaddingException::class,
         CancellationException::class,
         IllegalArgumentException::class,
+        IllegalBlockSizeException::class,
         IllegalStateException::class, // bouncy castle EncoderException wrapper
         IndexOutOfBoundsException::class,
+        InvalidAlgorithmParameterException::class,
+        InvalidKeyException::class,
+        InvalidKeySpecException::class,
+        NoSuchAlgorithmException::class,
+        NoSuchPaddingException::class
     )
     abstract suspend fun encrypt(
         password: Password,
@@ -129,4 +176,50 @@ abstract class KOpenSSL {
             .encodeBase64()
             .replace("(.{64})".toRegex(), "$1\n")
 
+    /**
+     * By default uses PKCS5S2 (PBKDF2 HMac Sha256)
+     * */
+    @Throws(CancellationException::class)
+    @OptIn(RawPasswordAccess::class)
+    protected open suspend fun getSecretKeyComponents(
+        password: Password,
+        salt: ByteArray,
+        hashIterations: HashIterations
+    ): SecretKeyComponents =
+        PKCS5S2ParametersGenerator().let { generator ->
+            generator.init(password.value.toByteArray(), salt, hashIterations.value)
+            try {
+                (generator.generateDerivedMacParameters(48 * 8) as KeyParameter).key.let { secretKey ->
+
+                    SecretKeyComponents(
+                        // Decryption Key is bytes 0 - 31 of the derived secret key
+                        key = secretKey.copyOfRange(0, 32),
+
+                        // Input Vector is bytes 32 - 47 of the derived secret key
+                        iv = secretKey.copyOfRange(32, secretKey.size)
+                    ).also {
+                        secretKey.fill('*'.code.toByte())
+                    }
+
+                }
+            } finally {
+                generator.password?.fill('*'.code.toByte())
+            }
+        }
+
+    protected open class SecretKeyComponents(
+        private val key: ByteArray,
+        private val iv: ByteArray
+    ) {
+        fun getSecretKeySpec(algorithm: String = "AES"): SecretKeySpec =
+            SecretKeySpec(key, algorithm)
+
+        fun getIvParameterSpec(): IvParameterSpec =
+            IvParameterSpec(iv)
+
+        fun clearValues() {
+            key.fill('*'.code.toByte())
+            iv.fill('*'.code.toByte())
+        }
+    }
 }

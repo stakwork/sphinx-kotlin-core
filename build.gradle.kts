@@ -17,6 +17,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven(url = "https://jitpack.io")
 }
 
 //configurations {
@@ -84,6 +85,7 @@ kotlin {
         }
         val jvmMain by getting {
             val okHttpVersion = "4.9.3"
+            val netlayerVersion = "0.7.2"
 
             dependencies {
                 api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.1.16")
@@ -95,6 +97,8 @@ kotlin {
                 implementation("org.jsoup:jsoup:1.14.3")
                 implementation("io.socket:engine.io-client:1.0.0")
                 implementation("org.cryptonode.jncryptor:jncryptor:1.2.0")
+                implementation("com.github.bisq-network.netlayer:tor.external:$netlayerVersion")
+                implementation("com.github.bisq-network.netlayer:tor.native:$netlayerVersion")
             }
         }
         val jvmTest by getting

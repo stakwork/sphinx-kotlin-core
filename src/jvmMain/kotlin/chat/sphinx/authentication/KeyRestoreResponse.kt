@@ -16,5 +16,6 @@ sealed class KeyRestoreResponse {
         object PrivateKeyWasEmpty: Error()
         object PublicKeyWasEmpty: Error()
         object InvalidUserPin: Error()
+        object FailedToSecureKeys: Error()
     }
 }

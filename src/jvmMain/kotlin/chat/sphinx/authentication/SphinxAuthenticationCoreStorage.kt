@@ -5,7 +5,6 @@ import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.features.authentication.core.data.AuthenticationCoreStorage
 import chat.sphinx.utils.createPlatformSettings
 import com.russhwolf.settings.Settings
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 open class SphinxAuthenticationCoreStorage(
