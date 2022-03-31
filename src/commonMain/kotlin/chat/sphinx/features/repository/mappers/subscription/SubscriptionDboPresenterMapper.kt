@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository.mappers.subscription
 
-import chat.sphinx.concepts.coredb.SubscriptionDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.database.core.SubscriptionDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.wrapper.subscription.Subscription
 

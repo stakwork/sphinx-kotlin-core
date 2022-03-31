@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository.mappers.chat
 
-import chat.sphinx.concepts.coredb.ChatDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.database.core.ChatDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.wrapper.chat.Chat
 

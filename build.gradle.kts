@@ -6,7 +6,13 @@ plugins {
 
 sqldelight {
     database("SphinxDatabase") {
-        packageName = "chat.sphinx.concepts.coredb"
+        packageName = "chat.sphinx.database.core"
+        sourceFolders = listOf("coredb")
+//        schemaOutputDirectory = file("build/dbs")
+    }
+    database("SphinxSettingsDatabase") {
+        packageName = "chat.sphinx.database.settings"
+        sourceFolders = listOf("settingsdb")
 //        schemaOutputDirectory = file("build/dbs")
     }
     linkSqlite = false
@@ -73,6 +79,8 @@ kotlin {
                 api("io.matthewnelson.kotlin-components:kmp-tor:$kmpTorVersion")
 
                 implementation("com.russhwolf:multiplatform-settings:0.8.1")
+
+//                implementation(project(":kmp-tor:library:kmp-tor"))
             }
         }
         val commonTest by getting {

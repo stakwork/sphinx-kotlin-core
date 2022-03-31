@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository.mappers.feed
 
-import chat.sphinx.concepts.coredb.FeedModelDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.database.core.FeedModelDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.wrapper.feed.FeedModel
 

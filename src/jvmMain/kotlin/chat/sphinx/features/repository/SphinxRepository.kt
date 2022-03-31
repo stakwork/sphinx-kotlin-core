@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository
 
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
-import chat.sphinx.concepts.coredb.*
+import chat.sphinx.database.core.*
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
@@ -50,6 +50,7 @@ import chat.sphinx.concepts.socket_io.SphinxSocketIOMessageListener
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
+import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.features.repository.mappers.chat.ChatDboPresenterMapper
 import chat.sphinx.features.repository.mappers.contact.ContactDboPresenterMapper
@@ -111,7 +112,6 @@ import okio.Source
 import okio.source
 import kotlin.math.absoluteValue
 import kotlin.text.toCharArray
-
 
 abstract class SphinxRepository(
     override val accountOwner: StateFlow<Contact?>,

@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository.mappers.message
 
-import chat.sphinx.concepts.coredb.MessageDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.database.core.MessageDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.features.repository.model.message.MessageDboWrapper
 import chat.sphinx.wrapper.message.*

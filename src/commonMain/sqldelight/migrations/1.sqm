@@ -1,3 +1,0 @@
-import java.io.File;
-
-ALTER TABLE messageMediaDbo ADD COLUMN local_file TEXT AS File;

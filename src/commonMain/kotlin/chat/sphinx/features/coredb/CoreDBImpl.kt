@@ -1,8 +1,8 @@
 package chat.sphinx.features.coredb
 
-
 import chat.sphinx.concepts.authentication.encryption_key.EncryptionKey
-import chat.sphinx.concepts.coredb.*
+import chat.sphinx.concepts.coredb.CoreDB
+import chat.sphinx.database.core.*
 import chat.sphinx.features.coredb.adapters.invite.InviteStringAdapter
 import chat.sphinx.features.coredb.adapters.media.MediaKeyAdapter
 import chat.sphinx.features.coredb.adapters.media.MediaKeyDecryptedAdapter

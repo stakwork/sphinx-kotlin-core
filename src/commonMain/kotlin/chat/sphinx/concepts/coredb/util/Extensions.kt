@@ -1,7 +1,8 @@
 package chat.sphinx.concepts.coredb.util
 
-import chat.sphinx.concepts.coredb.MessageDbo
-import chat.sphinx.concepts.coredb.SphinxDatabaseQueries
+import chat.sphinx.database.core.MessageDbo
+import chat.sphinx.database.core.SphinxDatabaseQueries
+
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun SphinxDatabaseQueries.upsertMessage(dbo: MessageDbo): Unit =

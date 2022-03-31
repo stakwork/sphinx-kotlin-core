@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository.mappers.invite
 
-import chat.sphinx.concepts.coredb.InviteDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.database.core.InviteDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.wrapper.invite.Invite
 

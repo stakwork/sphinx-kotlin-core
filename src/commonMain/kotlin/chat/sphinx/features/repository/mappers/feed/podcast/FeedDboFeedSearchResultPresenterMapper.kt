@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository.mappers.feed.podcast
 
-import chat.sphinx.concepts.coredb.FeedDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.database.core.FeedDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.dashboard.ChatId

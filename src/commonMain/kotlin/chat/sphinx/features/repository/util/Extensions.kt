@@ -1,6 +1,5 @@
 package chat.sphinx.features.repository.util
 
-import chat.sphinx.concepts.coredb.SphinxDatabaseQueries
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.concepts.network.query.chat.model.feed.FeedDto
@@ -9,6 +8,7 @@ import chat.sphinx.concepts.network.query.invite.model.InviteDto
 import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.message.model.MessageDto
 import chat.sphinx.concepts.network.query.subscription.model.SubscriptionDto
+import chat.sphinx.database.core.SphinxDatabaseQueries
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.contact.*

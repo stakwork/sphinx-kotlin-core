@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlin.jvm.JvmSynthetic
 import kotlin.jvm.Synchronized
 
-internal class UserInputWriter private constructor(): CharArrayWriter (
+class UserInputWriter private constructor(): CharArrayWriter (
     AuthenticationCoreManager.maxUserInputLength
 ), UserInput {
 

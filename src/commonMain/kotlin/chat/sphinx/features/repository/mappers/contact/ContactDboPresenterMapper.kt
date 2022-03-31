@@ -1,7 +1,7 @@
 package chat.sphinx.features.repository.mappers.contact
 
-import chat.sphinx.concepts.coredb.ContactDbo
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
+import chat.sphinx.database.core.ContactDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.wrapper.contact.Contact
 import chat.sphinx.wrapper.contact.ContactFromGroup
