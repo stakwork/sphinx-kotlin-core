@@ -10,7 +10,7 @@ data class PeopleProfileDto(
     val owner_alias: String,
     val description: String,
     val img: String,
-    val tags: List<String>?,
+    val tags: List<String>? = null,
     val price_to_meet: Int,
     val extras: @Polymorphic Any,
 )

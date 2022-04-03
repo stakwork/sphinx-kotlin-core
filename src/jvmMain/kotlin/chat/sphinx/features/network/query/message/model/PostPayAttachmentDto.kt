@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PostPayAttachmentDto(
     val chat_id: Long,
-    val contact_id: Long?,
+    val contact_id: Long? = null,
     val amount: Long,
     val media_token: String,
 )

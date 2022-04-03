@@ -4,11 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PostPaymentDto(
-    val chat_id: Long?,
-    val contact_id: Long?,
+    val chat_id: Long? = null,
+    val contact_id: Long? = null,
     val amount: Long,
-    val text: String?,
-    val remote_text: String?,
+    val text: String? = null,
+    val remote_text: String? = null,
     val destination_key: String? = null,
     val route_hint: String? = null,
     val muid: String? = null,

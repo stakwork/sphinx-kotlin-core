@@ -199,7 +199,7 @@ class NetworkQueryMessageImpl(
             relayEndpoint = String.format(ENDPOINT_MESSAGES_READ, chatId.value),
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )

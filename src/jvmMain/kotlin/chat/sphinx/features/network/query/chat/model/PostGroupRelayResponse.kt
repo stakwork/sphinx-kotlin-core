@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PostGroupRelayResponse(
     override val success: Boolean,
-    override val response: chat.sphinx.concepts.network.query.chat.model.ChatDto?,
-    override val error: String?
+    override val response: ChatDto? = null,
+    override val error: String? = null
 ): RelayResponse<ChatDto>()

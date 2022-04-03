@@ -296,7 +296,7 @@ class NetworkRelayCallImpl(
         )
 
         return withContext(default) {
-            Json.decodeFromString(responseJsonSerializer, body.string())
+            Json { ignoreUnknownKeys = true }.decodeFromString(responseJsonSerializer, body.string())
         } ?: throw IOException(
             """
                 Failed to convert Json to ${responseJsonSerializer.descriptor}
@@ -344,7 +344,7 @@ class NetworkRelayCallImpl(
         )
 
         return withContext(default) {
-            Json.decodeFromString(
+            Json { ignoreUnknownKeys = true }.decodeFromString(
                 ListSerializer(responseJsonSerializer),
                 body.string()
             )

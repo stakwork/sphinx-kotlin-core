@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GetAppVersionsRelayResponse(
     override val success: Boolean,
-    override val response: AppVersionsDto?,
-    override val error: String?
+    override val response: AppVersionsDto? = null,
+    override val error: String? = null
 ): RelayResponse<AppVersionsDto>()

@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PostInvoicePaymentRelayResponse(
     override val success: Boolean,
-    override val response: LightningPaymentInvoiceDto?,
-    override val error: String?
+    override val response: LightningPaymentInvoiceDto? = null,
+    override val error: String? = null
 ): RelayResponse<LightningPaymentInvoiceDto>()

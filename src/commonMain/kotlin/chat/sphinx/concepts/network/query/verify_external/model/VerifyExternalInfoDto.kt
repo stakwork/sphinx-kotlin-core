@@ -5,13 +5,13 @@ import kotlinx.serialization.json.JsonNames
 
 @Serializable
 data class VerifyExternalInfoDto(
-    val price_to_meet: Long?,
-    val jwt: String?,
-    val photo_url: String?,
-    val contact_key: String?,
-    val route_hint: String?,
-    val pubkey: String?,
-    val alias: String?,
+    val price_to_meet: Long? = null,
+    val jwt: String? = null,
+    val photo_url: String? = null,
+    val contact_key: String? = null,
+    val route_hint: String? = null,
+    val pubkey: String? = null,
+    val alias: String? = null,
 ) {
 
     var url: String? = null

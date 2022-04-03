@@ -128,7 +128,7 @@ class NetworkQueryContactImpl(
             relayEndpoint = endpoint,
             Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )
@@ -154,7 +154,7 @@ class NetworkQueryContactImpl(
                     Pair("password", password),
                     Pair("pubkey", pubkey),
                 ),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayUrl = relayUrl
         )
@@ -210,7 +210,7 @@ class NetworkQueryContactImpl(
                     Pair("nickname", nickname),
                     Pair("welcome_message", welcomeMessage),
                 ),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )

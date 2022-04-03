@@ -118,7 +118,8 @@ class NetworkQueryChatImpl(
             relayEndpoint = "/kick/${chatId.value}/${contactId.value}",
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )
@@ -190,7 +191,7 @@ class NetworkQueryChatImpl(
             relayEndpoint = endpoint,
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )

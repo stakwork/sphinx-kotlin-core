@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GetPaymentsRelayResponse(
     override val success: Boolean,
-    override val response: List<TransactionDto>?,
-    override val error: String?
+    override val response: List<TransactionDto>? = null,
+    override val error: String? = null
 ): RelayResponse<List<TransactionDto>>()

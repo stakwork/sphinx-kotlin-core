@@ -39,7 +39,7 @@ data class GiphyData(
     val id: String,
     val url: String,
     val aspect_ratio: Double,
-    val text: String?,
+    val text: String? = null,
 ) {
     companion object {
         const val MESSAGE_PREFIX = "giphy::"

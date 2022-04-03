@@ -6,7 +6,7 @@ import kotlinx.serialization.json.JsonNames
 @Serializable
 data class HubRedeemInviteResponse(
     @JsonNames("object")
-    val response: RedeemInviteResponseDto?,
+    val response: RedeemInviteResponseDto? = null,
 
-    val error: String?
+    val error: String? = null
 )

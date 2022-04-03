@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MessageRelayResponse(
     override val success: Boolean,
-    override val response: MessageDto?,
-    override val error: String?
+    override val response: MessageDto? = null,
+    override val error: String? = null
 ): RelayResponse<MessageDto>()

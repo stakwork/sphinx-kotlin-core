@@ -5,6 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PutMemberResponseDto(
-    val chat: chat.sphinx.concepts.network.query.chat.model.ChatDto,
+    val chat: ChatDto,
     val message: MessageDto,
 )

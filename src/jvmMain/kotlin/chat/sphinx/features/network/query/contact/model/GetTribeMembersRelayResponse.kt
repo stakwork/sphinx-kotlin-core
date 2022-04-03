@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GetTribeMembersRelayResponse(
     override val success: Boolean,
-    override val response: GetTribeMembersResponse?,
-    override val error: String?
+    override val response: GetTribeMembersResponse? = null,
+    override val error: String? = null
 ): RelayResponse<GetTribeMembersResponse>()

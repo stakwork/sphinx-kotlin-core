@@ -31,7 +31,7 @@ class NetworkQueryAuthorizeExternalImpl(
             relayEndpoint = ENDPOINT_VERIFY_EXTERNAL,
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )

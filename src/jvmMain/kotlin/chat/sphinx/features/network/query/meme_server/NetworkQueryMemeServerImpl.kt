@@ -83,7 +83,7 @@ class NetworkQueryMemeServerImpl(
             responseJsonSerializer = MemeServerAuthenticationTokenDto.serializer(),
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             )
         )
 

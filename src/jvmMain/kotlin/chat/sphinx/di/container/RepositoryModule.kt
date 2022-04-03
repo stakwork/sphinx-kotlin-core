@@ -1,5 +1,14 @@
 package chat.sphinx.di.container
 
+import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
+import chat.sphinx.concepts.repository.chat.ChatRepository
+import chat.sphinx.concepts.repository.contact.ContactRepository
+import chat.sphinx.concepts.repository.dashboard.RepositoryDashboard
+import chat.sphinx.concepts.repository.feed.FeedRepository
+import chat.sphinx.concepts.repository.lightning.LightningRepository
+import chat.sphinx.concepts.repository.media.RepositoryMedia
+import chat.sphinx.concepts.repository.message.MessageRepository
+import chat.sphinx.concepts.repository.subscription.SubscriptionRepository
 import chat.sphinx.features.meme_server.MemeServerTokenHandlerImpl
 import chat.sphinx.features.repository.mappers.contact.toContact
 import chat.sphinx.features.repository.platform.SphinxRepositoryPlatform
@@ -33,7 +42,7 @@ class RepositoryModule(
         networkModule.networkQueryMemeServer,
         appModule.sphinxLogger,
     )
-    val memeServerTokenHandler = memeServerTokenHandlerImpl
+    val memeServerTokenHandler: MemeServerTokenHandler = memeServerTokenHandlerImpl
     val sphinxRepositoryPlatform = SphinxRepositoryPlatform(
         accountOwnerFlow,
         appModule.applicationScope,
@@ -60,11 +69,13 @@ class RepositoryModule(
         appModule.sphinxNotificationManager,
         appModule.sphinxLogger,
     )
-    val chatRepository = SphinxRepositoryPlatform
-    val contactRepository = SphinxRepositoryPlatform
-    val lightningRepository = SphinxRepositoryPlatform
-    val messageRepository = SphinxRepositoryPlatform
-    val subscriptionRepository = SphinxRepositoryPlatform
-    val feedRepository = SphinxRepositoryPlatform
-    val repositoryMedia = SphinxRepositoryPlatform
+    val chatRepository: ChatRepository = sphinxRepositoryPlatform
+    val contactRepository: ContactRepository = sphinxRepositoryPlatform
+    val lightningRepository: LightningRepository = sphinxRepositoryPlatform
+    val messageRepository: MessageRepository = sphinxRepositoryPlatform
+    val subscriptionRepository: SubscriptionRepository = sphinxRepositoryPlatform
+    val feedRepository: FeedRepository = sphinxRepositoryPlatform
+
+    val repositoryDashboard: RepositoryDashboard = sphinxRepositoryPlatform
+    val repositoryMedia: RepositoryMedia = sphinxRepositoryPlatform
 }

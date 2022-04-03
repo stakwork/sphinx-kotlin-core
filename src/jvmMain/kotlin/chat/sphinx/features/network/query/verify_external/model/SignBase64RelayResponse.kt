@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SignBase64RelayResponse(
     override val success: Boolean,
-    override val response: SignBase64Dto?,
-    override val error: String?
+    override val response: SignBase64Dto? = null,
+    override val error: String? = null
 ): RelayResponse<SignBase64Dto>()

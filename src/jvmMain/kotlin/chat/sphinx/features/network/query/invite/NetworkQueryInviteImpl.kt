@@ -46,7 +46,7 @@ class NetworkQueryInviteImpl(
                 mapOf(
                     Pair("invite_string", inviteString.value),
                 ),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             )
         )
     }
@@ -62,7 +62,7 @@ class NetworkQueryInviteImpl(
                 mapOf(
                     Pair("invite_string", inviteString),
                 ),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             )
         )
     }
@@ -75,7 +75,7 @@ class NetworkQueryInviteImpl(
             relayEndpoint = "/invites/${inviteString.value}/pay" ,
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             )
         )
     }

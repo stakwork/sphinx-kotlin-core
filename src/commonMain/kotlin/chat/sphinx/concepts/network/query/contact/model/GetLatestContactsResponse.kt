@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GetLatestContactsResponse(
     val contacts: List<ContactDto>,
-    val chats: List<chat.sphinx.concepts.network.query.chat.model.ChatDto>,
+    val chats: List<ChatDto>,
     val subscriptions: List<SubscriptionDto>,
     val invites: List<InviteDto>,
 )

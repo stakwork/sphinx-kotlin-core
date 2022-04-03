@@ -1,0 +1,26 @@
+import chat.sphinx.wrapper.DateTime;
+import chat.sphinx.wrapper.dashboard.ChatId;
+import chat.sphinx.wrapper.dashboard.ContactId;
+import chat.sphinx.wrapper.lightning.Sat;
+import chat.sphinx.wrapper.subscription.Cron;
+import chat.sphinx.wrapper.subscription.EndNumber;
+import chat.sphinx.wrapper.subscription.SubscriptionCount;
+import chat.sphinx.wrapper.subscription.SubscriptionId;
+import chat.sphinx.wrapper.message.MessageMUID;
+
+CREATE TABLE subscriptionDbo(
+    id                          INTEGER         AS SubscriptionId NOT NULL PRIMARY KEY,
+    cron                        TEXT            AS Cron NOT NULL,
+    amount                      INTEGER         AS Sat NOT NULL,
+    end_number                  INTEGER         AS EndNumber,
+    count                       INTEGER         AS SubscriptionCount NOT NULL,
+    end_date                    INTEGER         AS DateTime,
+    ended                       INTEGER         AS Boolean DEFAULT 0 NOT NULL,
+    paused                      INTEGER         AS Boolean DEFAULT 0 NOT NULL,
+    created_at                  INTEGER         AS DateTime NOT NULL,
+    updated_at                  INTEGER         AS DateTime NOT NULL,
+    chat_id                     INTEGER         AS ChatId NOT NULL,
+    contact_id                  INTEGER         AS ContactId NOT NULL
+);
+
+ALTER TABLE messageDbo ADD COLUMN muid TEXT AS MessageMUID;

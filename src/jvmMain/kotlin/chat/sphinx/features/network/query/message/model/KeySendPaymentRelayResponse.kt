@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class KeySendPaymentRelayResponse(
     override val success: Boolean,
-    override val response: KeySendPaymentDto?,
-    override val error: String?
+    override val response: KeySendPaymentDto? = null,
+    override val error: String? = null
 ): RelayResponse<KeySendPaymentDto>()

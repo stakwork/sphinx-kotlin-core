@@ -44,8 +44,8 @@ internal inline fun String.getMessageResponseContact(): ContactDto = Json.decode
 
 @Serializable
 internal data class GroupDtoImpl(
-    override val chat: chat.sphinx.concepts.network.query.chat.model.ChatDto,
-    override val contact: ContactDto?,
+    override val chat: ChatDto,
+    override val contact: ContactDto? = null,
     override val message: MessageDto
 ): GroupDto()
 
@@ -53,7 +53,7 @@ internal sealed class MessageResponse<T> {
     abstract val response: T
 
     @Serializable
-    internal class ResponseChat(override val response: chat.sphinx.concepts.network.query.chat.model.ChatDto): MessageResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto>()
+    internal class ResponseChat(override val response: ChatDto): MessageResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto>()
 
     @Serializable
     internal class ResponseContact(override val response: ContactDto): MessageResponse<ContactDto>()

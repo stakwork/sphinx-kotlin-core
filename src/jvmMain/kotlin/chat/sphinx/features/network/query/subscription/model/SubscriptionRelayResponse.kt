@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SubscriptionRelayResponse(
     override val success: Boolean,
-    override val response: SubscriptionDto?,
-    override val error: String?
+    override val response: SubscriptionDto? = null,
+    override val error: String? = null
 ): RelayResponse<SubscriptionDto>()

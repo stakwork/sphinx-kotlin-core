@@ -13,42 +13,22 @@ data class SubscriptionDto(
     val cron: String,
     val amount: Long,
     val total_paid: Long,
-    val end_number: Int?,
-    val end_date: String?,
+    val end_number: Int? = null,
+    val end_date: String? = null,
     val count: Int,
-    val ended: @Polymorphic Any?,
-    val paused: @Polymorphic Any?,
+    val ended: Boolean? = null,
+    val paused: Boolean? = null,
     val created_at: String,
     val updated_at: String,
     val interval: String,
     val next: String,
-    val chat: chat.sphinx.concepts.network.query.chat.model.ChatDto?,
+    val chat: ChatDto? = null,
 ) {
     @Transient
     val endedActual: Boolean =
-        when (ended) {
-            is Boolean -> {
-                ended
-            }
-            is Double -> {
-                ended.toInt() == 1
-            }
-            else -> {
-                true
-            }
-        }
+        ended ?: false
 
     @Transient
     val pausedActual: Boolean =
-        when (paused) {
-            is Boolean -> {
-                paused
-            }
-            is Double -> {
-                paused.toInt() == 1
-            }
-            else -> {
-                true
-            }
-        }
+        paused ?: false
 }

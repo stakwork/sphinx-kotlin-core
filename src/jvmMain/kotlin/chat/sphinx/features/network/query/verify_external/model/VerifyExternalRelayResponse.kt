@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class VerifyExternalRelayResponse(
     override val success: Boolean,
-    override val response: VerifyExternalDto?,
-    override val error: String?
+    override val response: VerifyExternalDto? = null,
+    override val error: String? = null
 ): RelayResponse<VerifyExternalDto>()

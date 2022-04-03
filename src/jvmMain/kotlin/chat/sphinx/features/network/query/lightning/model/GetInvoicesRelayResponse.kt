@@ -17,5 +17,5 @@ data class GetInvoicesRelayResponse(
 
     override val success: Boolean = true,
     override val response: InvoicesDto = InvoicesDto(invoices, last_index_offset, first_index_offset),
-    override val error: String?
+    override val error: String? = null
 ): RelayResponse<InvoicesDto>()

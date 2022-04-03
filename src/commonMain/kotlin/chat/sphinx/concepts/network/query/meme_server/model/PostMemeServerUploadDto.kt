@@ -36,10 +36,10 @@ data class PostMemeServerUploadDto(
     val mime: String,
     val created: String,
     val updated: String,
-    val expiry: String?,
+    val expiry: String? = null,
     val width: Long,
     val height: Long,
-    val template: @Polymorphic Any?,
+    val template: @Polymorphic Any? = null,
 ) {
     @Transient
     val templateActual: Boolean =

@@ -1,118 +1,66 @@
 package chat.sphinx.concepts.network.query.contact.model
 
 import chat.sphinx.concepts.network.query.invite.model.InviteDto
-import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @Serializable
 data class ContactDto(
     val id: Long,
-    val route_hint: String?,
-    val public_key: String?,
-    val node_alias: String?,
-    val alias: String?,
-    val photo_url: String?,
-    val private_photo: @Polymorphic Any?,
-    val is_owner: @Polymorphic Any?,
-    val deleted: @Polymorphic Any?,
-    val auth_token: String?,
-    val status: Int?,
-    val contact_key: String?,
-    val device_id: String?,
+    val route_hint: String? = null,
+    val public_key: String? = null,
+    val node_alias: String? = null,
+    val alias: String? = null,
+    val photo_url: String? = null,
+    val private_photo: Int? = null,
+    val is_owner: Int? = null,
+    val deleted: Int? = null,
+    val auth_token: String? = null,
+    val status: Int? = null,
+    val contact_key: String? = null,
+    val device_id: String? = null,
     val created_at: String,
     val updated_at: String,
-    val from_group: @Polymorphic Any?,
-    val notification_sound: String?,
-    val tip_amount: Long?,
-    val invite: InviteDto?,
-    val pending: @Polymorphic Any?,
-    val blocked: @Polymorphic Any?,
+    val from_group: Int? = null,
+    val notification_sound: String? = null,
+    val tip_amount: Long? = null,
+    val invite: InviteDto? = null,
+    val pending: Int? = null,
+    val blocked: Int? = null,
 ) {
     @Transient
     val privatePhotoActual: Boolean =
-        when (private_photo) {
-            is Boolean -> {
-                private_photo
-            }
-            is Double -> {
-                private_photo.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        private_photo?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val isOwnerActual: Boolean =
-        when (is_owner) {
-            is Boolean -> {
-                is_owner
-            }
-            is Double -> {
-                is_owner.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        is_owner?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val deletedActual: Boolean =
-        when (deleted) {
-            is Boolean -> {
-                deleted
-            }
-            is Double -> {
-                deleted.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        deleted?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val blockedActual: Boolean =
-        when (blocked) {
-            is Boolean -> {
-                blocked
-            }
-            is Double -> {
-                blocked.toInt() == 1
-            }
-            is Long -> {
-                blocked == 1
-            }
-            else -> {
-                false
-            }
-        }
+        blocked?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val fromGroupActual: Boolean =
-        when (from_group) {
-            is Boolean -> {
-                from_group
-            }
-            is Double -> {
-                from_group.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        from_group?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val pendingActual: Boolean =
-        when (pending) {
-            is Boolean -> {
-                pending
-            }
-            is Double -> {
-                pending.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        pending?.let {
+            it == 1
+        } ?: false
 }

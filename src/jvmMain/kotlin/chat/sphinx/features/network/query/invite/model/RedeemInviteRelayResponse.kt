@@ -13,7 +13,7 @@ class RedeemInviteRelayResponse(
     override val success: Boolean = true,
 
     @JsonNames("object")
-    override val response: RedeemInviteResponseDto?,
+    override val response: RedeemInviteResponseDto? = null,
 
-    override val error: String?
+    override val error: String? = null
 ): RelayResponse<RedeemInviteResponseDto>()

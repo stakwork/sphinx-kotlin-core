@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 class ContactRelayResponse(
     override val success: Boolean,
-    override val response: ContactDto?,
-    override val error: String?
+    override val response: ContactDto? = null,
+    override val error: String? = null
 ) : RelayResponse<ContactDto>()

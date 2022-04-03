@@ -97,7 +97,7 @@ class NetworkQuerySubscriptionImpl(
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}/pause",
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )
@@ -111,7 +111,7 @@ class NetworkQuerySubscriptionImpl(
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}/restart",
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                PolymorphicSerializer(Any::class)
             ),
             relayData = relayData
         )
