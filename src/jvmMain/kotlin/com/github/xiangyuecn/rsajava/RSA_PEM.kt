@@ -21,11 +21,12 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 * */
-package chat.sphinx.platform.rsajava
+package com.github.xiangyuecn.rsajava
 
-import chat.sphinx.crypto.common.extensions.toByteArray
-import com.soywiz.krypto.encoding.base64
-import io.ktor.util.*
+import okio.base64.decodeBase64ToArray
+import okio.base64.encodeBase64ToByteArray
+import okio.base64.encodeBase64
+import okio.base64.Base64
 import java.io.ByteArrayOutputStream
 import java.lang.Exception
 import java.lang.RuntimeException
@@ -38,8 +39,8 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.RSAPrivateKeySpec
 import java.security.spec.RSAPublicKeySpec
 import java.util.regex.Pattern
+import kotlin.Throws
 import kotlin.experimental.and
-import kotlin.text.toCharArray
 
 /**
  * RSA PEM格式秘钥对的解析和导出
@@ -49,38 +50,30 @@ import kotlin.text.toCharArray
  * https://github.com/xiangyuecn/RSA-java/blob/master/RSA_PEM.java
  * 移植自：https://github.com/xiangyuecn/RSA-csharp/blob/master/RSA_PEM.cs
  */
-actual class RSA_PEM {
+class RSA_PEM {
     /**modulus 模数，公钥、私钥都有 */
-    @JvmField
-    actual var Key_Modulus: ByteArray? = null
+    var Key_Modulus: ByteArray? = null
 
     /**publicExponent 公钥指数，公钥、私钥都有 */
-    @JvmField
-    actual var Key_Exponent: ByteArray? = null
+    var Key_Exponent: ByteArray? = null
 
     /**privateExponent 私钥指数，只有私钥的时候才有 */
-    @JvmField
-    actual var Key_D: ByteArray? = null
+    var Key_D: ByteArray? = null
     //以下参数只有私钥才有 https://docs.microsoft.com/zh-cn/dotnet/api/system.security.cryptography.rsaparameters?redirectedfrom=MSDN&view=netframework-4.8
     /**prime1 */
-    @JvmField
-    actual var Val_P: ByteArray? = null
+    var Val_P: ByteArray? = null
 
     /**prime2 */
-    @JvmField
-    actual var Val_Q: ByteArray? = null
+    var Val_Q: ByteArray? = null
 
     /**exponent1 */
-    @JvmField
-    actual var Val_DP: ByteArray? = null
+    var Val_DP: ByteArray? = null
 
     /**exponent2 */
-    @JvmField
-    actual var Val_DQ: ByteArray? = null
+    var Val_DQ: ByteArray? = null
 
     /**coefficient */
-    @JvmField
-    actual var Val_InverseQ: ByteArray? = null
+    var Val_InverseQ: ByteArray? = null
 
     private constructor() {}
 
@@ -198,13 +191,8 @@ actual class RSA_PEM {
         return ToPEM_Bytes(convertToPublic, true, true)
     }
 
-    @OptIn(InternalAPI::class)
     @Throws(Exception::class)
-    fun ToPEM_Bytes(
-        convertToPublic: Boolean,
-        privateUsePKCS8: Boolean,
-        publicUsePKCS8: Boolean
-    ): ByteArray {
+    fun ToPEM_Bytes(convertToPublic: Boolean, privateUsePKCS8: Boolean, publicUsePKCS8: Boolean): ByteArray {
         //https://www.jianshu.com/p/25803dd9527d
         //https://www.cnblogs.com/ylz8401/p/8443819.html
         //https://blog.csdn.net/jiayanhui2877/article/details/47187077
@@ -250,8 +238,7 @@ actual class RSA_PEM {
                 byts = writeLen(index2, byts, ms)
             }
             byts = writeLen(index1, byts, ms)
-            byts.encodeBase64().decodeBase64Bytes()
-//            byts.encodeBase64ToByteArray(Base64.Default)
+            byts.encodeBase64ToByteArray(Base64.Default)
         } else {
             /****生成私钥 */
 
@@ -299,8 +286,7 @@ actual class RSA_PEM {
                 byts = writeLen(index2, byts, ms)
             }
             byts = writeLen(index1, byts, ms)
-            byts.base64.encodeToByteArray()
-//            byts.encodeBase64ToByteArray(Base64.Default)
+            byts.encodeBase64ToByteArray(Base64.Default)
         }
     }
 
@@ -357,29 +343,28 @@ actual class RSA_PEM {
      * 将RSA中的密钥对转换成XML格式
      * ，如果convertToPublic含私钥的RSA将只返回公钥，仅含公钥的RSA不受影响
      */
-    @OptIn(InternalAPI::class)
     fun ToXML(convertToPublic: Boolean): String {
         val str = StringBuilder()
         str.append("<RSAKeyValue>")
-        str.append("<Modulus>" + Key_Modulus!!.encodeBase64() + "</Modulus>")
-        str.append("<Exponent>" + Key_Exponent!!.encodeBase64() + "</Exponent>")
+        str.append("<Modulus>" + Key_Modulus!!.encodeBase64(Base64.Default) + "</Modulus>")
+        str.append("<Exponent>" + Key_Exponent!!.encodeBase64(Base64.Default) + "</Exponent>")
         if (Key_D == null || convertToPublic) {
             /****生成公钥 */
             //NOOP
         } else {
             /****生成私钥 */
-            str.append("<P>" + Val_P!!.encodeBase64() + "</P>")
-            str.append("<Q>" + Val_Q!!.encodeBase64() + "</Q>")
-            str.append("<DP>" + Val_DP!!.encodeBase64() + "</DP>")
-            str.append("<DQ>" + Val_DQ!!.encodeBase64() + "</DQ>")
-            str.append("<InverseQ>" + Val_InverseQ!!.encodeBase64() + "</InverseQ>")
-            str.append("<D>" + Key_D!!.encodeBase64() + "</D>")
+            str.append("<P>" + Val_P!!.encodeBase64(Base64.Default) + "</P>")
+            str.append("<Q>" + Val_Q!!.encodeBase64(Base64.Default) + "</Q>")
+            str.append("<DP>" + Val_DP!!.encodeBase64(Base64.Default) + "</DP>")
+            str.append("<DQ>" + Val_DQ!!.encodeBase64(Base64.Default) + "</DQ>")
+            str.append("<InverseQ>" + Val_InverseQ!!.encodeBase64(Base64.Default) + "</InverseQ>")
+            str.append("<D>" + Key_D!!.encodeBase64(Base64.Default) + "</D>")
         }
         str.append("</RSAKeyValue>")
         return str.toString()
     }
 
-    actual companion object {
+    companion object {
         /**转成正整数，如果是负数，需要加前导0转成正整数 */
         fun BigX(bigb: ByteArray?): BigInteger {
             var bigb = bigb
@@ -394,7 +379,7 @@ actual class RSA_PEM {
         /**BigInt导出byte整数首字节>0x7F的会加0前导，保证正整数，因此需要去掉0 */
         fun BigB(bigx: BigInteger): ByteArray {
             var `val` = bigx.toByteArray()
-            if (`val`[0].equals(0)) {
+            if (`val`[0].toInt() == 0) {
                 val c = ByteArray(`val`.size - 1)
                 System.arraycopy(`val`, 1, c, 0, c.size)
                 `val` = c
@@ -404,13 +389,13 @@ actual class RSA_PEM {
 
         /**某些密钥参数可能会少一位（32个byte只有31个，目测是密钥生成器的问题，只在c#生成的密钥中发现这种参数，java中生成的密钥没有这种现象），直接修正一下就行；这个问题与BigB有本质区别，不能动BigB */
         fun BigL(bytes: ByteArray, keyLen: Int): ByteArray {
-            return if (keyLen - bytes.size == 1) {
-                 val c = ByteArray(bytes.size + 1)
+            var bytes = bytes
+            if (keyLen - bytes.size == 1) {
+                val c = ByteArray(bytes.size + 1)
                 System.arraycopy(bytes, 0, c, 1, bytes.size)
-                c
-            } else {
-                bytes
+                bytes = c
             }
+            return bytes
         }
 
         /**
@@ -447,12 +432,12 @@ actual class RSA_PEM {
         }
 
         @Throws(Exception::class)
-        actual fun FromPEM(base64: CharArray, privateKey: Boolean): RSA_PEM {
+        fun FromPEM(base64: CharArray, privateKey: Boolean): RSA_PEM {
             val param = RSA_PEM()
-            val dataX = base64.toByteArray() ?: throw Exception("PEM内容无效")
+            val dataX = base64.decodeBase64ToArray() ?: throw Exception("PEM内容无效")
             val data = ShortArray(dataX.size) //转成正整数的bytes数组，不然byte是负数难搞
             for (i in dataX.indices) {
-                data[i] = (dataX[i] and 0xff.toByte()) as Short
+                data[i] = (dataX[i] and 0xff.toByte()).toShort()
             }
             var idx = intArrayOf(0)
             if (!privateKey) {
@@ -521,7 +506,6 @@ actual class RSA_PEM {
         /**
          * 用PEM格式密钥对创建RSA，支持PKCS#1、PKCS#8格式的PEM
          */
-        @JvmStatic
         @Throws(Exception::class)
         fun FromPEM(pem: String): RSA_PEM {
             val base64 = _PEMCode.matcher(pem).replaceAll("")
@@ -568,12 +552,12 @@ actual class RSA_PEM {
         private fun readLen(first: Int, data: ShortArray, idxO: IntArray): Int {
             var idx = idxO[0]
             try {
-                if (data[idx] == first.toShort()) {
+                if (data[idx].toInt() == first) {
                     idx++
-                    if (data[idx] == 0x81.toShort()) {
+                    if (data[idx].toInt() == 0x81) {
                         idx++
                         return data[idx++].toInt()
-                    } else if (data[idx] == 0x82.toShort()) {
+                    } else if (data[idx].toInt() == 0x82) {
                         idx++
                         return (data[idx++].toInt() shl 8) + data[idx++]
                     } else if (data[idx] < 0x80) {
@@ -593,7 +577,7 @@ actual class RSA_PEM {
             return try {
                 var len = readLen(0x02, data, idxO)
                 idx = idxO[0]
-                if (data[idx] == 0x00.toShort()) {
+                if (data[idx].toInt() == 0x00) {
                     idx++
                     len--
                 }
@@ -614,7 +598,9 @@ actual class RSA_PEM {
                     if (idx >= data.size) {
                         return false
                     }
-                    if ((byts[i] and 0xff.toByte()).toShort() != data[idx]) {
+                    val a = byts[i].toInt() and 0xff
+                    val b = data[idx].toInt()
+                    if ((byts[i].toInt() and 0xff) != data[idx].toInt()) {
                         return false
                     }
                     i++
@@ -629,21 +615,21 @@ actual class RSA_PEM {
         /**写入一个长度字节码 */
         private fun writeLenByte(len: Int, ms: ByteArrayOutputStream) {
             if (len < 0x80) {
-                ms.write(len)
+                ms.write(len.toByte().toInt())
             } else if (len <= 0xff) {
                 ms.write(0x81)
-                ms.write(len)
+                ms.write(len.toByte().toInt())
             } else {
                 ms.write(0x82)
-                ms.write(len shr 8 and 0xff)
-                ms.write(len and 0xff)
+                ms.write((len shr 8 and 0xff).toByte().toInt())
+                ms.write((len and 0xff).toByte().toInt())
             }
         }
 
         /**写入一块数据 */
         @Throws(Exception::class)
         private fun writeBlock(byts: ByteArray?, ms: ByteArrayOutputStream) {
-            val addZero: Boolean = byts!![0].toInt() and 0xff shr 4 >= 0x8
+            val addZero: Boolean = ((byts!![0].toInt() and 0xff) shr 4) >= 0x8
             ms.write(0x02)
             val len = byts.size + if (addZero) 1 else 0
             writeLenByte(len, ms)
@@ -685,8 +671,6 @@ actual class RSA_PEM {
         /***
          * 将XML格式密钥转成PEM，支持公钥xml、私钥xml
          */
-        @OptIn(InternalAPI::class)
-        @JvmStatic
         @Throws(Exception::class)
         fun FromXML(xml: String?): RSA_PEM {
             val rtv = RSA_PEM()
@@ -699,7 +683,7 @@ actual class RSA_PEM {
             while (tagM.find()) {
                 val tag = tagM.group(1)
                 val b64 = tagM.group(2)
-                val `val` = b64.decodeBase64Bytes()
+                val `val` = b64.decodeBase64ToArray()
                 when (tag) {
                     "Modulus" -> rtv.Key_Modulus = `val`
                     "Exponent" -> rtv.Key_Exponent = `val`
@@ -722,8 +706,7 @@ actual class RSA_PEM {
             return rtv
         }
 
-        private val xmlExp =
-            Pattern.compile("\\s*<RSAKeyValue>([<>\\/\\+=\\w\\s]+)</RSAKeyValue>\\s*")
+        private val xmlExp = Pattern.compile("\\s*<RSAKeyValue>([<>\\/\\+=\\w\\s]+)</RSAKeyValue>\\s*")
         private val xmlTagExp = Pattern.compile("<(.+?)>\\s*([^<]+?)\\s*</")
     }
 }
