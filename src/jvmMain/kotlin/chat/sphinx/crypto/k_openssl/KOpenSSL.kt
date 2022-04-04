@@ -18,12 +18,11 @@ package chat.sphinx.crypto.k_openssl
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.clazzes.*
 import chat.sphinx.crypto.common.extensions.toByteArray
-import io.ktor.util.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-//import okio.base64.decodeBase64ToArray
-//import okio.base64.encodeBase64
+import okio.base64.decodeBase64ToArray
+import okio.base64.encodeBase64
 import org.bouncycastle_ktx.crypto.generators.PKCS5S2ParametersGenerator
 import org.bouncycastle_ktx.crypto.params.KeyParameter
 import java.security.InvalidAlgorithmParameterException
@@ -36,11 +35,10 @@ import javax.crypto.NoSuchPaddingException
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-@OptIn(InternalAPI::class)
 inline val CharSequence.isSalted: Boolean
     get() = try {
         lines().joinToString("")
-            .decodeBase64Bytes()
+            .decodeBase64ToArray()
             ?.copyOfRange(0, 8)
             ?.contentEquals(KOpenSSL.SALTED.encodeToByteArray())
             ?: false
@@ -162,14 +160,12 @@ abstract class KOpenSSL {
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ): EncryptedString
 
-    @OptIn(InternalAPI::class)
     @Throws(IllegalStateException::class)
     protected open fun decodeEncryptedString(encryptedString: EncryptedString): ByteArray =
         encryptedString.value.lines().joinToString("")
-            .decodeBase64Bytes()
+            .decodeBase64ToArray()
             ?: throw IllegalStateException("Could not decode the provided string")
 
-    @OptIn(InternalAPI::class)
     @Throws(IllegalStateException::class)
     protected open fun encodeCipherText(salt: ByteArray, cipherText: ByteArray): String =
         (SALTED.encodeToByteArray() + salt + cipherText)

@@ -35,6 +35,7 @@ import chat.sphinx.utils.platform.getFileSystem
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import io.ktor.util.*
+import io.matthewnelson.component.base64.decodeBase64ToArray
 import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.coroutines.test.runBlockingTest
 import okhttp3.Cache
@@ -96,7 +97,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
                         return
                     }
 
-                    decodedSplit.elementAt(1).decodeBase64Bytes().let { toDecrypt ->
+                    decodedSplit.elementAt(1).decodeBase64ToArray().let { toDecrypt ->
                         val decryptedSplit = AES256JNCryptor()
                             .decryptData(toDecrypt, password)
                             .toString(charset("UTF-8"))

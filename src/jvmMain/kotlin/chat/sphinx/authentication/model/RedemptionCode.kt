@@ -5,8 +5,8 @@ import chat.sphinx.crypto.common.clazzes.Password
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.toRelayUrl
-import io.ktor.util.*
 import kotlinx.coroutines.withContext
+import okio.base64.decodeBase64ToArray
 import org.cryptonode.jncryptor.AES256JNCryptor
 import org.cryptonode.jncryptor.CryptorException
 import kotlin.jvm.Throws
@@ -15,9 +15,8 @@ import kotlin.text.toCharArray
 sealed class RedemptionCode(val identifier: String) {
 
     companion object {
-        @OptIn(InternalAPI::class)
         fun decode(code: String): RedemptionCode? {
-            code.decodeBase64Bytes()
+            code.decodeBase64ToArray()
                 ?.decodeToString()
                 ?.split("::")
                 ?.let { decodedSplit ->
@@ -31,7 +30,7 @@ sealed class RedemptionCode(val identifier: String) {
                     } else if (decodedSplit.size == 2) {
                         if (decodedSplit.elementAt(0) == AccountRestoration.DECODED_INDEX_0) {
                             return AccountRestoration(
-                                decodedSplit.elementAt(1).decodeBase64Bytes() ?: return null
+                                decodedSplit.elementAt(1).decodeBase64ToArray() ?: return null
                             )
                         }
                     }

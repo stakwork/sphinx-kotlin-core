@@ -5,13 +5,12 @@ import chat.sphinx.database.core.MessageDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.features.repository.model.message.MessageDboWrapper
 import chat.sphinx.wrapper.message.*
-import io.ktor.util.*
 import kotlinx.coroutines.withContext
+import okio.base64.decodeBase64ToArray
 
 internal class MessageDboPresenterMapper(
     dispatchers: CoroutineDispatchers,
 ): ClassMapper<MessageDbo, MessageDboWrapper>(dispatchers) {
-    @OptIn(InternalAPI::class)
     override suspend fun mapFrom(value: MessageDbo): MessageDboWrapper {
         return MessageDboWrapper(value).also { message ->
             value.message_content_decrypted?.let { decrypted ->
@@ -39,7 +38,7 @@ internal class MessageDboPresenterMapper(
                         decrypted.isGiphy -> {
                             withContext(default) {
                                 decrypted.value.replaceFirst(GiphyData.MESSAGE_PREFIX, "")
-                                    .decodeBase64Bytes()
+                                    .decodeBase64ToArray()
                                     ?.decodeToString()
                                     ?.toGiphyDataOrNull()
                                     ?.let { giphy ->

@@ -61,6 +61,7 @@ kotlin {
         val klockVersion = "2.5.1"
         val sqlDelightVersion = "1.5.1"
         val kmpTorVersion = "0.4.6.10+0.1.0-beta1"
+        val encodingVersion = "1.1.0"
 
         val commonMain by getting {
             dependencies {
@@ -80,7 +81,9 @@ kotlin {
 
                 implementation("com.russhwolf:multiplatform-settings:0.8.1")
 
-//                implementation(project(":kmp-tor:library:kmp-tor"))
+                implementation("io.matthewnelson.kotlin-components:encoding-base16:$encodingVersion")
+                implementation("io.matthewnelson.kotlin-components:encoding-base32:$encodingVersion")
+                implementation("io.matthewnelson.kotlin-components:encoding-base64:$encodingVersion")
             }
         }
         val commonTest by getting {

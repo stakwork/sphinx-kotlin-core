@@ -19,6 +19,7 @@ import chat.sphinx.concepts.authentication.encryption_key.EncryptionKeyHandler
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
+import chat.sphinx.crypto.common.extensions.toUnencryptedCharArray
 import chat.sphinx.crypto.k_openssl.KOpenSSL
 import chat.sphinx.crypto.k_openssl.isSalted
 import kotlin.coroutines.cancellation.CancellationException

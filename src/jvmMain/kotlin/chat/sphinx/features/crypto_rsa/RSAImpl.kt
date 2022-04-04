@@ -13,7 +13,7 @@ import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.rsa.*
 import com.github.xiangyuecn.rsajava.RSA_PEM
-import io.ktor.util.*
+import io.matthewnelson.component.base64.encodeBase64
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import okio.base64.decodeBase64ToArray
@@ -200,7 +200,7 @@ open class RSAImpl(val algorithm: RSAAlgorithm): RSA() {
         }
     }
 
-    @OptIn(UnencryptedDataAccess::class, InternalAPI::class)
+    @OptIn(UnencryptedDataAccess::class)
     override suspend fun encrypt(
         rsaPublicKey: RsaPublicKey,
         text: UnencryptedString,

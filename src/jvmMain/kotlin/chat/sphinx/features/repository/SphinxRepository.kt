@@ -98,7 +98,7 @@ import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
 import io.ktor.http.parsing.*
-import io.ktor.util.*
+import io.matthewnelson.component.base64.encodeBase64
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -2103,12 +2103,11 @@ abstract class SphinxRepository(
 
     private val provisionalMessageLock = Mutex()
 
-    @OptIn(InternalAPI::class)
     private fun messageText(sendMessage: SendMessage): String? {
         try {
             if (sendMessage.giphyData != null) {
                 return sendMessage.giphyData?.let {
-                    "${GiphyData.MESSAGE_PREFIX}${it.toJson().encodeBase64()}"
+                    "${GiphyData.MESSAGE_PREFIX}${it.toJson().toByteArray().encodeBase64()}"
                 }
             }
         } catch (e: Exception) {

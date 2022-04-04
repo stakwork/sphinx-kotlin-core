@@ -6,7 +6,7 @@ import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.MediaMUID
 import chat.sphinx.wrapper.message.media.token.toMediaHostOrNull
 import chat.sphinx.wrapper.message.media.token.toMediaMUIDOrNull
-import io.ktor.util.*
+import io.matthewnelson.component.base64.decodeBase64ToArray
 import kotlin.jvm.JvmInline
 
 @Suppress("NOTHING_TO_INLINE")
@@ -47,7 +47,6 @@ inline fun MediaToken.getMediaAttributeWithName(name: String): String? {
     return null
 }
 
-@OptIn(InternalAPI::class)
 @Suppress("NOTHING_TO_INLINE")
 inline fun MediaToken.getMediaTokenElementWithIndex(
     index: Int,
@@ -58,7 +57,7 @@ inline fun MediaToken.getMediaTokenElementWithIndex(
             val element = splits[index]
 
             return if (base64Decoded) {
-                element.decodeBase64Bytes().decodeToString()
+                element.decodeBase64ToArray()?.toString(charset("UTF-8"))
             }  else {
                 element
             }
