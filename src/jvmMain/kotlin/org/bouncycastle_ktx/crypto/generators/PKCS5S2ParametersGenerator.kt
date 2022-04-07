@@ -33,7 +33,7 @@ class PKCS5S2ParametersGenerator(digest: Digest = SHA256Digest()): PBEParameters
         }
         hMac.update(iBuf, 0, iBuf.size)
         hMac.doFinal(state, 0)
-        state.copyInto(out, outOff, 0, state.size)
+        System.arraycopy(state, 0, out, outOff, state.size)
         for (count in 1 until c) {
             currentCoroutineContext().ensureActive()
             hMac.update(state, 0, state.size)
@@ -78,6 +78,10 @@ class PKCS5S2ParametersGenerator(digest: Digest = SHA256Digest()): PBEParameters
      * @param keySize the size of the key we want (in bits)
      * @return a KeyParameter object.
      */
+    @Throws(
+        CancellationException::class,
+        IllegalArgumentException::class
+    )
     override suspend fun generateDerivedParameters(keySize: Int): CipherParameters {
         var keySizeVar = keySize
         keySizeVar /= 8
@@ -94,6 +98,10 @@ class PKCS5S2ParametersGenerator(digest: Digest = SHA256Digest()): PBEParameters
      * @param ivSize the size of the iv we want (in bits)
      * @return a ParametersWithIV object.
      */
+    @Throws(
+        CancellationException::class,
+        IllegalArgumentException::class
+    )
     override suspend fun generateDerivedParameters(keySize: Int, ivSize: Int): CipherParameters {
         var keySizeVar = keySize
         var ivSizeVar = ivSize
@@ -110,6 +118,10 @@ class PKCS5S2ParametersGenerator(digest: Digest = SHA256Digest()): PBEParameters
      * @param keySize the size of the key we want (in bits)
      * @return a KeyParameter object.
      */
+    @Throws(
+        CancellationException::class,
+        IllegalArgumentException::class
+    )
     override suspend fun generateDerivedMacParameters(keySize: Int): CipherParameters {
         return generateDerivedParameters(keySize)
     }

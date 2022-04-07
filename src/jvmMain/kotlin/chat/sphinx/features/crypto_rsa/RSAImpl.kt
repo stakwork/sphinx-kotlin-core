@@ -13,11 +13,11 @@ import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.rsa.*
 import com.github.xiangyuecn.rsajava.RSA_PEM
+import io.matthewnelson.component.base64.decodeBase64ToArray
 import io.matthewnelson.component.base64.encodeBase64
+import io.matthewnelson.component.base64.encodeBase64ToByteArray
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
-import okio.base64.decodeBase64ToArray
-import okio.base64.encodeBase64ToByteArray
 import java.nio.ByteBuffer
 import java.security.KeyPair
 import java.security.KeyPairGenerator

@@ -1,7 +1,6 @@
 package org.bouncycastle_ktx.crypto.params
 
 import org.bouncycastle_ktx.crypto.CipherParameters
-import kotlin.jvm.JvmOverloads
 
 class ParametersWithIV @JvmOverloads constructor(
     val parameters: CipherParameters,
@@ -12,6 +11,6 @@ class ParametersWithIV @JvmOverloads constructor(
     val iV: ByteArray = ByteArray(ivLen)
 
     init {
-        iv.copyInto(iV, 0, ivOff, ivLen)
+        System.arraycopy(iv, ivOff, iV, 0, ivLen)
     }
 }

@@ -18,11 +18,11 @@ package chat.sphinx.crypto.k_openssl
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.clazzes.*
 import chat.sphinx.crypto.common.extensions.toByteArray
+import io.matthewnelson.component.base64.decodeBase64ToArray
+import io.matthewnelson.component.base64.encodeBase64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import okio.base64.decodeBase64ToArray
-import okio.base64.encodeBase64
 import org.bouncycastle_ktx.crypto.generators.PKCS5S2ParametersGenerator
 import org.bouncycastle_ktx.crypto.params.KeyParameter
 import java.security.InvalidAlgorithmParameterException

@@ -3,7 +3,6 @@ package org.bouncycastle_ktx.crypto.digests
 import org.bouncycastle_ktx.crypto.ExtendedDigest
 import org.bouncycastle_ktx.util.Memoable
 import org.bouncycastle_ktx.util.Pack
-import kotlin.math.max
 
 /**
  * base implementation of MD4 family style digest as outlined in
@@ -31,13 +30,13 @@ abstract class GeneralDigest: ExtendedDigest, Memoable {
     }
 
     protected constructor(encodedState: ByteArray) {
-        encodedState.copyInto(xBuf, 0, 0, xBuf.size)
+        System.arraycopy(encodedState, 0, xBuf, 0, xBuf.size)
         xBufOff = Pack.bigEndianToInt(encodedState, 4)
         byteCount = Pack.bigEndianToLong(encodedState, 8)
     }
 
     protected fun copyIn(t: GeneralDigest) {
-        t.xBuf.copyInto(xBuf)
+        System.arraycopy(t.xBuf, 0, xBuf, 0, t.xBuf.size)
         xBufOff = t.xBufOff
         byteCount = t.byteCount
     }
@@ -53,7 +52,7 @@ abstract class GeneralDigest: ExtendedDigest, Memoable {
 
     override fun update(`in`: ByteArray, inOff: Int, len: Int) {
         var lenVar = len
-        lenVar = max(0, lenVar)
+        lenVar = Math.max(0, lenVar)
 
         //
         // fill the current word
@@ -111,7 +110,7 @@ abstract class GeneralDigest: ExtendedDigest, Memoable {
     }
 
     protected fun populateState(state: ByteArray) {
-        state.copyInto(xBuf, 0, 0, xBuf.size)
+        System.arraycopy(xBuf, 0, state, 0, xBufOff)
         Pack.intToBigEndian(xBufOff, state, 4)
         Pack.longToBigEndian(byteCount, state, 8)
     }

@@ -5,8 +5,8 @@ import chat.sphinx.crypto.common.clazzes.Password
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.toRelayUrl
+import io.matthewnelson.component.base64.decodeBase64ToArray
 import kotlinx.coroutines.withContext
-import okio.base64.decodeBase64ToArray
 import org.cryptonode.jncryptor.AES256JNCryptor
 import org.cryptonode.jncryptor.CryptorException
 import kotlin.jvm.Throws

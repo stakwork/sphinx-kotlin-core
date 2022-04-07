@@ -64,11 +64,3 @@ inline fun CharArray.toByteArray(fill: Char = '0'): ByteArray =
         }
     }
 
-/**
- * Convert ByteArray to String
- */
-@Suppress("NOTHING_TO_INLINE")
-inline fun ByteArray.toHex(): String = joinToString { byte ->
-    byte.toInt().and(0xff).toString(16).padStart(2, '0')
-}
-

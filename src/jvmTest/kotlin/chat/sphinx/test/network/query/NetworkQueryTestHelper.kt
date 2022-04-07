@@ -163,7 +163,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
      * */
     open val useLoggingInterceptors: Boolean = false
 
-    val testDirectory = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
+    val testDirectory = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.resolve("test")
 
     open val okHttpCache: Cache by lazy {
         Cache(testDirectory.resolve("okhttp_test_cache").toFile(), 2000000L /*2MB*/)
@@ -238,7 +238,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
 
     @BeforeTest
     fun setupNetworkQueryTestHelper() = testDispatcher.runBlockingTest {
-        FakeFileSystem().createDirectory(testDirectory)
+        FakeFileSystem().createDirectories(testDirectory)
         getCredentials()?.let { creds ->
             // Set our raw private/public keys in the test handler so when we login
             // for the first time the generated keys will be these

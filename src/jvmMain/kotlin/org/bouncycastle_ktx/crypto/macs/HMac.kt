@@ -5,7 +5,9 @@ import org.bouncycastle_ktx.crypto.Digest
 import org.bouncycastle_ktx.crypto.ExtendedDigest
 import org.bouncycastle_ktx.crypto.Mac
 import org.bouncycastle_ktx.crypto.params.KeyParameter
+import org.bouncycastle_ktx.util.Integers
 import org.bouncycastle_ktx.util.Memoable
+import java.util.Hashtable
 import kotlin.experimental.xor
 
 /**
@@ -37,7 +39,8 @@ class HMac private constructor(val underlyingDigest: Digest, byteLength: Int) : 
             }
         }
 
-        private val blockLengths = mapOf(
+        private val blockLengths = Hashtable(
+            mapOf(
 //                Pair("GOST3411", Integers.valueOf(32)),
 //                Pair("MD2", Integers.valueOf(16)),
 //                Pair("MD4", Integers.valueOf(64)),
@@ -46,11 +49,12 @@ class HMac private constructor(val underlyingDigest: Digest, byteLength: Int) : 
 //                Pair("RIPEMD160", Integers.valueOf(64)),
 //                Pair("SHA-1", Integers.valueOf(64)),
 //                Pair("SHA-224", Integers.valueOf(64)),
-            Pair("SHA-256", 64),
+                Pair("SHA-256", Integers.valueOf(64)),
 //                Pair("SHA-384", Integers.valueOf(128)),
 //                Pair("SHA-512", Integers.valueOf(128)),
 //                Pair("Tiger", Integers.valueOf(64)),
 //                Pair("Whirlpool", Integers.valueOf(64))
+            )
         )
     }
 
@@ -75,17 +79,12 @@ class HMac private constructor(val underlyingDigest: Digest, byteLength: Int) : 
             underlyingDigest.doFinal(inputPad, 0)
             keyLength = digestSize
         } else {
-            key.copyInto(
-                inputPad,
-                0,
-                0,
-                keyLength
-            )
+            System.arraycopy(key, 0, inputPad, 0, keyLength)
         }
         for (i in keyLength until inputPad.size) {
             inputPad[i] = 0
         }
-        inputPad.copyInto(outputBuf, 0, 0, blockLength)
+        System.arraycopy(inputPad, 0, outputBuf, 0, blockLength)
         xorPad(inputPad, blockLength, IPAD)
         xorPad(outputBuf, blockLength, OPAD)
         if (underlyingDigest is Memoable) {

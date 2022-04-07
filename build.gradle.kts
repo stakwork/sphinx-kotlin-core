@@ -88,9 +88,9 @@ kotlin {
         }
         val commonTest by getting {
             dependencies {
-                api(kotlin("test"))
+                implementation(kotlin("test"))
 
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
                 implementation("com.squareup.okio:okio-fakefilesystem:$okioVersion")
             }
         }

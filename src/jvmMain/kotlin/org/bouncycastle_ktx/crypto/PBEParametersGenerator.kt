@@ -1,6 +1,6 @@
 package org.bouncycastle_ktx.crypto
 
-import chat.sphinx.crypto.common.extensions.toByteArray
+import org.bouncycastle_ktx.util.Strings
 
 /**
  * super class for all Password Based Encryption (PBE) parameter generator classes.
@@ -111,7 +111,11 @@ protected constructor() {
         fun PKCS5PasswordToUTF8Bytes(
             password: CharArray?
         ): ByteArray {
-            return password?.toByteArray() ?: ByteArray(0)
+            return if (password != null) {
+                Strings.toUTF8ByteArray(password)
+            } else {
+                ByteArray(0)
+            }
         }
 
         /**

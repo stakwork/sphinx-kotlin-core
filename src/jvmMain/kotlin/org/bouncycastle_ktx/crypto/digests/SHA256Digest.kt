@@ -52,8 +52,7 @@ class SHA256Digest: GeneralDigest, EncodableDigest {
         H6 = t.H6
         H7 = t.H7
         H8 = t.H8
-
-        t.X.copyInto(X)
+        System.arraycopy(t.X, 0, X, 0, t.X.size)
         xOff = t.xOff
     }
 

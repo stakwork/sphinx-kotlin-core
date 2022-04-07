@@ -5,8 +5,8 @@ import chat.sphinx.database.core.MessageDbo
 import chat.sphinx.features.repository.mappers.ClassMapper
 import chat.sphinx.features.repository.model.message.MessageDboWrapper
 import chat.sphinx.wrapper.message.*
+import io.matthewnelson.component.base64.decodeBase64ToArray
 import kotlinx.coroutines.withContext
-import okio.base64.decodeBase64ToArray
 
 internal class MessageDboPresenterMapper(
     dispatchers: CoroutineDispatchers,

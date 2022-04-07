@@ -23,10 +23,9 @@
 * */
 package com.github.xiangyuecn.rsajava
 
-import okio.base64.decodeBase64ToArray
-import okio.base64.encodeBase64ToByteArray
-import okio.base64.encodeBase64
-import okio.base64.Base64
+import io.matthewnelson.component.base64.decodeBase64ToArray
+import io.matthewnelson.component.base64.encodeBase64
+import io.matthewnelson.component.base64.encodeBase64ToByteArray
 import java.io.ByteArrayOutputStream
 import java.lang.Exception
 import java.lang.RuntimeException
@@ -40,7 +39,6 @@ import java.security.spec.RSAPrivateKeySpec
 import java.security.spec.RSAPublicKeySpec
 import java.util.regex.Pattern
 import kotlin.Throws
-import kotlin.experimental.and
 
 /**
  * RSA PEM格式秘钥对的解析和导出
@@ -106,6 +104,7 @@ class RSA_PEM {
         Key_Modulus = modulus
         Key_Exponent = exponent
         Key_D = BigL(d, modulus.size)
+
         val keyLen = modulus.size / 2
         Val_P = BigL(p, keyLen)
         Val_Q = BigL(q, keyLen)
@@ -121,11 +120,11 @@ class RSA_PEM {
      * @param exponent 必须提供公钥指数
      * @param dOrNull 私钥指数可以不提供，导出的PEM就只包含公钥
      */
-    constructor(modulus: ByteArray?, exponent: ByteArray?, dOrNull: ByteArray?) {
+    constructor(modulus: ByteArray, exponent: ByteArray, dOrNull: ByteArray?) {
         Key_Modulus = modulus //modulus
         Key_Exponent = exponent //publicExponent
         if (dOrNull != null) {
-            Key_D = BigL(dOrNull, modulus!!.size) //privateExponent
+            Key_D = BigL(dOrNull, modulus.size) //privateExponent
 
             //反推P、Q
             val n = BigX(modulus)
@@ -141,6 +140,7 @@ class RSA_PEM {
             val exp1 = d.mod(p.subtract(BigInteger.ONE))
             val exp2 = d.mod(q.subtract(BigInteger.ONE))
             val coeff = q.modInverse(p)
+
             val keyLen = modulus.size / 2
             Val_P = BigL(BigB(p), keyLen) //prime1
             Val_Q = BigL(BigB(q), keyLen) //prime2
@@ -164,7 +164,7 @@ class RSA_PEM {
     @get:Throws(Exception::class)
     val rsaPublicKey: RSAPublicKey
         get() {
-            val spec = RSAPublicKeySpec(BigX(Key_Modulus), BigX(Key_Exponent))
+            val spec = RSAPublicKeySpec(BigX(Key_Modulus!!), BigX(Key_Exponent!!))
             val factory = KeyFactory.getInstance("RSA")
             return factory.generatePublic(spec) as RSAPublicKey
         }
@@ -176,7 +176,7 @@ class RSA_PEM {
             if (Key_D == null) {
                 throw Exception("当前为公钥，无法获得私钥")
             }
-            val spec = RSAPrivateKeySpec(BigX(Key_Modulus), BigX(Key_D))
+            val spec = RSAPrivateKeySpec(BigX(Key_Modulus!!), BigX(Key_D!!))
             val factory = KeyFactory.getInstance("RSA")
             return factory.generatePrivate(spec) as RSAPrivateKey
         }
@@ -238,7 +238,7 @@ class RSA_PEM {
                 byts = writeLen(index2, byts, ms)
             }
             byts = writeLen(index1, byts, ms)
-            byts.encodeBase64ToByteArray(Base64.Default)
+            byts.encodeBase64ToByteArray()
         } else {
             /****生成私钥 */
 
@@ -286,7 +286,7 @@ class RSA_PEM {
                 byts = writeLen(index2, byts, ms)
             }
             byts = writeLen(index1, byts, ms)
-            byts.encodeBase64ToByteArray(Base64.Default)
+            byts.encodeBase64ToByteArray()
         }
     }
 
@@ -346,19 +346,19 @@ class RSA_PEM {
     fun ToXML(convertToPublic: Boolean): String {
         val str = StringBuilder()
         str.append("<RSAKeyValue>")
-        str.append("<Modulus>" + Key_Modulus!!.encodeBase64(Base64.Default) + "</Modulus>")
-        str.append("<Exponent>" + Key_Exponent!!.encodeBase64(Base64.Default) + "</Exponent>")
+        str.append("<Modulus>" + Key_Modulus!!.encodeBase64() + "</Modulus>")
+        str.append("<Exponent>" + Key_Exponent!!.encodeBase64() + "</Exponent>")
         if (Key_D == null || convertToPublic) {
             /****生成公钥 */
             //NOOP
         } else {
             /****生成私钥 */
-            str.append("<P>" + Val_P!!.encodeBase64(Base64.Default) + "</P>")
-            str.append("<Q>" + Val_Q!!.encodeBase64(Base64.Default) + "</Q>")
-            str.append("<DP>" + Val_DP!!.encodeBase64(Base64.Default) + "</DP>")
-            str.append("<DQ>" + Val_DQ!!.encodeBase64(Base64.Default) + "</DQ>")
-            str.append("<InverseQ>" + Val_InverseQ!!.encodeBase64(Base64.Default) + "</InverseQ>")
-            str.append("<D>" + Key_D!!.encodeBase64(Base64.Default) + "</D>")
+            str.append("<P>" + Val_P!!.encodeBase64() + "</P>")
+            str.append("<Q>" + Val_Q!!.encodeBase64() + "</Q>")
+            str.append("<DP>" + Val_DP!!.encodeBase64() + "</DP>")
+            str.append("<DQ>" + Val_DQ!!.encodeBase64() + "</DQ>")
+            str.append("<InverseQ>" + Val_InverseQ!!.encodeBase64() + "</InverseQ>")
+            str.append("<D>" + Key_D!!.encodeBase64() + "</D>")
         }
         str.append("</RSAKeyValue>")
         return str.toString()
@@ -366,9 +366,9 @@ class RSA_PEM {
 
     companion object {
         /**转成正整数，如果是负数，需要加前导0转成正整数 */
-        fun BigX(bigb: ByteArray?): BigInteger {
-            var bigb = bigb
-            if (bigb!![0] < 0) {
+        fun BigX(bigbByteArray: ByteArray): BigInteger {
+            var bigb = bigbByteArray
+            if (bigb[0] < 0) {
                 val c = ByteArray(bigb.size + 1)
                 System.arraycopy(bigb, 0, c, 1, bigb.size)
                 bigb = c
@@ -378,18 +378,18 @@ class RSA_PEM {
 
         /**BigInt导出byte整数首字节>0x7F的会加0前导，保证正整数，因此需要去掉0 */
         fun BigB(bigx: BigInteger): ByteArray {
-            var `val` = bigx.toByteArray()
-            if (`val`[0].toInt() == 0) {
-                val c = ByteArray(`val`.size - 1)
-                System.arraycopy(`val`, 1, c, 0, c.size)
-                `val` = c
+            var value = bigx.toByteArray()
+            if (value[0].toInt() == 0) {
+                val c = ByteArray(value.size - 1)
+                System.arraycopy(value, 1, c, 0, c.size)
+                value = c
             }
-            return `val`
+            return value
         }
 
         /**某些密钥参数可能会少一位（32个byte只有31个，目测是密钥生成器的问题，只在c#生成的密钥中发现这种参数，java中生成的密钥没有这种现象），直接修正一下就行；这个问题与BigB有本质区别，不能动BigB */
-        fun BigL(bytes: ByteArray, keyLen: Int): ByteArray {
-            var bytes = bytes
+        fun BigL(byteArray: ByteArray, keyLen: Int): ByteArray {
+            var bytes = byteArray
             if (keyLen - bytes.size == 1) {
                 val c = ByteArray(bytes.size + 1)
                 System.arraycopy(bytes, 0, c, 1, bytes.size)
@@ -437,7 +437,7 @@ class RSA_PEM {
             val dataX = base64.decodeBase64ToArray() ?: throw Exception("PEM内容无效")
             val data = ShortArray(dataX.size) //转成正整数的bytes数组，不然byte是负数难搞
             for (i in dataX.indices) {
-                data[i] = (dataX[i] and 0xff.toByte()).toShort()
+                data[i] = (dataX[i].toInt() and 0xff).toShort()
             }
             var idx = intArrayOf(0)
             if (!privateKey) {
@@ -700,7 +700,7 @@ class RSA_PEM {
             }
             if (rtv.Key_D != null) {
                 if (rtv.Val_P == null || rtv.Val_Q == null || rtv.Val_DP == null || rtv.Val_DQ == null || rtv.Val_InverseQ == null) {
-                    return RSA_PEM(rtv.Key_Modulus, rtv.Key_Exponent, rtv.Key_D)
+                    return RSA_PEM(rtv.Key_Modulus!!, rtv.Key_Exponent!!, rtv.Key_D)
                 }
             }
             return rtv
