@@ -27,7 +27,9 @@ class RepositoryModule(
             appModule.coreDBImpl.getSphinxDatabaseQueries().contactGetOwner()
                 .asFlow()
                 .mapToOneOrNull(appModule.dispatchers.io)
-                .map { it?.toContact() }
+                .map {
+                    it?.toContact()
+                }
         )
     }.stateIn(
         appModule.applicationScope,
