@@ -16,7 +16,8 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class NetworkQueryMessageImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -199,7 +200,7 @@ class NetworkQueryMessageImpl(
             relayEndpoint = String.format(ENDPOINT_MESSAGES_READ, chatId.value),
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )

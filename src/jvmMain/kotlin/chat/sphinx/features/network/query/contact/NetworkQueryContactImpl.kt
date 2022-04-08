@@ -18,6 +18,8 @@ import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class NetworkQueryContactImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -128,7 +130,7 @@ class NetworkQueryContactImpl(
             relayEndpoint = endpoint,
             Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )

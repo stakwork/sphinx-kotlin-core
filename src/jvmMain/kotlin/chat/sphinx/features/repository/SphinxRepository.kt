@@ -1,13 +1,16 @@
 package chat.sphinx.features.repository
 
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
-import chat.sphinx.database.core.*
+import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
 import chat.sphinx.concepts.meme_input_stream.MemeInputStreamHandler
 import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
-import chat.sphinx.concepts.network.query.chat.model.*
+import chat.sphinx.concepts.network.query.chat.model.PostGroupDto
+import chat.sphinx.concepts.network.query.chat.model.StreamSatsText
+import chat.sphinx.concepts.network.query.chat.model.TribeDto
+import chat.sphinx.concepts.network.query.chat.model.toJson
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
 import chat.sphinx.concepts.network.query.contact.model.PostContactDto
@@ -50,7 +53,7 @@ import chat.sphinx.concepts.socket_io.SphinxSocketIOMessageListener
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
-import chat.sphinx.concepts.coredb.CoreDB
+import chat.sphinx.database.core.*
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.features.repository.mappers.chat.ChatDboPresenterMapper
 import chat.sphinx.features.repository.mappers.contact.ContactDboPresenterMapper
@@ -111,7 +114,6 @@ import okio.Path
 import okio.Source
 import okio.source
 import kotlin.math.absoluteValue
-import kotlin.text.toCharArray
 
 abstract class SphinxRepository(
     override val accountOwner: StateFlow<Contact?>,
@@ -839,7 +841,7 @@ abstract class SphinxRepository(
     }
 
     private val inviteLock = Mutex()
-    override val networkRefreshLatestContacts: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
+    override val networkRefreshLatestContacts: Flow<LoadResponse<RestoreProgress, ResponseError>> by lazy {
         flow {
 
             val lastSeenContactsDate: String? = authenticationStorage.getString(
@@ -851,6 +853,13 @@ abstract class SphinxRepository(
                 ?: DATE_NIXON_SHOCK.toDateTime()
 
             val now: String = DateTime.nowUTC()
+            val restoring = lastSeenContactsDate == null
+
+            emit(
+                Response.Success(
+                    RestoreProgress(restoring, 2)
+                )
+            )
 
             networkQueryContact.getLatestContacts(
                 lastSeenContactsDateResolved
@@ -903,9 +912,12 @@ abstract class SphinxRepository(
                                 )
 
                                 inviteLock.withLock {
-                                    queries.transaction {
-                                        for (dto in loadResponse.value.invites) {
-                                            upsertInvite(dto, queries)
+                                    contactLock.withLock {
+                                        queries.transaction {
+                                            for (dto in loadResponse.value.invites) {
+                                                updatedContactIds.add(ContactId(dto.contact_id))
+                                                upsertInvite(dto, queries)
+                                            }
                                         }
                                     }
                                 }
@@ -923,7 +935,10 @@ abstract class SphinxRepository(
                             error?.let {
                                 throw it
                             } ?: run {
-                                if (loadResponse.value.contacts.size > 0 || loadResponse.value.chats.size > 0) {
+                                if (
+                                    loadResponse.value.contacts.size > 1 ||
+                                    loadResponse.value.chats.isNotEmpty()
+                                ) {
                                     authenticationStorage.putString(
                                         REPOSITORY_LAST_SEEN_CONTACTS_DATE,
                                         now
@@ -931,7 +946,15 @@ abstract class SphinxRepository(
                                 }
                             }
 
-                            emit(processChatsResponse)
+                            emit(
+                                if (processChatsResponse is Response.Success) {
+                                    Response.Success(
+                                        RestoreProgress(restoring, 4)
+                                    )
+                                } else {
+                                    Response.Error(ResponseError("Failed to refresh contacts and chats"))
+                                }
+                            )
 
                         } catch (e: ParseException) {
                             val msg =

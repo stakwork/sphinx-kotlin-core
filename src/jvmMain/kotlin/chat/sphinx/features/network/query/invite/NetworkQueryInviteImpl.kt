@@ -13,6 +13,8 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.invite.InviteString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class NetworkQueryInviteImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -75,7 +77,7 @@ class NetworkQueryInviteImpl(
             relayEndpoint = "/invites/${inviteString.value}/pay" ,
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             )
         )
     }

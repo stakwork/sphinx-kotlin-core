@@ -14,6 +14,8 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class NetworkQueryAuthorizeExternalImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -31,7 +33,7 @@ class NetworkQueryAuthorizeExternalImpl(
             relayEndpoint = ENDPOINT_VERIFY_EXTERNAL,
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )

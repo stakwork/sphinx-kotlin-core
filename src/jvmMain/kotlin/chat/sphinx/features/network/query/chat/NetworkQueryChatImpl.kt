@@ -1,7 +1,6 @@
 package chat.sphinx.features.network.query.chat
 
-import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
-import chat.sphinx.concepts.network.query.chat.model.*
+import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.concepts.network.query.chat.model.feed.FeedDto
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.features.network.query.chat.model.*
@@ -17,7 +16,8 @@ import chat.sphinx.wrapper.feed.FeedUrl
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class NetworkQueryChatImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -118,8 +118,7 @@ class NetworkQueryChatImpl(
             relayEndpoint = "/kick/${chatId.value}/${contactId.value}",
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )
@@ -191,7 +190,7 @@ class NetworkQueryChatImpl(
             relayEndpoint = endpoint,
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )

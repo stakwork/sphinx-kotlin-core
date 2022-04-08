@@ -15,7 +15,8 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class NetworkQuerySubscriptionImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -97,7 +98,7 @@ class NetworkQuerySubscriptionImpl(
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}/pause",
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )
@@ -111,7 +112,7 @@ class NetworkQuerySubscriptionImpl(
             relayEndpoint = "$ENDPOINT_SUBSCRIPTION/${subscriptionId.value}/restart",
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )
