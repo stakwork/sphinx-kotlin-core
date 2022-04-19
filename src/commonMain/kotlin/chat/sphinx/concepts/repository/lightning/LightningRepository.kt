@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface LightningRepository {
     val networkRefreshBalance: Flow<LoadResponse<Boolean, ResponseError>>
-    suspend fun getAccountBalance(): StateFlow<NodeBalance?>
     suspend fun getAccountBalanceAll(
         relayData: Pair<AuthorizationToken, RelayUrl>? = null
     ): Flow<LoadResponse<NodeBalanceAll, ResponseError>>

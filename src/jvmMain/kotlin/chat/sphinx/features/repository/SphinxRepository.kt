@@ -309,7 +309,7 @@ abstract class SphinxRepository(
         ChatDboPresenterMapper(dispatchers)
     }
 
-    override val getAllChats: Flow<List<Chat>> by lazy {
+    override val getAllChatsFlow: Flow<List<Chat>> by lazy {
         flow {
             emitAll(
                 coreDB.getSphinxDatabaseQueries().chatGetAll()
@@ -1633,7 +1633,7 @@ abstract class SphinxRepository(
     private val balanceLock = Mutex()
 
     @Suppress("BlockingMethodInNonBlockingContext")
-    override suspend fun getAccountBalance(): StateFlow<NodeBalance?> {
+    override suspend fun getAccountBalanceStateFlow(): StateFlow<NodeBalance?> {
         balanceLock.withLock {
 
             if (accountBalanceStateFlow.value == null) {

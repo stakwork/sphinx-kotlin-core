@@ -19,9 +19,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface RepositoryDashboard {
-    suspend fun getAccountBalance(): StateFlow<NodeBalance?>
+    suspend fun getAccountBalanceStateFlow(): StateFlow<NodeBalance?>
 
-    val getAllChats: Flow<List<Chat>>
+    val getAllChatsFlow: Flow<List<Chat>>
     val getAllContactChats: Flow<List<Chat>>
     val getAllTribeChats: Flow<List<Chat>>
     fun getConversationByContactId(contactId: ContactId): Flow<Chat?>
