@@ -320,7 +320,7 @@ abstract class SphinxRepository(
         }
     }
 
-    override val getAllContactChats: Flow<List<Chat>> by lazy {
+    override val getAllContactChatsFlow: Flow<List<Chat>> by lazy {
         flow {
             emitAll(
                 coreDB.getSphinxDatabaseQueries().chatGetAllContact()
@@ -331,7 +331,7 @@ abstract class SphinxRepository(
         }
     }
 
-    override val getAllTribeChats: Flow<List<Chat>> by lazy {
+    override val getAllTribeChatsFlow: Flow<List<Chat>> by lazy {
         flow {
             emitAll(
                 coreDB.getSphinxDatabaseQueries().chatGetAllTribe()
@@ -369,7 +369,7 @@ abstract class SphinxRepository(
         )
     }
 
-    override fun getConversationByContactId(contactId: ContactId): Flow<Chat?> = flow {
+    override fun getConversationByContactIdFlow(contactId: ContactId): Flow<Chat?> = flow {
         var ownerId: ContactId? = accountOwner.value?.id
 
         if (ownerId == null) {
@@ -489,7 +489,7 @@ abstract class SphinxRepository(
         )
     }
 
-    override val networkRefreshChats: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
+    override val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
         flow {
             networkQueryChat.getChats().collect { loadResponse ->
 
@@ -2706,7 +2706,7 @@ abstract class SphinxRepository(
 
                 messageBuilder.setContactId(supportContact.id)
 
-                getConversationByContactId(supportContact.id).firstOrNull()?.let { supportContactChat ->
+                getConversationByContactIdFlow(supportContact.id).firstOrNull()?.let { supportContactChat ->
                     messageBuilder.setChatId(supportContactChat.id)
                 }
 

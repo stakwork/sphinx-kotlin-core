@@ -22,15 +22,14 @@ interface RepositoryDashboard {
     suspend fun getAccountBalanceStateFlow(): StateFlow<NodeBalance?>
 
     val getAllChatsFlow: Flow<List<Chat>>
-    val getAllContactChats: Flow<List<Chat>>
-    val getAllTribeChats: Flow<List<Chat>>
-    fun getConversationByContactId(contactId: ContactId): Flow<Chat?>
+    val getAllContactChatsFlow: Flow<List<Chat>>
+    val getAllTribeChatsFlow: Flow<List<Chat>>
+    fun getConversationByContactIdFlow(contactId: ContactId): Flow<Chat?>
 
     fun getUnseenMessagesByChatId(chatId: ChatId): Flow<Long?>
     fun getUnseenActiveConversationMessagesCount(): Flow<Long?>
     fun getUnseenTribeMessagesCount(): Flow<Long?>
 
-    val accountOwner: StateFlow<Contact?>
     val getAllNotBlockedContacts: Flow<List<Contact>>
     val getAllInvites: Flow<List<Invite>>
     fun getContactById(contactId: ContactId): Flow<Contact?>

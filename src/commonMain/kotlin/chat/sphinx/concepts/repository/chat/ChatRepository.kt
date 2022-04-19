@@ -25,19 +25,7 @@ interface ChatRepository {
     fun getChatByUUID(chatUUID: ChatUUID): Flow<Chat?>
     fun getPodcastByChatId(chatId: ChatId): Flow<Podcast?>
 
-    /**
-     * Returns a [chat.sphinx.wrapper_chat.ChatType.Conversation] or `null`
-     * for the provided [contactId]
-     * */
-    fun getConversationByContactId(contactId: ContactId): Flow<Chat?>
-
-    /**
-     * Throws [NoSuchElementException] on collection if [Chat.contactIds]
-     * is empty.
-     * */
-    fun getUnseenMessagesByChatId(chatId: ChatId): Flow<Long?>
-    
-    val networkRefreshChats: Flow<LoadResponse<Boolean, ResponseError>>
+    val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>>
 
     suspend fun getAllChatsByIds(chatIds: List<ChatId>): List<Chat>
     /**
