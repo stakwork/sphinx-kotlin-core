@@ -309,6 +309,12 @@ abstract class SphinxRepository(
         ChatDboPresenterMapper(dispatchers)
     }
 
+    override suspend fun getAllChats(): List<Chat> = coreDB.getSphinxDatabaseQueries().chatGetAll()
+        .executeAsList()
+        .map {
+            chatDboPresenterMapper.mapFrom(it)
+        }
+
     override val getAllChatsFlow: Flow<List<Chat>> by lazy {
         flow {
             emitAll(
@@ -349,7 +355,12 @@ abstract class SphinxRepository(
             .map { chatDboPresenterMapper.mapFrom(it) }
     }
 
-    override fun getChatById(chatId: ChatId): Flow<Chat?> = flow {
+    override suspend fun getChatById(chatId: ChatId): Chat? {
+        val chatDbo = coreDB.getSphinxDatabaseQueries().chatGetById(chatId)
+            .executeAsOneOrNull()
+        return chatDbo?.let { chatDboPresenterMapper.mapFrom(it) }
+    }
+    override fun getChatByIdFlow(chatId: ChatId): Flow<Chat?> = flow {
         emitAll(
             coreDB.getSphinxDatabaseQueries().chatGetById(chatId)
                 .asFlow()
@@ -2161,7 +2172,7 @@ abstract class SphinxRepository(
 
             // TODO: Update SendMessage to accept a Chat && Contact instead of just IDs
             val chat: Chat? = sendMessage.chatId?.let {
-                getChatById(it).firstOrNull()
+                getChatByIdFlow(it).firstOrNull()
             }
 
             val contact: Contact? = sendMessage.contactId?.let {
