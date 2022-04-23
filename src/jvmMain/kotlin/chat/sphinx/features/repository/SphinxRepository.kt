@@ -1,5 +1,6 @@
 package chat.sphinx.features.repository
 
+import androidx.paging.*
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
@@ -97,6 +98,7 @@ import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import com.soywiz.klock.DateTimeTz
+import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
@@ -1931,6 +1933,32 @@ abstract class SphinxRepository(
         }
 
         return message
+    }
+
+    override suspend fun getAllMessagesToShowByChatIdPaginated(chatId: ChatId): Flow<PagingData<Message>> {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        return Pager(
+            config = PagingConfig(
+                pageSize = 21,
+                maxSize = 200
+            )
+        ) {
+            QueryPagingSource(
+                countQuery = queries.messageCountAllToShowByChatId(chatId),
+                transacter = queries,
+                dispatcher = io,
+//            queryProvider = queries::messageGetAllToShowByChatIdPaginated
+                queryProvider = { limit: Long, offset: Long ->
+                    queries.messageGetAllToShowByChatIdPaginated(chatId, limit, offset)
+                }
+            )
+        }.flow.map { pagingData: PagingData<MessageDbo> ->
+            pagingData.map { messageDbo: MessageDbo ->
+                messageDboPresenterMapper.mapFrom(messageDbo)
+            }
+        }
+        // TODO: Give it a scope it is cached in...
     }
 
     override fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long): Flow<List<Message>> = flow {

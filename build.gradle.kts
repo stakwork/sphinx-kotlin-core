@@ -84,6 +84,8 @@ kotlin {
                 implementation("io.matthewnelson.kotlin-components:encoding-base16:$encodingVersion")
                 implementation("io.matthewnelson.kotlin-components:encoding-base32:$encodingVersion")
                 implementation("io.matthewnelson.kotlin-components:encoding-base64:$encodingVersion")
+
+                api("com.squareup.sqldelight:android-paging3-extensions:1.5.3")
             }
         }
         val commonTest by getting {
