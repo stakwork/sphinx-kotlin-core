@@ -1941,7 +1941,7 @@ abstract class SphinxRepository(
         return Pager(
             config = PagingConfig(
                 pageSize = 21,
-                maxSize = 200
+                maxSize = 1000
             )
         ) {
             QueryPagingSource(
