@@ -1,6 +1,9 @@
 package chat.sphinx.features.repository
 
-import androidx.paging.*
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
@@ -1941,6 +1944,7 @@ abstract class SphinxRepository(
         return Pager(
             config = PagingConfig(
                 pageSize = 21,
+                enablePlaceholders = false,
                 maxSize = 1000
             )
         ) {

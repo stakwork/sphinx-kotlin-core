@@ -1,6 +1,7 @@
 package chat.sphinx.di.container
 
 import chat.sphinx.concepts.relay.RelayDataHandler
+import chat.sphinx.concepts.socket_io.SocketIOManager
 import chat.sphinx.features.link_preview.LinkPreviewHandlerImpl
 import chat.sphinx.features.meme_input_stream.MemeInputStreamHandlerImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
@@ -76,7 +77,7 @@ class NetworkModule(
         relayDataHandler,
         appModule.sphinxLogger,
     )
-    val socketIOManager = socketIOManagerImpl
+    val socketIOManager: SocketIOManager = socketIOManagerImpl
     private val networkRelayCallImpl = NetworkRelayCallImpl(
         appModule.dispatchers,
         networkClient,
