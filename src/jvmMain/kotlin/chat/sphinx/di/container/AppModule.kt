@@ -1,9 +1,12 @@
 package chat.sphinx.di.container
 
+import chat.sphinx.concepts.media_cache.MediaCacheHandler
 import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.database.DriverFactory
 import chat.sphinx.database.SphinxCoreDBImpl
+import chat.sphinx.features.coredb.CoreDBImpl
 import chat.sphinx.features.media_cache.MediaCacheHandlerImpl
+import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.utils.SphinxDispatchers
 import chat.sphinx.utils.SphinxLoggerImpl
 import chat.sphinx.utils.build_config.BuildConfigDebug
@@ -17,7 +20,7 @@ class AppModule {
     val dispatchers = sphinxDispatchers
     val applicationScope = CoroutineScope(SupervisorJob() + dispatchers.default)
     private val sphinxLoggerImpl = SphinxLoggerImpl()
-    val sphinxLogger = sphinxLoggerImpl
+    val sphinxLogger: SphinxLogger = sphinxLoggerImpl
     val buildConfigDebug = BuildConfigDebug(true) // TODO: Configure it correctly...
     val buildConfigVersionCode = BuildConfigVersionCode(21) // TODO: Configure it correctly...
     val driverFactory = DriverFactory()
@@ -25,8 +28,8 @@ class AppModule {
         driverFactory,
         buildConfigDebug
     )
-    val coreDBImpl = sphinxCoreDBImpl
-    val mediaCacheHandler = MediaCacheHandlerImpl(
+    val coreDBImpl: CoreDBImpl = sphinxCoreDBImpl
+    val mediaCacheHandler: MediaCacheHandler = MediaCacheHandlerImpl(
         applicationScope,
         FileSystem.SYSTEM_TEMPORARY_DIRECTORY,
         dispatchers,
