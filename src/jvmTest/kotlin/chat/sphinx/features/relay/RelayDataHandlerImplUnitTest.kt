@@ -1,7 +1,10 @@
 package chat.sphinx.features.relay
 
+import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.crypto.k_openssl.isSalted
+import chat.sphinx.features.crypto_rsa.RSAAlgorithm
+import chat.sphinx.features.crypto_rsa.RSAImpl
 import chat.sphinx.test.features.authentication.core.AuthenticationCoreDefaultsTestHelper
 import chat.sphinx.test.tor_manager.TestTorManager
 import chat.sphinx.wrapper.relay.AuthorizationToken
@@ -16,13 +19,18 @@ class RelayDataHandlerImplUnitTest: AuthenticationCoreDefaultsTestHelper() {
         private const val RAW_JWT = "gsaAiFtGG/RfsaO"
     }
 
+    private val testRSA: RSA by lazy {
+        RSAImpl(RSAAlgorithm.RSA)
+    }
+
     private val relayHandler: RelayDataHandler by lazy {
         RelayDataHandlerImpl(
             testStorage,
             testCoreManager,
             dispatchers,
             testHandler,
-            TestTorManager()
+            TestTorManager(),
+            testRSA
         )
     }
 

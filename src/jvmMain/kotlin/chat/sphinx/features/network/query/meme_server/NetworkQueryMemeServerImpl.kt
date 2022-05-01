@@ -17,6 +17,7 @@ import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
@@ -59,7 +60,7 @@ class NetworkQueryMemeServerImpl(
 
     override fun signChallenge(
         challenge: AuthenticationChallenge,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<MemeServerChallengeSigDto, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = MemeServerChallengeSigRelayResponse.serializer(),

@@ -1,5 +1,6 @@
 package chat.sphinx.test.network.query
 
+import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
@@ -13,6 +14,8 @@ import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.crypto.common.clazzes.Password
+import chat.sphinx.features.crypto_rsa.RSAAlgorithm
+import chat.sphinx.features.crypto_rsa.RSAImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
 import chat.sphinx.features.network.query.chat.NetworkQueryChatImpl
 import chat.sphinx.features.network.query.contact.NetworkQueryContactImpl
@@ -181,6 +184,10 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
         )
     }
 
+    private val testRSA: RSA by lazy {
+        RSAImpl(RSAAlgorithm.RSA)
+    }
+
     protected open val relayDataHandler: RelayDataHandler by lazy {
         RelayDataHandlerImpl(
             testStorage,
@@ -188,6 +195,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
             dispatchers,
             testHandler,
             testTorManager,
+            testRSA
         )
     }
 

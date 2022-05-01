@@ -5,6 +5,7 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
 abstract class NetworkQueryVersion {
@@ -13,7 +14,7 @@ abstract class NetworkQueryVersion {
     /// GET ///
     ///////////
     abstract fun getAppVersions(
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<AppVersionsDto, ResponseError>>
 
 }

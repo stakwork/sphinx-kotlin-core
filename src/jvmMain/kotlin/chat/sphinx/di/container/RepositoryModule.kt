@@ -50,6 +50,7 @@ class RepositoryModule(
         appModule.applicationScope,
         authenticationModule.authenticationCoreManager,
         authenticationModule.authenticationStorage,
+        networkModule.relayDataHandler,
         appModule.coreDBImpl,
         appModule.dispatchers,
         appModule.mediaCacheHandler,

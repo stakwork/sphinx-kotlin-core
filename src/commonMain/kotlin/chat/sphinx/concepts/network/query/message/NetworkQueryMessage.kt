@@ -13,24 +13,25 @@ import chat.sphinx.wrapper.message.MessageUUID
 import chat.sphinx.wrapper.message.media.MediaToken
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
 abstract class NetworkQueryMessage {
 
     abstract fun getMessages(
         messagePagination: MessagePagination?,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<GetMessagesResponse, ResponseError>>
 
     abstract fun getPayments(
         offset: Int = 0,
         limit: Int = 50,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<List<TransactionDto>, ResponseError>>
 
     abstract fun sendMessage(
         postMessageDto: PostMessageDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<MessageDto, ResponseError>>
 
     abstract fun boostMessage(
@@ -39,27 +40,27 @@ abstract class NetworkQueryMessage {
         escrowAmount: Sat,
         tipAmount: Sat,
         messageUUID: MessageUUID,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<MessageDto, ResponseError>>
 
     abstract fun sendPayment(
         postPaymentDto: PostPaymentDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<MessageDto, ResponseError>>
 
     abstract fun sendPaymentRequest(
         postPaymentRequestDto: PostPaymentRequestDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<MessageDto, ResponseError>>
 
     abstract fun payPaymentRequest(
         putPaymentRequestDto: PutPaymentRequestDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<MessageDto, ResponseError>>
 
     abstract fun sendKeySendPayment(
         postPaymentDto: PostPaymentDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<KeySendPaymentDto, ResponseError>>
 
     abstract fun payAttachment(
@@ -67,12 +68,12 @@ abstract class NetworkQueryMessage {
         contactId: ContactId?,
         amount: Sat,
         mediaToken: MediaToken,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<MessageDto, ResponseError>>
 
     abstract fun readMessages(
         chatId: ChatId,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<Any?, ResponseError>>
 
 //    app.post('/messages/clear', messages.clearMessages)
@@ -87,13 +88,13 @@ abstract class NetworkQueryMessage {
      */
     abstract fun deleteMessage(
         messageId: MessageId,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
     ): Flow<LoadResponse<MessageDto, ResponseError>>
 
     abstract fun processMemberRequest(
         contactId: ContactId,
         messageId: MessageId,
         type: MessageType,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<PutMemberResponseDto, ResponseError>>
 }

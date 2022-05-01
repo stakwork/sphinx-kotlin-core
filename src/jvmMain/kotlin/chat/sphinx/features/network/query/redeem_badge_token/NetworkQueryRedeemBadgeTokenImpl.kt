@@ -8,6 +8,7 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
 class NetworkQueryRedeemBadgeTokenImpl(
@@ -20,7 +21,7 @@ class NetworkQueryRedeemBadgeTokenImpl(
 
     override fun redeemBadgeToken(
         data: RedeemBadgeTokenDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = RedeemBadgeTokenResponse.serializer(),

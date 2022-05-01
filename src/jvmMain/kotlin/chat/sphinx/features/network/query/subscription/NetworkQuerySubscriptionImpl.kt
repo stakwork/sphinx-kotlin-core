@@ -13,6 +13,7 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
@@ -39,7 +40,7 @@ class NetworkQuerySubscriptionImpl(
     }
 
     override fun getSubscriptions(
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<List<SubscriptionDto>, ResponseError>> =
         if (relayData == null) {
             getSubscriptionsFlowNullData
@@ -53,7 +54,7 @@ class NetworkQuerySubscriptionImpl(
 
     override fun getSubscriptionById(
         subscriptionId: SubscriptionId,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = SubscriptionRelayResponse.serializer(),
@@ -63,7 +64,7 @@ class NetworkQuerySubscriptionImpl(
 
     override fun getSubscriptionsByContactId(
         contactId: ContactId,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<List<SubscriptionDto>, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = GetSubscriptionsRelayResponse.serializer(),
@@ -77,7 +78,7 @@ class NetworkQuerySubscriptionImpl(
     override fun putSubscription(
         subscriptionId: SubscriptionId,
         putSubscriptionDto: PutSubscriptionDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = SubscriptionRelayResponse.serializer(),
@@ -91,7 +92,7 @@ class NetworkQuerySubscriptionImpl(
 
     override fun putPauseSubscription(
         subscriptionId: SubscriptionId,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = SubscriptionRelayResponse.serializer(),
@@ -105,7 +106,7 @@ class NetworkQuerySubscriptionImpl(
 
     override fun putRestartSubscription(
         subscriptionId: SubscriptionId,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = SubscriptionRelayResponse.serializer(),
@@ -122,7 +123,7 @@ class NetworkQuerySubscriptionImpl(
     ////////////
     override fun postSubscription(
         postSubscriptionDto: PostSubscriptionDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<SubscriptionDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = SubscriptionRelayResponse.serializer(),
@@ -139,7 +140,7 @@ class NetworkQuerySubscriptionImpl(
     //////////////
     override fun deleteSubscription(
         subscriptionId: SubscriptionId,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.relayDelete(
             responseJsonSerializer = DeleteSubscriptionRelayResponse.serializer(),

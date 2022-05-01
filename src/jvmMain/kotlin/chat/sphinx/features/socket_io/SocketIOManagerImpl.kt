@@ -5,7 +5,7 @@ import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.query.message.model.MessageDto
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.relay.retrieveRelayUrlAndAuthorizationToken
+import chat.sphinx.concepts.relay.retrieveRelayUrlAndToken
 import chat.sphinx.concepts.socket_io.*
 import chat.sphinx.features.socket_io.json.*
 import chat.sphinx.features.socket_io.json.getMessageResponseChat
@@ -20,6 +20,7 @@ import chat.sphinx.response.exception
 import chat.sphinx.response.message
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import io.socket.client.IO
 import io.socket.client.Manager
 import io.socket.client.Socket
@@ -119,7 +120,7 @@ class SocketIOManagerImpl(
                             LOG.e(
                                 TAG,
                                 "Listener ${listener.javaClass.simpleName} threw exception " +
-                                "${e::class.simpleName} for type ${msg.javaClass.simpleName}",
+                                        "${e.javaClass.simpleName} for type ${msg.javaClass.simpleName}",
                                 e
                             )
                         }
@@ -157,7 +158,7 @@ class SocketIOManagerImpl(
     private class SocketInstanceHolder(
         val socket: Socket,
         val socketIOClient: OkHttpClient,
-        val relayData: Pair<AuthorizationToken, RelayUrl>,
+        val relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>,
         val socketIOSupervisor: Job = SupervisorJob(),
         val socketIOScope: CoroutineScope = CoroutineScope(socketIOSupervisor)
     )
@@ -188,7 +189,7 @@ class SocketIOManagerImpl(
     }
 
     override suspend fun connect(
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Response<Any, ResponseError> =
         lock.withLock {
             instance?.let { nnInstance ->
@@ -222,10 +223,10 @@ class SocketIOManagerImpl(
 
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "UNCHECKED_CAST")
     private suspend fun buildSocket(
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Response<SocketInstanceHolder, ResponseError> {
-        val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
-            ?: relayDataHandler.retrieveRelayUrlAndAuthorizationToken().let { response ->
+        val nnRelayData: Triple<AuthorizationToken, TransportToken?, RelayUrl> = relayData
+            ?: relayDataHandler.retrieveRelayUrlAndToken().let { response ->
                 Exhaustive@
                 when (response) {
                     is Response.Error -> {
@@ -265,7 +266,7 @@ class SocketIOManagerImpl(
         val socket: Socket = try {
             // TODO: Need to add listener to relayData in case it is changed
             //  need to disconnect and open a new socket.
-            IO.socket(nnRelayData.second.value, options)
+            IO.socket(nnRelayData.third.value, options)
         } catch (e: Exception) {
             val msg = "Failed to create socket-io instance"
             LOG.e(TAG, msg, e)
@@ -277,11 +278,12 @@ class SocketIOManagerImpl(
                 (args[0] as Transport).on(Transport.EVENT_REQUEST_HEADERS) { requestArgs ->
 
                     val headers = requestArgs[0] as java.util.Map<String, List<String>>
-                    headers.put(
-                        AuthorizationToken.AUTHORIZATION_HEADER,
-                        listOf(nnRelayData.first.value)
-                    )
 
+                    if (nnRelayData.second != null) {
+                        headers.put(TransportToken.TRANSPORT_TOKEN_HEADER, listOf(nnRelayData.second!!.value))
+                    } else {
+                        headers.put(AuthorizationToken.AUTHORIZATION_HEADER, listOf(nnRelayData.first.value))
+                    }
                 }
             } catch (e: Exception) {
                 LOG.e(TAG, "Adding authorization to RequestHeaders failed.", e)

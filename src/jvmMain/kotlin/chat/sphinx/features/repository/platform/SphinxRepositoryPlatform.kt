@@ -19,6 +19,7 @@ import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.notification.SphinxNotificationManager
+import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.concepts.socket_io.SocketIOManager
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.features.repository.SphinxRepository
@@ -32,6 +33,7 @@ class SphinxRepositoryPlatform(
     applicationScope: CoroutineScope,
     authenticationCoreManager: AuthenticationCoreManager,
     authenticationStorage: AuthenticationStorage,
+    relayDataHandler: RelayDataHandler,
     coreDB: CoreDB,
     dispatchers: CoroutineDispatchers,
     mediaCacheHandler: MediaCacheHandler,
@@ -57,6 +59,7 @@ class SphinxRepositoryPlatform(
     applicationScope,
     authenticationCoreManager,
     authenticationStorage,
+    relayDataHandler,
     coreDB,
     dispatchers,
     mediaCacheHandler,

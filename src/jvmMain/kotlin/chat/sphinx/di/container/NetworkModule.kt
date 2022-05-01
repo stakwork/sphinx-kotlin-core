@@ -71,7 +71,8 @@ class NetworkModule(
         authenticationModule.authenticationCoreManager,
         appModule.dispatchers,
         authenticationModule.encryptionKeyHandler,
-        torManager
+        torManager,
+        authenticationModule.rsa
     )
     val relayDataHandler: RelayDataHandler = relayDataHandlerImpl
     private val networkClientImpl = NetworkClientImpl(

@@ -224,8 +224,6 @@ inline fun TransactionCallbacks.upsertContact(dto: ContactDto, queries: SphinxDa
         dto.updated_at.toDateTime(),
         dto.notification_sound?.toNotificationSound(),
         dto.tip_amount?.toSat(),
-        dto.invite?.id?.let { InviteId(it) },
-        dto.invite?.status?.toInviteStatus(),
         dto.blockedActual.toBlocked(),
         contactId,
         isOwner,
