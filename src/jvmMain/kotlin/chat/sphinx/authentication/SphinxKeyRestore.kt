@@ -9,6 +9,7 @@ import chat.sphinx.features.authentication.core.model.AuthenticateFlowResponse
 import chat.sphinx.features.relay.RelayDataHandlerImpl
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.rsa.RsaPublicKey
 import kotlinx.coroutines.flow.*
 
 class SphinxKeyRestore(
@@ -25,6 +26,7 @@ class SphinxKeyRestore(
         userPin: CharArray,
         relayUrl: RelayUrl,
         authorizationToken: AuthorizationToken,
+        transportKey: RsaPublicKey?,
     ): Flow<KeyRestoreResponse> = flow {
         when {
             authenticationManager.isAnEncryptionKeySet() -> {
@@ -44,6 +46,7 @@ class SphinxKeyRestore(
                         userPin,
                         relayUrl,
                         authorizationToken,
+                        transportKey
                     )
                 )
             }
@@ -55,7 +58,8 @@ class SphinxKeyRestore(
         publicKey: Password,
         userPin: CharArray,
         relayUrl: RelayUrl,
-        jwt: AuthorizationToken
+        jwt: AuthorizationToken,
+        transportKey: RsaPublicKey?,
     ): Flow<KeyRestoreResponse> = flow {
         // authenticating the first time will return a SetKeyFirstTime response
         val request = AuthenticationRequest.LogIn(privateKey = null)
@@ -90,6 +94,10 @@ class SphinxKeyRestore(
 
                 emit(KeyRestoreResponse.NotifyState.EncryptingJavaWebToken)
                 relayDataHandlerImpl.persistJavaWebTokenImpl(jwt, privateKey)
+
+                transportKey?.let { key ->
+                    relayDataHandlerImpl.persistRelayTransportKeyImpl(key, privateKey)
+                }
 
                 // Set keys that will be consumed when generateEncryptionKey is called
                 encryptionKeyHandler.setKeysToRestore(privateKey, publicKey)

@@ -25,7 +25,7 @@ abstract class NetworkRelayCall: NetworkCall() {
     /**
      * GET
      *
-     * @param [responseJsonClass] the class to serialize the response json into
+     * @param [responseJsonSerializer] the class to serialize the response json into
      * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
      * @param [additionalHeaders] any additional headers to add to the call
      * @param [relayData] if not `null`, will override the auto-fetching of persisted user data
@@ -42,9 +42,26 @@ abstract class NetworkRelayCall: NetworkCall() {
     ): Flow<LoadResponse<T, ResponseError>>
 
     /**
+     * GET
+     *
+     * @param [responseJsonSerializer] the class to serialize the response json into
+     * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
+     * @param [additionalHeaders] any additional headers to add to the call
+     * @param [relayUrl] unauthenticated relay URL
+     * */
+    abstract fun <
+            T: Any,
+            V: RelayResponse<T>
+            > relayUnauthenticatedGet(
+        responseJsonSerializer: KSerializer<V>,
+        relayEndpoint: String,
+        relayUrl: RelayUrl
+    ): Flow<LoadResponse<T, ResponseError>>
+
+    /**
      * PUT
      *
-     * @param [responseJsonClass] the class to serialize the response json into
+     * @param [responseJsonSerializer] the class to serialize the response json into
      * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
      * @param [requestBodyJsonClass] the class to serialize the request body to json
      * @param [requestBody] the request body to be converted to json
@@ -69,7 +86,7 @@ abstract class NetworkRelayCall: NetworkCall() {
     /**
      * POST
      *
-     * @param [responseJsonClass] the class to serialize the response json into
+     * @param [responseJsonSerializer] the class to serialize the response json into
      * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
      * @param [requestBodyJsonClass] the class to serialize the request body to json
      * @param [requestBody] the request body to be converted to json
@@ -90,7 +107,7 @@ abstract class NetworkRelayCall: NetworkCall() {
     /**
      * POST
      *
-     * @param [responseJsonClass] the class to serialize the response json into
+     * @param [responseJsonSerializer] the class to serialize the response json into
      * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
      * @param [requestBodyJsonClass] the class to serialize the request body to json
      * @param [requestBody] the request body to be converted to json
@@ -112,7 +129,7 @@ abstract class NetworkRelayCall: NetworkCall() {
     /**
      * DELETE
      *
-     * @param [responseJsonClass] the class to serialize the response json into
+     * @param [responseJsonSerializer] the class to serialize the response json into
      * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
      * @param [requestBodyJsonClass] OPTIONAL: the class to serialize the request body to json
      * @param [requestBody] OPTIONAL: the request body to be converted to json
@@ -134,7 +151,7 @@ abstract class NetworkRelayCall: NetworkCall() {
     /**
      * DELETE
      *
-     * @param [responseJsonClass] the class to serialize the response json into
+     * @param [responseJsonSerializer] the class to serialize the response json into
      * @param [relayEndpoint] the endpoint to append to the [RelayUrl], ex: /contacts
      * @param [mediaType] OPTIONAL: the media type for the request body
      * @param [additionalHeaders] any additional headers to add to the call

@@ -391,6 +391,32 @@ class NetworkRelayCallImpl(
 
     }
 
+    override fun <T: Any, V: RelayResponse<T>> relayUnauthenticatedGet(
+        responseJsonSerializer: KSerializer<V>,
+        relayEndpoint: String,
+        relayUrl: RelayUrl
+    ): Flow<LoadResponse<T, ResponseError>> = flow {
+
+        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
+
+            get(
+                relayUrl.value + relayEndpoint,
+                responseJsonSerializer,
+                null,
+                false
+            )
+        } catch (e: Exception) {
+            emit(handleException(LOG, GET, relayEndpoint, e))
+            null
+        }
+
+        responseFlow?.let {
+            emitAll(validateRelayResponse(it, GET, relayEndpoint))
+        }
+
+    }
+
+
     override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayPut(
         responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,

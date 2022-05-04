@@ -35,6 +35,16 @@ internal class MessageDboPresenterMapper(
                                     }
                             }
                         }
+                        decrypted.isPodcastClip -> {
+                            withContext(default) {
+                                decrypted.value.replaceFirst(PodcastClip.MESSAGE_PREFIX, "")
+                                    .toPodcastClipOrNull()
+                                    ?.let { podcastClip ->
+                                        message._podcastClip = podcastClip
+                                    }
+                            }
+                        }
+
                         decrypted.isGiphy -> {
                             withContext(default) {
                                 decrypted.value.replaceFirst(GiphyData.MESSAGE_PREFIX, "")

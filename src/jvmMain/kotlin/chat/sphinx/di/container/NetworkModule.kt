@@ -15,6 +15,7 @@ import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
+import chat.sphinx.concepts.network.query.transport_key.NetworkQueryTransportKey
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
@@ -33,6 +34,7 @@ import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
 import chat.sphinx.features.network.query.redeem_badge_token.NetworkQueryRedeemBadgeTokenImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
 import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
+import chat.sphinx.features.network.query.transport_key.NetworkQueryTransportKeyImpl
 import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeExternalImpl
 import chat.sphinx.features.network.query.version.NetworkQueryVersionImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
@@ -41,6 +43,7 @@ import chat.sphinx.features.socket_io.SocketIOManagerImpl
 import chat.sphinx.utils.createTorManager
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
 import chat.sphinx.wrapper.relay.AuthorizationToken
+import chat.sphinx.wrapper.relay.TransportToken
 import okhttp3.Cache
 import okio.FileSystem
 
@@ -82,6 +85,7 @@ class NetworkModule(
         NetworkClientImpl.RedactedLoggingHeaders(
             listOf(
                 AuthorizationToken.AUTHORIZATION_HEADER,
+                TransportToken.TRANSPORT_TOKEN_HEADER,
                 AuthenticationToken.HEADER_KEY
             )
         ),
@@ -141,4 +145,6 @@ class NetworkModule(
     val networkQuerySaveProfile: NetworkQuerySaveProfile = networkQuerySaveProfileImpl
     private val networkQueryRedeemBadgeTokenImpl = NetworkQueryRedeemBadgeTokenImpl(networkRelayCall)
     val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken = networkQueryRedeemBadgeTokenImpl
+    val networkQueryTransportKeyImpl = NetworkQueryTransportKeyImpl(networkRelayCall)
+    val networkQueryTransportKey: NetworkQueryTransportKey = networkQueryTransportKeyImpl
 }

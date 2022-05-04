@@ -3,6 +3,7 @@ package chat.sphinx.authentication
 import chat.sphinx.crypto.common.clazzes.Password
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.rsa.RsaPublicKey
 import kotlinx.coroutines.flow.Flow
 
 abstract class KeyRestore {
@@ -16,6 +17,7 @@ abstract class KeyRestore {
         publicKey: Password,
         userPin: CharArray,
         relayUrl: RelayUrl,
-        authorizationToken: AuthorizationToken
+        authorizationToken: AuthorizationToken,
+        transportKey: RsaPublicKey? = null
     ): Flow<KeyRestoreResponse>
 }
