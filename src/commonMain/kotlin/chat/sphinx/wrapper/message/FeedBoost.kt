@@ -1,5 +1,6 @@
 package chat.sphinx.wrapper.message
 
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.Sat
 import kotlinx.serialization.Serializable
@@ -16,7 +17,7 @@ inline fun String.toPodBoostOrNull(): FeedBoost? =
     }
 
 fun String.toPodBoost(): FeedBoost =
-    Json.decodeFromString<PodBoostMoshi>(this).let {
+    SphinxJson.decodeFromString<PodBoostMoshi>(this).let {
         FeedBoost(
             FeedId(it.feedID),
             FeedId(it.itemID),

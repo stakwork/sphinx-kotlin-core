@@ -79,6 +79,7 @@ import chat.sphinx.logger.d
 import chat.sphinx.logger.e
 import chat.sphinx.logger.w
 import chat.sphinx.response.*
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.contact.*
@@ -1753,7 +1754,7 @@ abstract class SphinxRepository(
 
                         val balanceDto: BalanceDto? = try {
                             withContext(default) {
-                                Json.decodeFromString(balanceJsonString)
+                                SphinxJson.decodeFromString(balanceJsonString)
                             }
                         } catch (e: Exception) {
                             null
@@ -4643,7 +4644,7 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            Json.decodeFromString<DeletePeopleProfileDto>(
+            SphinxJson.decodeFromString<DeletePeopleProfileDto>(
                 body
             ).let { deletePeopleProfileDto ->
                 networkQuerySaveProfile.deletePeopleProfile(
@@ -4671,7 +4672,7 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            Json.decodeFromString<PeopleProfileDto>(body)?.let { profile ->
+            SphinxJson.decodeFromString<PeopleProfileDto>(body)?.let { profile ->
                 networkQuerySaveProfile.savePeopleProfile(
                     profile
                 ).collect { saveProfileResponse ->
@@ -4700,7 +4701,7 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            Json.decodeFromString<RedeemBadgeTokenDto>(body)?.let { profile ->
+            SphinxJson.decodeFromString<RedeemBadgeTokenDto>(body)?.let { profile ->
                 networkQueryRedeemBadgeToken.redeemBadgeToken(
                     profile
                 ).collect { redeemBadgeTokenResponse ->

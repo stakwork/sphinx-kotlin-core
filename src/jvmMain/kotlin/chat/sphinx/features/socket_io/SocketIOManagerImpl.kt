@@ -18,6 +18,7 @@ import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.response.exception
 import chat.sphinx.response.message
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.TransportToken
@@ -442,7 +443,7 @@ class SocketIOManagerImpl(
                         }
                         else -> {
                             // Try to handle it as a message
-                            val messageDto: MessageDto = Json.decodeFromString(argsString)
+                            val messageDto: MessageDto = SphinxJson.decodeFromString(argsString)
 
                             LOG.w(TAG, "SocketIO EventMessage Type '$type' not handled")
 

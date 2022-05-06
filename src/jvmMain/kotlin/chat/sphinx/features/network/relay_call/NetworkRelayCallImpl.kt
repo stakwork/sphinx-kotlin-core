@@ -14,6 +14,7 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.response.message
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.TransportToken
@@ -30,6 +31,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.Serializer
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -299,7 +301,7 @@ class NetworkRelayCallImpl(
         )
 
         return withContext(default) {
-            Json { ignoreUnknownKeys = true }.decodeFromString(responseJsonSerializer, body.string())
+            SphinxJson.decodeFromString(responseJsonSerializer, body.string())
         } ?: throw IOException(
             """
                 Failed to convert Json to ${responseJsonSerializer.descriptor}
@@ -347,7 +349,7 @@ class NetworkRelayCallImpl(
         )
 
         return withContext(default) {
-            Json { ignoreUnknownKeys = true }.decodeFromString(
+            SphinxJson.decodeFromString(
                 ListSerializer(responseJsonSerializer),
                 body.string()
             )

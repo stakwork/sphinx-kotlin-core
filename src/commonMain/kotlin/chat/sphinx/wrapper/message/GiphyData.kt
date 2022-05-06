@@ -1,5 +1,6 @@
 package chat.sphinx.wrapper.message
 
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.message.media.MessageMedia
 import kotlinx.io.errors.EOFException
 import kotlinx.serialization.Serializable
@@ -18,7 +19,7 @@ inline fun String.toGiphyDataOrNull(): GiphyData? =
 @Suppress("NOTHING_TO_INLINE")
 @Throws(IllegalArgumentException::class)
 inline fun String.toGiphyData(): GiphyData =
-    Json.decodeFromString(this)
+    SphinxJson.decodeFromString(this)
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(AssertionError::class, EOFException::class)

@@ -9,6 +9,10 @@ import io.ktor.http.*
 import io.matthewnelson.build_config.BuildConfigVersionCode
 import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.serialization.StringFormat
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 fun checkFromIndexSize(fromIndex: Int, size: Int, length: Int): Int {
     return if (length or fromIndex or size >= 0 && size <= length - fromIndex) {
@@ -47,3 +51,7 @@ expect fun createTorManager(
 ): TorManager
 
 expect fun createPlatformSettings(): Settings
+
+val SphinxJson: Json = Json {
+    ignoreUnknownKeys = true
+}

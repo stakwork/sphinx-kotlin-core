@@ -5,6 +5,7 @@ import chat.sphinx.concepts.network.query.contact.model.PostContactDto
 import chat.sphinx.concepts.network.query.message.model.MessageDto
 import chat.sphinx.concepts.network.relay_call.RelayResponse
 import chat.sphinx.features.network.query.contact.model.ContactRelayResponse
+import chat.sphinx.utils.SphinxJson
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -17,7 +18,7 @@ fun<Result: Any, Input: Any, Output: RelayResponse<Result>> method(
         val str = Json.encodeToString(requestBodySerializer, requestBody)
     }
 
-    return Json.decodeFromString(responseJsonSerializer, "").response
+    return SphinxJson.decodeFromString(responseJsonSerializer, "").response
 }
 
 
