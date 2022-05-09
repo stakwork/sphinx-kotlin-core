@@ -12,8 +12,11 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 class NetworkQueryAuthorizeExternalImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -24,21 +27,21 @@ class NetworkQueryAuthorizeExternalImpl(
     }
 
     override fun verifyExternal(
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<VerifyExternalDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = VerifyExternalRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_VERIFY_EXTERNAL,
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )
 
     override fun signBase64(
         base64: String,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<SignBase64Dto, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = SignBase64RelayResponse.serializer(),

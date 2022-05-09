@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GetChannelsRelayResponse(
     override val success: Boolean,
-    override val response: ChannelsDto?,
-    override val error: String?
+    override val response: ChannelsDto? = null,
+    override val error: String? = null
 ): RelayResponse<ChannelsDto>()

@@ -16,7 +16,6 @@
 package chat.sphinx.crypto.common.clazzes
 
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
-import chat.sphinx.crypto.common.extensions.toCharArray
 import kotlin.jvm.JvmInline
 
 @Suppress("NOTHING_TO_INLINE")
@@ -25,10 +24,6 @@ inline fun UnencryptedByteArray.clear(char: Char = '0') {
     value.fill(char.code.toByte())
 }
 
-@Suppress("NOTHING_TO_INLINE")
-@OptIn(UnencryptedDataAccess::class)
-inline fun UnencryptedByteArray.toUnencryptedCharArray(): UnencryptedCharArray =
-    UnencryptedCharArray(value.toCharArray())
 
 @Suppress("NOTHING_TO_INLINE")
 @OptIn(UnencryptedDataAccess::class)

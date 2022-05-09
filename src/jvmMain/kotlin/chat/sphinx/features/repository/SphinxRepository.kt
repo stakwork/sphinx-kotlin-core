@@ -1,15 +1,21 @@
 package chat.sphinx.features.repository
 
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
-import chat.sphinx.concepts.coredb.*
+import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
 import chat.sphinx.concepts.meme_input_stream.MemeInputStreamHandler
 import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
+import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.chat.model.*
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
+import chat.sphinx.concepts.network.query.contact.model.GithubPATDto
 import chat.sphinx.concepts.network.query.contact.model.PostContactDto
 import chat.sphinx.concepts.network.query.contact.model.PutContactDto
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
@@ -21,6 +27,8 @@ import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
 import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.message.model.*
+import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
+import chat.sphinx.concepts.network.query.redeem_badge_token.model.RedeemBadgeTokenDto
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.save_profile.model.DeletePeopleProfileDto
 import chat.sphinx.concepts.network.query.save_profile.model.PeopleProfileDto
@@ -30,6 +38,7 @@ import chat.sphinx.concepts.network.query.subscription.model.PutSubscriptionDto
 import chat.sphinx.concepts.network.query.subscription.model.SubscriptionDto
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.notification.SphinxNotificationManager
+import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.concepts.repository.chat.ChatRepository
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
 import chat.sphinx.concepts.repository.contact.ContactRepository
@@ -49,6 +58,7 @@ import chat.sphinx.concepts.socket_io.SphinxSocketIOMessageListener
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
+import chat.sphinx.database.core.*
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.features.repository.mappers.chat.ChatDboPresenterMapper
 import chat.sphinx.features.repository.mappers.contact.ContactDboPresenterMapper
@@ -69,6 +79,7 @@ import chat.sphinx.logger.d
 import chat.sphinx.logger.e
 import chat.sphinx.logger.w
 import chat.sphinx.response.*
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.contact.*
@@ -86,17 +97,19 @@ import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import chat.sphinx.wrapper.rsa.RsaPrivateKey
 import chat.sphinx.wrapper.rsa.RsaPublicKey
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import com.soywiz.klock.DateTimeTz
+import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
 import io.ktor.http.parsing.*
-import io.ktor.util.*
+import io.matthewnelson.component.base64.encodeBase64
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -109,32 +122,32 @@ import okio.Path
 import okio.Source
 import okio.source
 import kotlin.math.absoluteValue
-import kotlin.text.toCharArray
-
 
 abstract class SphinxRepository(
     override val accountOwner: StateFlow<Contact?>,
     private val applicationScope: CoroutineScope,
     private val authenticationCoreManager: AuthenticationCoreManager,
     private val authenticationStorage: AuthenticationStorage,
+    private val relayDataHandler: RelayDataHandler,
     protected val coreDB: CoreDB,
     private val dispatchers: CoroutineDispatchers,
     private val mediaCacheHandler: MediaCacheHandler,
     private val memeInputStreamHandler: MemeInputStreamHandler,
     private val memeServerTokenHandler: MemeServerTokenHandler,
     private val networkQueryMemeServer: NetworkQueryMemeServer,
-    private val networkQueryChat: chat.sphinx.concepts.network.query.chat.NetworkQueryChat,
+    private val networkQueryChat: NetworkQueryChat,
     private val networkQueryContact: NetworkQueryContact,
     private val networkQueryLightning: NetworkQueryLightning,
     private val networkQueryMessage: NetworkQueryMessage,
     private val networkQueryInvite: NetworkQueryInvite,
     private val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal,
     private val networkQuerySaveProfile: NetworkQuerySaveProfile,
+    private val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken,
     private val networkQuerySubscription: NetworkQuerySubscription,
     private val networkQueryFeedSearch: NetworkQueryFeedSearch,
     private val rsa: RSA,
     private val socketIOManager: SocketIOManager,
-    private val sphinxNotificationManager: SphinxNotificationManager,
+    private val sphinxNotificationManager: SphinxNotificationManager?,
     protected val LOG: SphinxLogger,
 ) : ChatRepository,
     ContactRepository,
@@ -224,7 +237,7 @@ abstract class SphinxRepository(
                         else -> null
                     }
 
-                    val chatDto: chat.sphinx.concepts.network.query.chat.model.ChatDto? = when (msg) {
+                    val chatDto: ChatDto? = when (msg) {
                         is SphinxSocketIOMessage.Type.MessageType -> msg.dto.chat
                         is SphinxSocketIOMessage.Type.Group -> msg.dto.chat
                         else -> null
@@ -305,7 +318,13 @@ abstract class SphinxRepository(
         ChatDboPresenterMapper(dispatchers)
     }
 
-    override val getAllChats: Flow<List<Chat>> by lazy {
+    override suspend fun getAllChats(): List<Chat> = coreDB.getSphinxDatabaseQueries().chatGetAll()
+        .executeAsList()
+        .map {
+            chatDboPresenterMapper.mapFrom(it)
+        }
+
+    override val getAllChatsFlow: Flow<List<Chat>> by lazy {
         flow {
             emitAll(
                 coreDB.getSphinxDatabaseQueries().chatGetAll()
@@ -316,7 +335,7 @@ abstract class SphinxRepository(
         }
     }
 
-    override val getAllContactChats: Flow<List<Chat>> by lazy {
+    override val getAllContactChatsFlow: Flow<List<Chat>> by lazy {
         flow {
             emitAll(
                 coreDB.getSphinxDatabaseQueries().chatGetAllContact()
@@ -327,7 +346,7 @@ abstract class SphinxRepository(
         }
     }
 
-    override val getAllTribeChats: Flow<List<Chat>> by lazy {
+    override val getAllTribeChatsFlow: Flow<List<Chat>> by lazy {
         flow {
             emitAll(
                 coreDB.getSphinxDatabaseQueries().chatGetAllTribe()
@@ -345,7 +364,13 @@ abstract class SphinxRepository(
             .map { chatDboPresenterMapper.mapFrom(it) }
     }
 
-    override fun getChatById(chatId: ChatId): Flow<Chat?> = flow {
+    override suspend fun getChatById(chatId: ChatId): Chat? {
+        val chatDbo = coreDB.getSphinxDatabaseQueries().chatGetById(chatId)
+            .executeAsOneOrNull()
+        return chatDbo?.let { chatDboPresenterMapper.mapFrom(it) }
+    }
+
+    override fun getChatByIdFlow(chatId: ChatId): Flow<Chat?> = flow {
         emitAll(
             coreDB.getSphinxDatabaseQueries().chatGetById(chatId)
                 .asFlow()
@@ -365,7 +390,7 @@ abstract class SphinxRepository(
         )
     }
 
-    override fun getConversationByContactId(contactId: ContactId): Flow<Chat?> = flow {
+    override fun getConversationByContactIdFlow(contactId: ContactId): Flow<Chat?> = flow {
         var ownerId: ContactId? = accountOwner.value?.id
 
         if (ownerId == null) {
@@ -374,18 +399,21 @@ abstract class SphinxRepository(
                     if (it != null) {
                         ownerId = it.id
                         throw Exception()
-                    } else {
-                        emit(null)
                     }
                 }
-            } catch (e: Exception) {
-            }
+            } catch (e: Exception) {}
             delay(25L)
         }
 
         emitAll(
             coreDB.getSphinxDatabaseQueries()
-                .chatGetConversationForContact(listOf(ownerId!!, contactId))
+                .chatGetConversationForContact(
+                    if (ownerId != null) {
+                        listOf(ownerId!!, contactId)
+                    } else {
+                        listOf()
+                    }
+                )
                 .asFlow()
                 .mapToOneOrNull(io)
                 .map { it?.let { chatDboPresenterMapper.mapFrom(it) } }
@@ -404,14 +432,16 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {
-            }
+            } catch (e: Exception) {}
             delay(25L)
         }
 
         emitAll(
             coreDB.getSphinxDatabaseQueries()
-                .messageGetUnseenIncomingMessageCountByChatId(ownerId!!, chatId)
+                .messageGetUnseenIncomingMessageCountByChatId(
+                    ownerId ?: ContactId(-1),
+                    chatId
+                )
                 .asFlow()
                 .mapToOneOrNull(io)
                 .distinctUntilChanged()
@@ -430,8 +460,7 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {
-            }
+            } catch (e: Exception) {}
             delay(25L)
         }
 
@@ -439,7 +468,11 @@ abstract class SphinxRepository(
 
         emitAll(
             queries
-                .messageGetUnseenIncomingMessageCountByChatType(ownerId!!, blockedContactIds, ChatType.Conversation)
+                .messageGetUnseenIncomingMessageCountByChatType(
+                    ownerId ?: ContactId(-1),
+                    blockedContactIds,
+                    ChatType.Conversation
+                )
                 .asFlow()
                 .mapToOneOrNull(io)
                 .distinctUntilChanged()
@@ -457,14 +490,17 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {
-            }
+            } catch (e: Exception) {}
             delay(25L)
         }
 
         emitAll(
             coreDB.getSphinxDatabaseQueries()
-                .messageGetUnseenIncomingMessageCountByChatType(ownerId!!, listOf(), ChatType.Tribe)
+                .messageGetUnseenIncomingMessageCountByChatType(
+                    ownerId ?: ContactId(-1),
+                    listOf(),
+                    ChatType.Tribe
+                )
                 .asFlow()
                 .mapToOneOrNull(io)
                 .distinctUntilChanged()
@@ -485,7 +521,7 @@ abstract class SphinxRepository(
         )
     }
 
-    override val networkRefreshChats: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
+    override val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
         flow {
             networkQueryChat.getChats().collect { loadResponse ->
 
@@ -507,7 +543,7 @@ abstract class SphinxRepository(
     }
 
     private suspend fun processChatDtos(
-        chats: List<chat.sphinx.concepts.network.query.chat.model.ChatDto>,
+        chats: List<ChatDto>,
         contacts: Map<ContactId, ContactDto>? = null
     ): Response<Boolean, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
@@ -568,22 +604,32 @@ abstract class SphinxRepository(
 
     override fun updateChatMetaData(
         chatId: ChatId,
+        podcastId: FeedId?,
         metaData: ChatMetaData,
         shouldSync: Boolean
     ) {
-        if (chatId.value == ChatId.NULL_CHAT_ID.toLong()) {
-            return
-        }
-
         applicationScope.launch(io) {
             val queries = coreDB.getSphinxDatabaseQueries()
+
+            if (chatId.value == ChatId.NULL_CHAT_ID.toLong()) {
+                //Podcast with no chat. Updating current item id
+                podcastId?.let { nnPodcastId ->
+                    podcastLock.withLock {
+                        queries.feedUpdateCurrentItemId(
+                            metaData.itemId,
+                            nnPodcastId
+                        )
+                    }
+                }
+                return@launch
+            }
 
             chatLock.withLock {
                 queries.chatUpdateMetaData(metaData, chatId)
             }
 
             podcastLock.withLock {
-                queries.feedUpdateCurrentItemId(
+                queries.feedUpdateCurrentItemIdByChatId(
                     metaData.itemId,
                     chatId
                 )
@@ -593,11 +639,10 @@ abstract class SphinxRepository(
                 try {
                     networkQueryChat.updateChat(
                         chatId,
-                        chat.sphinx.concepts.network.query.chat.model.PutChatDto(meta = metaData.toJson())
+                        PutChatDto(meta = metaData.toJson())
                     ).collect {}
                 } catch (e: AssertionError) {
                 }
-                // TODO: Network call to update Relay
             }
         }
     }
@@ -627,12 +672,12 @@ abstract class SphinxRepository(
                 queries.chatUpdateMetaData(metaData, chatId)
             }
 
-            val destinationsArray: MutableList<chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDestinationDto> =
+            val destinationsArray: MutableList<PostStreamSatsDestinationDto> =
                 ArrayList(destinations.size)
 
             for (destination in destinations) {
                 destinationsArray.add(
-                    chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDestinationDto(
+                    PostStreamSatsDestinationDto(
                         destination.address.value,
                         destination.type.value,
                         destination.split.value,
@@ -643,7 +688,7 @@ abstract class SphinxRepository(
             val streamSatsText =
                 StreamSatsText(podcastId, episodeId, metaData.timeSeconds.toLong(), metaData.speed, clipMessageUUID?.value)
 
-            val postStreamSatsDto = chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDto(
+            val postStreamSatsDto = PostStreamSatsDto(
                 metaData.satsPerMinute.value,
                 chatId.value,
                 streamSatsText.toJson(),
@@ -837,7 +882,7 @@ abstract class SphinxRepository(
     }
 
     private val inviteLock = Mutex()
-    override val networkRefreshLatestContacts: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
+    override val networkRefreshLatestContacts: Flow<LoadResponse<RestoreProgress, ResponseError>> by lazy {
         flow {
 
             val lastSeenContactsDate: String? = authenticationStorage.getString(
@@ -849,6 +894,13 @@ abstract class SphinxRepository(
                 ?: DATE_NIXON_SHOCK.toDateTime()
 
             val now: String = DateTime.nowUTC()
+            val restoring = lastSeenContactsDate == null
+
+            emit(
+                Response.Success(
+                    RestoreProgress(restoring, 2)
+                )
+            )
 
             networkQueryContact.getLatestContacts(
                 lastSeenContactsDateResolved
@@ -901,9 +953,12 @@ abstract class SphinxRepository(
                                 )
 
                                 inviteLock.withLock {
-                                    queries.transaction {
-                                        for (dto in loadResponse.value.invites) {
-                                            upsertInvite(dto, queries)
+                                    contactLock.withLock {
+                                        queries.transaction {
+                                            for (dto in loadResponse.value.invites) {
+                                                updatedContactIds.add(ContactId(dto.contact_id))
+                                                upsertInvite(dto, queries)
+                                            }
                                         }
                                     }
                                 }
@@ -921,7 +976,10 @@ abstract class SphinxRepository(
                             error?.let {
                                 throw it
                             } ?: run {
-                                if (loadResponse.value.contacts.size > 0 || loadResponse.value.chats.size > 0) {
+                                if (
+                                    loadResponse.value.contacts.size > 1 ||
+                                    loadResponse.value.chats.isNotEmpty()
+                                ) {
                                     authenticationStorage.putString(
                                         REPOSITORY_LAST_SEEN_CONTACTS_DATE,
                                         now
@@ -929,7 +987,15 @@ abstract class SphinxRepository(
                                 }
                             }
 
-                            emit(processChatsResponse)
+                            emit(
+                                if (processChatsResponse is Response.Success) {
+                                    Response.Success(
+                                        RestoreProgress(restoring, 4)
+                                    )
+                                } else {
+                                    Response.Error(ResponseError("Failed to refresh contacts and chats"))
+                                }
+                            )
 
                         } catch (e: ParseException) {
                             val msg =
@@ -1209,6 +1275,27 @@ abstract class SphinxRepository(
         return response ?: Response.Error(ResponseError("Failed to update contact"))
     }
 
+    override suspend fun forceKeyExchange(
+        contactId: ContactId,
+    ) {
+        applicationScope.launch(mainImmediate) {
+            try {
+                networkQueryContact.exchangeKeys(
+                    contactId,
+                ).collect { loadResponse ->
+                    Exhaustive@
+                    when (loadResponse) {
+                        is LoadResponse.Loading -> { }
+                        is Response.Error -> { }
+                        is Response.Success -> { }
+                    }
+                }
+            } catch (e: Exception) {
+                LOG.e(TAG, "Failed to update contact", e)
+            }
+        }
+    }
+
     override suspend fun updateOwnerDeviceId(deviceId: DeviceId): Response<Any, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
         var response: Response<Any, ResponseError> = Response.Success(Any())
@@ -1445,12 +1532,61 @@ abstract class SphinxRepository(
         return response
     }
 
+    override suspend fun setGithubPat(
+        pat: String
+    ): Response<Boolean, ResponseError> {
+
+        var response: Response<Boolean, ResponseError> = Response.Error(
+            ResponseError("generate Github PAT failed to execute")
+        )
+
+        relayDataHandler.retrieveRelayTransportKey()?.let { key ->
+
+            applicationScope.launch(mainImmediate) {
+
+                val encryptionResponse = rsa.encrypt(
+                    key,
+                    UnencryptedString(pat),
+                    formatOutput = false,
+                    dispatcher = default,
+                )
+
+                Exhaustive@
+                when (encryptionResponse) {
+                    is Response.Error -> {}
+
+                    is Response.Success -> {
+                        networkQueryContact.generateGithubPAT(
+                            GithubPATDto(
+                                encryptionResponse.value.value
+                            )
+                        ).collect { loadResponse ->
+                            Exhaustive@
+                            when (loadResponse) {
+                                is LoadResponse.Loading -> {}
+
+                                is Response.Error -> {
+                                    response = loadResponse
+                                }
+                                is Response.Success -> {
+                                    response = Response.Success(true)
+                                }
+                            }
+                        }
+                    }
+                }
+            }.join()
+        }
+
+        return response
+    }
+
     override suspend fun updateChatProfileInfo(
         chatId: ChatId,
         alias: ChatAlias?,
         profilePic: PublicAttachmentInfo?
-    ): Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> {
-        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> = Response.Error(
+    ): Response<ChatDto, ResponseError> {
+        var response: Response<ChatDto, ResponseError> = Response.Error(
             ResponseError("updateChatProfileInfo failed to execute")
         )
 
@@ -1475,8 +1611,8 @@ abstract class SphinxRepository(
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
-    ): Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> {
-        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> = Response.Error(
+    ): Response<ChatDto, ResponseError> {
+        var response: Response<ChatDto, ResponseError> = Response.Error(
             ResponseError("updateChatProfilePic failed to execute")
         )
         val memeServerHost = MediaHost.DEFAULT
@@ -1507,7 +1643,7 @@ abstract class SphinxRepository(
 
                         networkQueryChat.updateChat(
                             chatId,
-                            chat.sphinx.concepts.network.query.chat.model.PutChatDto(
+                            PutChatDto(
                                 my_photo_url = newUrl.value,
                             )
                         ).collect { loadResponse ->
@@ -1554,15 +1690,15 @@ abstract class SphinxRepository(
     private suspend fun updateChatProfileAlias(
         chatId: ChatId,
         alias: ChatAlias?
-    ): Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> {
-        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError> = Response.Error(
+    ): Response<ChatDto, ResponseError> {
+        var response: Response<ChatDto, ResponseError> = Response.Error(
             ResponseError("updateChatProfilePic failed to execute")
         )
 
         applicationScope.launch(mainImmediate) {
             networkQueryChat.updateChat(
                 chatId,
-                chat.sphinx.concepts.network.query.chat.model.PutChatDto(
+                PutChatDto(
                     my_alias = alias?.value
                 )
             ).collect { loadResponse ->
@@ -1608,7 +1744,7 @@ abstract class SphinxRepository(
     private val balanceLock = Mutex()
 
     @Suppress("BlockingMethodInNonBlockingContext")
-    override suspend fun getAccountBalance(): StateFlow<NodeBalance?> {
+    override suspend fun getAccountBalanceStateFlow(): StateFlow<NodeBalance?> {
         balanceLock.withLock {
 
             if (accountBalanceStateFlow.value == null) {
@@ -1618,7 +1754,7 @@ abstract class SphinxRepository(
 
                         val balanceDto: BalanceDto? = try {
                             withContext(default) {
-                                Json.decodeFromString(balanceJsonString)
+                                SphinxJson.decodeFromString(balanceJsonString)
                             }
                         } catch (e: Exception) {
                             null
@@ -1672,10 +1808,10 @@ abstract class SphinxRepository(
                                 Response.Error(
                                     ResponseError(
                                         """
-                                                    Network Fetching of balance was successful, but
-                                                    conversion to a string for persisting failed.
-                                                    ${loadResponse.value}
-                                                """.trimIndent(),
+                                        Network Fetching of balance was successful, but
+                                        conversion to a string for persisting failed.
+                                        ${loadResponse.value}
+                                    """.trimIndent(),
                                         e
                                     )
                                 )
@@ -1689,7 +1825,7 @@ abstract class SphinxRepository(
     }
 
     override suspend fun getAccountBalanceAll(
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<NodeBalanceAll, ResponseError>> = flow {
 
         networkQueryLightning.getBalanceAll(
@@ -2101,12 +2237,11 @@ abstract class SphinxRepository(
 
     private val provisionalMessageLock = Mutex()
 
-    @OptIn(InternalAPI::class)
     private fun messageText(sendMessage: SendMessage): String? {
         try {
             if (sendMessage.giphyData != null) {
                 return sendMessage.giphyData?.let {
-                    "${GiphyData.MESSAGE_PREFIX}${it.toJson().encodeBase64()}"
+                    "${GiphyData.MESSAGE_PREFIX}${it.toJson().toByteArray().encodeBase64()}"
                 }
             }
         } catch (e: Exception) {
@@ -2137,7 +2272,7 @@ abstract class SphinxRepository(
 
             // TODO: Update SendMessage to accept a Chat && Contact instead of just IDs
             val chat: Chat? = sendMessage.chatId?.let {
-                getChatById(it).firstOrNull()
+                getChatByIdFlow(it).firstOrNull()
             }
 
             val contact: Contact? = sendMessage.contactId?.let {
@@ -2682,7 +2817,7 @@ abstract class SphinxRepository(
 
                 messageBuilder.setContactId(supportContact.id)
 
-                getConversationByContactId(supportContact.id).firstOrNull()?.let { supportContactChat ->
+                getConversationByContactIdFlow(supportContact.id).firstOrNull()?.let { supportContactChat ->
                     messageBuilder.setChatId(supportContactChat.id)
                 }
 
@@ -3335,9 +3470,9 @@ abstract class SphinxRepository(
 
     override fun joinTribe(
         tribeDto: TribeDto
-    ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>> = flow {
+    ): Flow<LoadResponse<ChatDto, ResponseError>> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
-        var response: Response<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>? = null
+        var response: Response<ChatDto, ResponseError>? = null
         val memeServerHost = MediaHost.DEFAULT
 
         emit(LoadResponse.Loading)
@@ -3513,7 +3648,7 @@ abstract class SphinxRepository(
                     is Response.Error -> {
                     }
                     is Response.Success -> {
-                        
+
                         var cId: ChatId = chatId
 
                         response.value.id.toFeedId()?.let { feedId ->
@@ -4060,8 +4195,7 @@ abstract class SphinxRepository(
 
                             if (restoring && messagesTotal > 0) {
 
-                                val restoreProgress = getRestoreProgress(
-                                    newMessages,
+                                val restoreProgress = getMessagesRestoreProgress(
                                     messagesTotal,
                                     offset
                                 )
@@ -4210,8 +4344,7 @@ abstract class SphinxRepository(
         }
     }
 
-    private fun getRestoreProgress(
-        newMessages: List<MessageDto>,
+    private fun getMessagesRestoreProgress(
         newMessagesTotal: Int,
         offset: Int
     ): RestoreProgress {
@@ -4222,8 +4355,10 @@ abstract class SphinxRepository(
             newMessagesTotal / MESSAGE_PAGINATION_LIMIT
         }
 
+        val contactsRestoreProgressTotal = 4
+        val messagesRestoreProgressTotal = 96
         val currentPage: Int = offset / MESSAGE_PAGINATION_LIMIT
-        val progress: Int = currentPage * 100 / pages
+        val progress: Int = contactsRestoreProgressTotal + (currentPage * messagesRestoreProgressTotal / pages)
 
         return RestoreProgress(
             true,
@@ -4509,7 +4644,7 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            Json.decodeFromString<DeletePeopleProfileDto>(
+            SphinxJson.decodeFromString<DeletePeopleProfileDto>(
                 body
             ).let { deletePeopleProfileDto ->
                 networkQuerySaveProfile.deletePeopleProfile(
@@ -4537,7 +4672,7 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            Json.decodeFromString<PeopleProfileDto>(body)?.let { profile ->
+            SphinxJson.decodeFromString<PeopleProfileDto>(body)?.let { profile ->
                 networkQuerySaveProfile.savePeopleProfile(
                     profile
                 ).collect { saveProfileResponse ->
@@ -4559,6 +4694,36 @@ abstract class SphinxRepository(
 
         return response ?: Response.Error(ResponseError("Profile save failed"))
     }
+
+    override suspend fun redeemBadgeToken(
+        body: String
+    ): Response<Boolean, ResponseError> {
+        var response: Response<Boolean, ResponseError>? = null
+
+        applicationScope.launch(mainImmediate) {
+            SphinxJson.decodeFromString<RedeemBadgeTokenDto>(body)?.let { profile ->
+                networkQueryRedeemBadgeToken.redeemBadgeToken(
+                    profile
+                ).collect { redeemBadgeTokenResponse ->
+                    when (redeemBadgeTokenResponse) {
+                        is LoadResponse.Loading -> {
+                        }
+
+                        is Response.Error -> {
+                            response = redeemBadgeTokenResponse
+                        }
+
+                        is Response.Success -> {
+                            response = Response.Success(true)
+                        }
+                    }
+                }
+            }
+        }.join()
+
+        return response ?: Response.Error(ResponseError("Redeem Badge Token failed"))
+    }
+
 
 
     override suspend fun exitAndDeleteTribe(chat: Chat): Response<Boolean, ResponseError> {
@@ -5221,7 +5386,7 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             downloadLock.withLock {
-                sphinxNotificationManager.notify(
+                sphinxNotificationManager?.notify(
                     notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                     title = "Downloading Item",
                     message = "Downloading item for local playback",
@@ -5247,7 +5412,7 @@ abstract class SphinxRepository(
                             authenticationToken = null,
                             mediaKeyDecrypted = null,
                         )?.let { stream ->
-                            sphinxNotificationManager.notify(
+                            sphinxNotificationManager?.notify(
                                 notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                                 title = "Completing Download",
                                 message = "Finishing up download of file",
@@ -5265,7 +5430,7 @@ abstract class SphinxRepository(
                                 }
                             }
 
-                            sphinxNotificationManager.notify(
+                            sphinxNotificationManager?.notify(
                                 notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                                 title = "Download complete",
                                 message = "item can now be accessed offline",
@@ -5286,7 +5451,7 @@ abstract class SphinxRepository(
                     } else {
                         "Failed to initiate download because of missing media type information"
                     }
-                    sphinxNotificationManager.notify(
+                    sphinxNotificationManager?.notify(
                         notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
                         title = title,
                         message = message,
@@ -5381,4 +5546,32 @@ abstract class SphinxRepository(
 
         return response ?: Response.Error(ResponseError(("Failed to load payment templates")))
     }
+
+    override suspend fun getAllMessagesToShowByChatIdPaginated(chatId: ChatId): Flow<PagingData<Message>> {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        return Pager(
+            config = PagingConfig(
+                pageSize = 21,
+                enablePlaceholders = false,
+                maxSize = 1000
+            )
+        ) {
+            QueryPagingSource(
+                countQuery = queries.messageCountAllToShowByChatId(chatId),
+                transacter = queries,
+                dispatcher = io,
+//            queryProvider = queries::messageGetAllToShowByChatIdPaginated
+                queryProvider = { limit: Long, offset: Long ->
+                    queries.messageGetAllToShowByChatIdPaginated(chatId, limit, offset)
+                }
+            )
+        }.flow.map { pagingData: PagingData<MessageDbo> ->
+            pagingData.map { messageDbo: MessageDbo ->
+                messageDboPresenterMapper.mapFrom(messageDbo)
+            }
+        }
+        // TODO: Give it a scope it is cached in...
+    }
+
 }

@@ -1,6 +1,6 @@
 package chat.sphinx.features.repository.model.message
 
-import chat.sphinx.concepts.coredb.MessageDbo
+import chat.sphinx.database.core.MessageDbo
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.Seen

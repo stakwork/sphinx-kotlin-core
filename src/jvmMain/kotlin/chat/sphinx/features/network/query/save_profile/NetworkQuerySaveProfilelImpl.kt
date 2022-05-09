@@ -2,7 +2,7 @@ package chat.sphinx.features.network.query.save_profile
 
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.save_profile.model.DeletePeopleProfileDto
-import chat.sphinx.concepts.network.query.save_profile.model.GetPeopleProfileDto
+import chat.sphinx.concepts.network.query.save_profile.model.GetExternalRequestDto
 import chat.sphinx.concepts.network.query.save_profile.model.PeopleProfileDto
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.features.network.query.save_profile.model.SaveProfileResponse
@@ -10,6 +10,7 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
 class NetworkQuerySaveProfileImpl(
@@ -21,23 +22,23 @@ class NetworkQuerySaveProfileImpl(
         private const val ENDPOINT_PROFILE = "/profile"
     }
 
-    override fun getPeopleProfileByKey(
+    override fun getExternalRequestByKey(
         host: String,
         key: String
-    ): Flow<LoadResponse<GetPeopleProfileDto, ResponseError>> =
+    ): Flow<LoadResponse<GetExternalRequestDto, ResponseError>> =
         networkRelayCall.get(
             url = String.format(
                 ENDPOINT_SAVE_KEY,
                 host,
                 key
             ),
-            responseJsonSerializer = GetPeopleProfileDto.serializer(),
+            responseJsonSerializer = GetExternalRequestDto.serializer(),
         )
 
 
     override fun savePeopleProfile(
         profile: PeopleProfileDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.relayPost(
             relayEndpoint = ENDPOINT_PROFILE,
@@ -51,7 +52,7 @@ class NetworkQuerySaveProfileImpl(
 
     override fun deletePeopleProfile(
         deletePeopleProfileDto: DeletePeopleProfileDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.relayDelete(
             relayEndpoint = ENDPOINT_PROFILE,

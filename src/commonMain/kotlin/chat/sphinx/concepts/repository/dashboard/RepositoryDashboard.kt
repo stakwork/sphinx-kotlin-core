@@ -19,18 +19,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface RepositoryDashboard {
-    suspend fun getAccountBalance(): StateFlow<NodeBalance?>
+    suspend fun getAccountBalanceStateFlow(): StateFlow<NodeBalance?>
 
-    val getAllChats: Flow<List<Chat>>
-    val getAllContactChats: Flow<List<Chat>>
-    val getAllTribeChats: Flow<List<Chat>>
-    fun getConversationByContactId(contactId: ContactId): Flow<Chat?>
+    suspend fun getAllChats(): List<Chat>
+    val getAllChatsFlow: Flow<List<Chat>>
+    val getAllContactChatsFlow: Flow<List<Chat>>
+    val getAllTribeChatsFlow: Flow<List<Chat>>
+    fun getConversationByContactIdFlow(contactId: ContactId): Flow<Chat?>
 
     fun getUnseenMessagesByChatId(chatId: ChatId): Flow<Long?>
     fun getUnseenActiveConversationMessagesCount(): Flow<Long?>
     fun getUnseenTribeMessagesCount(): Flow<Long?>
 
-    val accountOwner: StateFlow<Contact?>
     val getAllNotBlockedContacts: Flow<List<Contact>>
     val getAllInvites: Flow<List<Invite>>
     fun getContactById(contactId: ContactId): Flow<Contact?>
@@ -59,9 +59,13 @@ interface RepositoryDashboard {
         body: String
     ): Response<Boolean, ResponseError>
 
+    suspend fun redeemBadgeToken(
+        body: String
+    ): Response<Boolean, ResponseError>
+
     val networkRefreshBalance: Flow<LoadResponse<Boolean, ResponseError>>
     val networkRefreshContacts: Flow<LoadResponse<Boolean, ResponseError>>
-    val networkRefreshLatestContacts: Flow<LoadResponse<Boolean, ResponseError>>
+    val networkRefreshLatestContacts: Flow<LoadResponse<RestoreProgress, ResponseError>>
     val networkRefreshMessages: Flow<LoadResponse<RestoreProgress, ResponseError>>
 
     suspend fun didCancelRestore()

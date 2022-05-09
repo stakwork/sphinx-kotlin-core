@@ -9,11 +9,13 @@ import chat.sphinx.crypto.common.clazzes.UnencryptedByteArray
 import chat.sphinx.crypto.common.clazzes.UnencryptedString
 import chat.sphinx.crypto.common.extensions.isValidUTF8
 import chat.sphinx.crypto.common.extensions.toCharArray
-import chat.sphinx.platform.rsajava.RSA_PEM
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.rsa.*
-import io.ktor.util.*
+import com.github.xiangyuecn.rsajava.RSA_PEM
+import io.matthewnelson.component.base64.decodeBase64ToArray
+import io.matthewnelson.component.base64.encodeBase64
+import io.matthewnelson.component.base64.encodeBase64ToByteArray
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
@@ -25,14 +27,32 @@ import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import javax.crypto.Cipher
 
-@Suppress("SpellCheckingInspection")
-actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
 
-    @OptIn(InternalAPI::class)
-    actual override suspend fun generateKeyPair(
+@Suppress("NOTHING_TO_INLINE")
+inline fun RSA_PEM.clear(byte: Byte = '0'.code.toByte()) {
+    Key_Modulus?.fill(byte)
+    Key_Exponent?.fill(byte)
+    Key_D?.fill(byte)
+    Val_P?.fill(byte)
+    Val_Q?.fill(byte)
+    Val_DP?.fill(byte)
+    Val_DQ?.fill(byte)
+    Val_InverseQ?.fill(byte)
+}
+
+inline val RSA_PEM.blockSize: Int
+    get() = Key_Modulus?.size ?: 0
+
+inline val RSA_PEM.maxBytes: Int
+    get() = blockSize - 11
+
+@Suppress("SpellCheckingInspection")
+open class RSAImpl(val algorithm: RSAAlgorithm): RSA() {
+
+    override suspend fun generateKeyPair(
         keySize: KeySize,
         dispatcher: CoroutineDispatcher?,
-        pkcsType: PKCSType
+        pkcsType: PKCSType,
     ): Response<RSAKeyPair, ResponseError> {
         try {
             val generator: KeyPairGenerator = KeyPairGenerator.getInstance(RSAAlgorithm.ALGORITHM_RSA)
@@ -47,8 +67,8 @@ actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
             if (pkcsType is PKCSType.PKCS8) {
                 return Response.Success(
                     RSAKeyPair(
-                        RsaPrivateKey(keys.private.encoded.encodeBase64().toCharArray()),
-                        RsaPublicKey(keys.public.encoded.encodeBase64().toCharArray())
+                        RsaPrivateKey(keys.private.encoded.encodeBase64ToByteArray().toCharArray()),
+                        RsaPublicKey(keys.public.encoded.encodeBase64ToByteArray().toCharArray())
                     )
                 ).also {
                     keys.private.encoded?.fill('0'.code.toByte())
@@ -72,19 +92,18 @@ actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
         }
     }
 
-    @OptIn(InternalAPI::class)
-    actual override suspend fun decrypt(
+    override suspend fun decrypt(
         rsaPrivateKey: RsaPrivateKey,
         text: EncryptedString,
-        dispatcher: CoroutineDispatcher
-    ): Response<UnencryptedByteArray, ResponseError>  {
+        dispatcher: CoroutineDispatcher,
+    ): Response<UnencryptedByteArray, ResponseError> {
         if (text.value.isEmpty()) {
             return Response.Error(
                 ResponseError("EncryptedString was empty")
             )
         }
 
-        val dataBytes: ByteArray = text.value.decodeBase64Bytes()
+        val dataBytes: ByteArray = text.value.decodeBase64ToArray()
             ?: return Response.Error(
                 ResponseError("EncryptedString was not base64 encoded")
             )
@@ -181,12 +200,12 @@ actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
         }
     }
 
-    @OptIn(InternalAPI::class, UnencryptedDataAccess::class)
-    actual override suspend fun encrypt(
+    @OptIn(UnencryptedDataAccess::class)
+    override suspend fun encrypt(
         rsaPublicKey: RsaPublicKey,
         text: UnencryptedString,
         formatOutput: Boolean,
-        dispatcher:CoroutineDispatcher
+        dispatcher: CoroutineDispatcher
     ): Response<EncryptedString, ResponseError> {
         if (text.value.isEmpty()) {
             return Response.Error(
@@ -259,7 +278,7 @@ actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
         }
     }
 
-    actual override suspend fun sign(
+    override suspend fun sign(
         rsaPrivateKey: RsaPrivateKey,
         text: String,
         algorithm: SignatureAlgorithm,
@@ -297,7 +316,7 @@ actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
         }
     }
 
-    actual override suspend fun verifySignature(
+    override suspend fun verifySignature(
         rsaPublicKey: RsaPublicKey,
         signedString: RsaSignedString,
         algorithm: SignatureAlgorithm,
@@ -335,5 +354,4 @@ actual open class RSAImpl(val algorithm: RSAAlgorithm) : RSA() {
             Response.Error(ResponseError("Signature Verification failed", e))
         }
     }
-
 }

@@ -2,13 +2,20 @@
 
 Kotlin Multiplatform library for all the core sphinx features.
 
-## TODO
+## Getting Started
 
-Most of the core logic is in commonMain and we are using a few multiplatform dependency that allow us to get core functionality (serialization, db, models and the likes) across multiple platforms. We still don't have multiplatformx
+The following need to be installed to easily get started with compose-mpp:
 
-- [Replace use of okhttp with a multiplatform dependency](https://github.com/stakwork/sphinx-kotlin-core/issues/1)
-- [Replace the RSAImpl with a multiplatform dependency](https://github.com/stakwork/sphinx-kotlin-core/issues/2)
-- [Make Implmementation classes internal](https://github.com/stakwork/sphinx-kotlin-core/issues/3)
+- JDK 11 or later (**preferrable to have JDK 15**, any higher version might give you issues with gradle).
+- IntelliJ IDEA Community Edition or Ultimate Edition 2020.3 or later (other editors could be used, but we assume you are using IntelliJ IDEA in this tutorial)
+- Compose Multiplaform Preview Plugin (to preview UI changes without needing to app execute)
 
+## PENDING Multiplatform Support
 
-The repo still has a dependency on OkHTTP which isn't yet a multiplatform libray.
+- Network Client (currently using okhttp, could replace it with ktor)
+- Socket IO (could be replaced with a multiplatform alternative)
+- Encrypted AppSettings
+- Dependency Injection
+- Cryptography 
+    - RSA lib: currently using com.github.xiangyuecn.rsajava
+    - Bouncy Castle

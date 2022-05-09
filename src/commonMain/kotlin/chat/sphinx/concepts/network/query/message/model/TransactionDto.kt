@@ -12,16 +12,16 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TransactionDto(
     val id: Long,
-    val chat_id: Long?,
+    val chat_id: Long? = null,
     val type: Int,
     val sender: Long,
-    val sender_alias: String?,
-    val receiver: Long?,
+    val sender_alias: String? = null,
+    val receiver: Long? = null,
     val amount: Long,
-    val payment_hash: String?,
-    val payment_request: String?,
+    val payment_hash: String? = null,
+    val payment_request: String? = null,
     val date: String,
-    val reply_uuid: String?,
+    val reply_uuid: String? = null,
 ) {
 
     fun isIncomingWithSender(ownerId: ContactId): Boolean {

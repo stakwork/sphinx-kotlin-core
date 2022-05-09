@@ -7,15 +7,17 @@ import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.network.relay_call.RelayResponse
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.relay.retrieveRelayUrlAndAuthorizationToken
+import chat.sphinx.concepts.relay.retrieveRelayUrlAndToken
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.e
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.response.message
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -29,6 +31,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.Serializer
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -41,7 +44,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 @Suppress("NOTHING_TO_INLINE")
 private inline fun NetworkRelayCallImpl.mapRelayHeaders(
-    relayData: Pair<AuthorizationToken, RelayUrl>,
+    relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>,
     additionalHeaders: Map<String, String>?
 ): Map<String, String> {
     val map: MutableMap<String, String> = mutableMapOf(
@@ -68,11 +71,14 @@ private inline fun NetworkRelayCallImpl.handleException(
 }
 
 @Throws(Exception::class)
-private suspend inline fun RelayDataHandler.retrieveRelayData(): Pair<AuthorizationToken, RelayUrl> {
-    val response = retrieveRelayUrlAndAuthorizationToken()
+private suspend inline fun RelayDataHandler.retrieveRelayData(): Triple<
+        AuthorizationToken,
+        TransportToken?,
+        RelayUrl
+        > {
 
     Exhaustive@
-    when(response) {
+    when(val response = retrieveRelayUrlAndToken()) {
         is Response.Error -> {
             throw Exception(response.message)
         }
@@ -108,7 +114,6 @@ class NetworkRelayCallImpl(
     NetworkClientClearedListener,
     CoroutineDispatchers by dispatchers
 {
-
     companion object {
         const val TAG = "NetworkRelayCallImpl"
 
@@ -140,7 +145,7 @@ class NetworkRelayCallImpl(
             emit(handleException(LOG, GET, url, e))
         }
     }
-    
+
     override fun <T: Any> getList(
         url: String,
         responseJsonSerializer: KSerializer<T>,
@@ -256,7 +261,7 @@ class NetworkRelayCallImpl(
         networkClient.addListener(this)
     }
 
-    @Throws(NullPointerException::class, IOException::class)
+    @Throws(NullPointerException::class, java.io.IOException::class)
     override suspend fun <T: Any> call(
         responseJsonSerializer: KSerializer<T>,
         request: Request,
@@ -285,7 +290,7 @@ class NetworkRelayCallImpl(
 
         if (!networkResponse.isSuccessful) {
             networkResponse.body?.close()
-            throw IOException(networkResponse.toString())
+            throw java.io.IOException(networkResponse.toString())
         }
 
         val body = networkResponse.body ?: throw NullPointerException(
@@ -296,7 +301,7 @@ class NetworkRelayCallImpl(
         )
 
         return withContext(default) {
-            Json.decodeFromString(responseJsonSerializer, body.string())
+            SphinxJson.decodeFromString(responseJsonSerializer, body.string())
         } ?: throw IOException(
             """
                 Failed to convert Json to ${responseJsonSerializer.descriptor}
@@ -305,7 +310,7 @@ class NetworkRelayCallImpl(
         )
     }
 
-    @Throws(NullPointerException::class, IOException::class)
+    @Throws(NullPointerException::class, java.io.IOException::class)
     override suspend fun <T: Any> callList(
         responseJsonSerializer: KSerializer<T>,
         request: Request,
@@ -333,7 +338,7 @@ class NetworkRelayCallImpl(
 
         if (!networkResponse.isSuccessful) {
             networkResponse.body?.close()
-            throw IOException(networkResponse.toString())
+            throw java.io.IOException(networkResponse.toString())
         }
 
         val body = networkResponse.body ?: throw NullPointerException(
@@ -344,7 +349,7 @@ class NetworkRelayCallImpl(
         )
 
         return withContext(default) {
-            Json.decodeFromString(
+            SphinxJson.decodeFromString(
                 ListSerializer(responseJsonSerializer),
                 body.string()
             )
@@ -363,16 +368,16 @@ class NetworkRelayCallImpl(
         responseJsonSerializer: KSerializer<V>,
         relayEndpoint: String,
         additionalHeaders: Map<String, String>?,
-        relayData: Pair<AuthorizationToken, RelayUrl>?,
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?,
         useExtendedNetworkCallClient: Boolean,
     ): Flow<LoadResponse<T, ResponseError>> = flow {
 
         val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
-            val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
+            val nnRelayData: Triple<AuthorizationToken, TransportToken?, RelayUrl> = relayData
                 ?: relayDataHandler.retrieveRelayData()
 
             get(
-                nnRelayData.second.value + relayEndpoint,
+                nnRelayData.third.value + relayEndpoint,
                 responseJsonSerializer,
                 mapRelayHeaders(nnRelayData, additionalHeaders),
                 useExtendedNetworkCallClient
@@ -388,21 +393,47 @@ class NetworkRelayCallImpl(
 
     }
 
+    override fun <T: Any, V: RelayResponse<T>> relayUnauthenticatedGet(
+        responseJsonSerializer: KSerializer<V>,
+        relayEndpoint: String,
+        relayUrl: RelayUrl
+    ): Flow<LoadResponse<T, ResponseError>> = flow {
+
+        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
+
+            get(
+                relayUrl.value + relayEndpoint,
+                responseJsonSerializer,
+                null,
+                false
+            )
+        } catch (e: Exception) {
+            emit(handleException(LOG, GET, relayEndpoint, e))
+            null
+        }
+
+        responseFlow?.let {
+            emitAll(validateRelayResponse(it, GET, relayEndpoint))
+        }
+
+    }
+
+
     override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayPut(
         responseJsonSerializer: KSerializer<Output>,
         relayEndpoint: String,
         requestBodyPair: Pair<Input, KSerializer<Input>>?,
         mediaType: String?,
         additionalHeaders: Map<String, String>?,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
         val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
-            val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
+            val nnRelayData: Triple<AuthorizationToken, TransportToken?, RelayUrl> = relayData
                 ?: relayDataHandler.retrieveRelayData()
 
             put(
-                nnRelayData.second.value + relayEndpoint,
+                nnRelayData.third.value + relayEndpoint,
                 responseJsonSerializer,
                 requestBodyPair,
                 mediaType,
@@ -452,15 +483,15 @@ class NetworkRelayCallImpl(
         requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String?,
         additionalHeaders: Map<String, String>?,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
         val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
-            val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
+            val nnRelayData: Triple<AuthorizationToken, TransportToken?, RelayUrl> = relayData
                 ?: relayDataHandler.retrieveRelayData()
 
             post(
-                nnRelayData.second.value + relayEndpoint,
+                nnRelayData.third.value + relayEndpoint,
                 responseJsonSerializer,
                 requestBodyPair,
                 mediaType,
@@ -483,15 +514,15 @@ class NetworkRelayCallImpl(
         requestBodyPair: Pair<Input, KSerializer<Input>>?,
         mediaType: String?,
         additionalHeaders: Map<String, String>?,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
         val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
-            val nnRelayData: Pair<AuthorizationToken, RelayUrl> = relayData
+            val nnRelayData: Triple<AuthorizationToken, TransportToken?, RelayUrl> = relayData
                 ?: relayDataHandler.retrieveRelayData()
 
             delete(
-                nnRelayData.second.value + relayEndpoint,
+                nnRelayData.third.value + relayEndpoint,
                 responseJsonSerializer,
                 requestBodyPair,
                 mediaType,
@@ -508,13 +539,13 @@ class NetworkRelayCallImpl(
 
     }
 
-    @OptIn(InternalCoroutinesApi::class)
     @Throws(NullPointerException::class, AssertionError::class)
     private fun <T: Any, V: RelayResponse<T>> validateRelayResponse(
         flow: Flow<LoadResponse<V, ResponseError>>,
         callMethod: String,
         endpoint: String,
     ): Flow<LoadResponse<T, ResponseError>> = flow {
+
         flow.collect { loadResponse ->
             when(loadResponse) {
                 is LoadResponse.Loading -> {
@@ -524,6 +555,7 @@ class NetworkRelayCallImpl(
                     emit(loadResponse)
                 }
                 is Response.Success -> {
+
                     if (loadResponse.value.success) {
 
                         loadResponse.value.response?.let { nnResponse ->
@@ -533,25 +565,31 @@ class NetworkRelayCallImpl(
                         } ?: let {
 
                             val msg = """
-                                        RelayResponse.success: true
-                                        RelayResponse.response: >>> null <<<
-                                        RelayResponse.error: ${loadResponse.value.error}
-                                    """.trimIndent()
+                                RelayResponse.success: true
+                                RelayResponse.response: >>> null <<<
+                                RelayResponse.error: ${loadResponse.value.error}
+                            """.trimIndent()
 
                             emit(handleException(LOG, callMethod, endpoint, NullPointerException(msg)))
 
                         }
+
                     } else {
+
                         val msg = """
-                                    RelayResponse.success: false
-                                    RelayResponse.error: ${loadResponse.value.error}
-                                """.trimIndent()
+                            RelayResponse.success: false
+                            RelayResponse.error: ${loadResponse.value.error}
+                        """.trimIndent()
 
                         emit(handleException(LOG, callMethod, endpoint, Exception(msg)))
+
                     }
                 }
+
             }
+
         }
+
     }
 
 }

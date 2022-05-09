@@ -1,5 +1,6 @@
 package chat.sphinx.test.network.query
 
+import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
@@ -13,6 +14,8 @@ import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.crypto.common.clazzes.Password
+import chat.sphinx.features.crypto_rsa.RSAAlgorithm
+import chat.sphinx.features.crypto_rsa.RSAImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
 import chat.sphinx.features.network.query.chat.NetworkQueryChatImpl
 import chat.sphinx.features.network.query.contact.NetworkQueryContactImpl
@@ -35,6 +38,7 @@ import chat.sphinx.utils.platform.getFileSystem
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import io.ktor.util.*
+import io.matthewnelson.component.base64.decodeBase64ToArray
 import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.coroutines.test.runBlockingTest
 import okhttp3.Cache
@@ -96,7 +100,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
                         return
                     }
 
-                    decodedSplit.elementAt(1).decodeBase64Bytes().let { toDecrypt ->
+                    decodedSplit.elementAt(1).decodeBase64ToArray().let { toDecrypt ->
                         val decryptedSplit = AES256JNCryptor()
                             .decryptData(toDecrypt, password)
                             .toString(charset("UTF-8"))
@@ -162,7 +166,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
      * */
     open val useLoggingInterceptors: Boolean = false
 
-    val testDirectory = FileSystem.SYSTEM_TEMPORARY_DIRECTORY
+    val testDirectory = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.resolve("test")
 
     open val okHttpCache: Cache by lazy {
         Cache(testDirectory.resolve("okhttp_test_cache").toFile(), 2000000L /*2MB*/)
@@ -180,6 +184,10 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
         )
     }
 
+    private val testRSA: RSA by lazy {
+        RSAImpl(RSAAlgorithm.RSA)
+    }
+
     protected open val relayDataHandler: RelayDataHandler by lazy {
         RelayDataHandlerImpl(
             testStorage,
@@ -187,6 +195,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
             dispatchers,
             testHandler,
             testTorManager,
+            testRSA
         )
     }
 
@@ -237,7 +246,7 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
 
     @BeforeTest
     fun setupNetworkQueryTestHelper() = testDispatcher.runBlockingTest {
-        FakeFileSystem().createDirectory(testDirectory)
+        FakeFileSystem().createDirectories(testDirectory)
         getCredentials()?.let { creds ->
             // Set our raw private/public keys in the test handler so when we login
             // for the first time the generated keys will be these

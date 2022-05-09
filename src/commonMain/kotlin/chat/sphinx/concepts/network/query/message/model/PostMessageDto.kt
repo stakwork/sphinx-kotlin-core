@@ -4,16 +4,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PostMessageDto(
-    val chat_id: Long?,
-    val contact_id: Long?,
+    val chat_id: Long? = null,
+    val contact_id: Long? = null,
     val amount: Long,
-    val reply_uuid: String?,
-    val text: String?,
-    val remote_text_map: Map<String, String>?,
-    val media_key_map: Map<String, String>?,
-    val media_type: String?,
-    val muid: String?,
-    val price: Long?,
+    val reply_uuid: String? = null,
+    val text: String? = null,
+    val remote_text_map: Map<String, String>? = null,
+    val media_key_map: Map<String, String>? = null,
+    val media_type: String? = null,
+    val muid: String? = null,
+    val price: Long? = null,
     val boost: Boolean = false,
 ) {
     init {

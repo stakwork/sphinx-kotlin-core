@@ -17,10 +17,12 @@ import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
-import kotlinx.serialization.PolymorphicSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -58,7 +60,7 @@ class NetworkQueryMemeServerImpl(
 
     override fun signChallenge(
         challenge: AuthenticationChallenge,
-        relayData: Pair<AuthorizationToken, RelayUrl>?
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<MemeServerChallengeSigDto, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = MemeServerChallengeSigRelayResponse.serializer(),
@@ -83,7 +85,7 @@ class NetworkQueryMemeServerImpl(
             responseJsonSerializer = MemeServerAuthenticationTokenDto.serializer(),
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
-                PolymorphicSerializer(Map::class)
+                Json.serializersModule.serializer()
             )
         )
 

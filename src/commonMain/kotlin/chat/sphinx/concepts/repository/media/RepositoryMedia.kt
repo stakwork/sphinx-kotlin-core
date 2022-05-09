@@ -11,7 +11,12 @@ import okio.Path
 
 interface RepositoryMedia {
 
-    fun updateChatMetaData(chatId: ChatId, metaData: ChatMetaData, shouldSync: Boolean = true)
+    fun updateChatMetaData(
+        chatId: ChatId,
+        podcastId: FeedId?,
+        metaData: ChatMetaData,
+        shouldSync: Boolean = true
+    )
 
     suspend fun updateChatContentSeenAt(chatId: ChatId)
 

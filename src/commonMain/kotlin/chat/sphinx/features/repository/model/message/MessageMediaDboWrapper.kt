@@ -1,6 +1,6 @@
 package chat.sphinx.features.repository.model.message
 
-import chat.sphinx.concepts.coredb.MessageMediaDbo
+import chat.sphinx.database.core.MessageMediaDbo
 import chat.sphinx.utils.platform.getFileSystem
 import chat.sphinx.wrapper.message.media.*
 import okio.FileSystem

@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 data class RedeemInviteResponseDto(
     val ip: String,
     val invite: RedeemInviteDto,
-    val pubkey: String?
+    val pubkey: String? = null
 )

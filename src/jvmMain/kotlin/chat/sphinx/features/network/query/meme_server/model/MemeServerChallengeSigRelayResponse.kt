@@ -8,6 +8,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class MemeServerChallengeSigRelayResponse(
     override val success: Boolean,
-    override val response: MemeServerChallengeSigDto?,
-    override val error: String?
+    override val response: MemeServerChallengeSigDto? = null,
+    override val error: String? = null
 ) : RelayResponse<MemeServerChallengeSigDto>()

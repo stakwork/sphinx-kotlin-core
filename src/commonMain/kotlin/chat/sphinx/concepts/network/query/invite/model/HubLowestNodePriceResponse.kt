@@ -6,7 +6,7 @@ import kotlinx.serialization.json.JsonNames
 @Serializable
 data class HubLowestNodePriceResponse(
     @JsonNames("object")
-    val response: LowestNodePriceResponseDto?,
+    val response: LowestNodePriceResponseDto? = null,
 
-    val error: String?
+    val error: String? = null
 )

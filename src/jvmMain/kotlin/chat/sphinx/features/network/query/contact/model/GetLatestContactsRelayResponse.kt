@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class GetLatestContactsRelayResponse(
     override val success: Boolean,
-    override val response: GetLatestContactsResponse?,
-    override val error: String?
+    override val response: GetLatestContactsResponse? = null,
+    override val error: String? = null
 ) : RelayResponse<GetLatestContactsResponse>()

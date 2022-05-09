@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PayLightningPaymentRequestRelayResponse(
     override val success: Boolean,
-    override val response: PaymentMessageDto?,
-    override val error: String?
+    override val response: PaymentMessageDto? = null,
+    override val error: String? = null
 ): RelayResponse<PaymentMessageDto>()

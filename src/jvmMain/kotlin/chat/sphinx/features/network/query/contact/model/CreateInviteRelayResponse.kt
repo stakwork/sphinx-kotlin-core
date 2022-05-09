@@ -10,7 +10,7 @@ class CreateInviteRelayResponse(
     override val success: Boolean,
 
     @JsonNames("contact")
-    override val response: ContactDto?,
+    override val response: ContactDto? = null,
 
     override val error: String? = null
 ) : RelayResponse<ContactDto>()

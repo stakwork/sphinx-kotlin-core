@@ -23,7 +23,7 @@ inline fun String.toDateTimeWithFormat(format: DateFormat): DateTime =
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Long.toDateTime(): DateTime =
-    DateTime(DateTimeTz.fromUnix(this))
+    DateTime(DateTimeTz.fromUnixLocal(this))
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Long.secondsToDateTime(): DateTime =

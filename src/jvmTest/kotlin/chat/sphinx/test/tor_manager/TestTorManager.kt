@@ -7,9 +7,11 @@ import io.matthewnelson.kmp.tor.common.clientauth.ClientName
 import io.matthewnelson.kmp.tor.common.clientauth.OnionClientAuth
 import io.matthewnelson.kmp.tor.controller.common.config.ClientAuthEntry
 import io.matthewnelson.kmp.tor.controller.common.config.ConfigEntry
+import io.matthewnelson.kmp.tor.controller.common.config.HiddenServiceEntry
 import io.matthewnelson.kmp.tor.controller.common.config.TorConfig
 import io.matthewnelson.kmp.tor.controller.common.control.TorControlOnionClientAuth
 import io.matthewnelson.kmp.tor.controller.common.control.usecase.TorControlInfoGet
+import io.matthewnelson.kmp.tor.controller.common.control.usecase.TorControlOnionAdd
 import io.matthewnelson.kmp.tor.controller.common.control.usecase.TorControlSignal
 import io.matthewnelson.kmp.tor.controller.common.events.TorEvent
 import io.matthewnelson.kmp.tor.manager.TorManager
@@ -129,6 +131,24 @@ class TestTorManager(override val isDestroyed: Boolean = false) : TorManager {
     }
 
     override suspend fun infoGet(keywords: Set<TorControlInfoGet.KeyWord>): Result<Map<String, String>> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun onionAdd(
+        privateKey: OnionAddress.PrivateKey,
+        hsPorts: Set<TorConfig.Setting.HiddenService.Ports>,
+        flags: Set<TorControlOnionAdd.Flag>?,
+        maxStreams: TorConfig.Setting.HiddenService.MaxStreams?
+    ): Result<HiddenServiceEntry> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun onionAddNew(
+        type: OnionAddress.PrivateKey.Type,
+        hsPorts: Set<TorConfig.Setting.HiddenService.Ports>,
+        flags: Set<TorControlOnionAdd.Flag>?,
+        maxStreams: TorConfig.Setting.HiddenService.MaxStreams?
+    ): Result<HiddenServiceEntry> {
         TODO("Not yet implemented")
     }
 

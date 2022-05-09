@@ -12,6 +12,7 @@ import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.feed.FeedUrl
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
 abstract class NetworkQueryChat {
@@ -20,7 +21,7 @@ abstract class NetworkQueryChat {
     /// GET ///
     ///////////
     abstract fun getChats(
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<List<chat.sphinx.concepts.network.query.chat.model.ChatDto>, ResponseError>>
 
     abstract fun getTribeInfo(
@@ -40,7 +41,7 @@ abstract class NetworkQueryChat {
     abstract fun updateChat(
         chatId: ChatId,
         putChatDto: chat.sphinx.concepts.network.query.chat.model.PutChatDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>>
 
 //    app.put('/chat/:id', chats.addGroupMembers)
@@ -49,13 +50,13 @@ abstract class NetworkQueryChat {
     abstract fun kickMemberFromChat(
         chatId: ChatId,
         contactId: ContactId,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>>
 
     abstract fun updateTribe(
         chatId: ChatId,
         postGroupDto: chat.sphinx.concepts.network.query.chat.model.PostGroupDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>>
 
     ////////////
@@ -63,23 +64,23 @@ abstract class NetworkQueryChat {
     ////////////
     abstract fun createTribe(
         postGroupDto: chat.sphinx.concepts.network.query.chat.model.PostGroupDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto?, ResponseError>>
 
     abstract fun streamSats(
         postStreamSatsDto: chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<Any?, ResponseError>>
 
     abstract fun toggleMuteChat(
         chatId: ChatId,
         muted: ChatMuted,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>>
 
     abstract fun joinTribe(
         tribeDto: TribeDto,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>>
 
     /**
@@ -87,6 +88,6 @@ abstract class NetworkQueryChat {
      * */
     abstract suspend fun deleteChat(
         chatId: ChatId,
-        relayData: Pair<AuthorizationToken, RelayUrl>? = null
+        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null
     ): Flow<LoadResponse<Map<String, Long>, ResponseError>>
 }

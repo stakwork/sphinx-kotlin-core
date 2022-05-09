@@ -11,6 +11,7 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.lightning.toSat
 import chat.sphinx.wrapper.toItemId
 import okio.Path
+import java.io.File
 import kotlin.jvm.Volatile
 import kotlin.math.roundToInt
 
@@ -65,6 +66,14 @@ data class Podcast(
     val hasDestinations: Boolean
         get() = destinations.isNotEmpty()
 
+    var imageToShow: PhotoUrl? = null
+        get() {
+            getCurrentEpisode()?.image?.let {
+                return it
+            }
+            return image
+        }
+
     fun getEpisodesListCopy(): ArrayList<PodcastEpisode> {
         var episodesList = ArrayList<PodcastEpisode>()
 
@@ -108,6 +117,11 @@ data class Podcast(
         playingEpisode?.let { episode ->
             return episode
         } ?: run {
+            episodeId?.let { episodeId ->
+                getEpisodeWithId(episodeId)?.let { episode ->
+                    return episode
+                }
+            }
             return episodes[0]
         }
     }

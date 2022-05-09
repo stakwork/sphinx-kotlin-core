@@ -1,5 +1,6 @@
 package chat.sphinx.wrapper.message
 
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import kotlinx.serialization.Serializable
@@ -16,7 +17,7 @@ inline fun String.toPodcastClipOrNull(): PodcastClip? =
     }
 
 fun String.toPodcastClip(): PodcastClip =
-    Json.decodeFromString<PodcastClipMoshi>(this).let {
+    SphinxJson.decodeFromString<PodcastClipMoshi>(this).let {
         PodcastClip(
             it.text,
             it.title,

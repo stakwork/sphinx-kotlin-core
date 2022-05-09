@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PutMemberRelayResponse(
     override val success: Boolean,
-    override val response: PutMemberResponseDto?,
-    override val error: String?
+    override val response: PutMemberResponseDto? = null,
+    override val error: String? = null
 ): RelayResponse<PutMemberResponseDto>()

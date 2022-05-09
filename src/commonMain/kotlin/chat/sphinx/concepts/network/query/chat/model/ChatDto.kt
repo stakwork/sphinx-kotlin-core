@@ -9,100 +9,60 @@ import kotlinx.serialization.json.JsonNames
 data class ChatDto(
     val id: Long,
     val uuid: String,
-    val name: String?,
-    val photo_url: String?,
+    val name: String? = null,
+    val photo_url: String? = null,
     val type: Int,
-    val status: Int?,
+    val status: Int? = null,
     val contact_ids: List<Long>,
-    val is_muted: @Polymorphic Any?,
+    val is_muted: Int? = null,
     val created_at: String,
     val updated_at: String,
-    val deleted: @Polymorphic Any?,
-    val group_key: String?,
-    val host: String?,
-    val price_to_join: Long?,
-    val price_per_message: Long?,
-    val escrow_amount: Long?,
-    val escrow_millis: Long?,
-    val unlisted: @Polymorphic Any?,
-    val private: @Polymorphic Any?,
+    val deleted: Int? = null,
+    val group_key: String? = null,
+    val host: String? = null,
+    val price_to_join: Long? = null,
+    val price_per_message: Long? = null,
+    val escrow_amount: Long? = null,
+    val escrow_millis: Long? = null,
+    val unlisted: Int? = null,
+    val private: Int? = null,
     @JsonNames("owner_pubkey")
-    val owner_pub_key: String?,
-    val seen: @Polymorphic Any?,
-    val app_url: String?,
-    val feed_url: String?,
-    val meta: String?,
-    val my_photo_url: String?,
-    val my_alias: String?,
-    val pending_contact_ids: List<Long>?
+    val owner_pub_key: String? = null,
+    val seen: Int? = null,
+    val app_url: String? = null,
+    val feed_url: String? = null,
+    val meta: String? = null,
+    val my_photo_url: String? = null,
+    val my_alias: String? = null,
+    val pending_contact_ids: List<Long>? = null
 ) {
     @Transient
     val isMutedActual: Boolean =
-        when (is_muted) {
-            is Boolean -> {
-                is_muted
-            }
-            is Double -> {
-                is_muted.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        is_muted?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val deletedActual: Boolean =
-        when (deleted) {
-            is Boolean -> {
-                deleted
-            }
-            is Double -> {
-                deleted.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        deleted?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val unlistedActual: Boolean =
-        when (unlisted) {
-            is Boolean -> {
-                unlisted
-            }
-            is Double -> {
-                unlisted.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        unlisted?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val privateActual: Boolean =
-        when (private) {
-            is Boolean -> {
-                private
-            }
-            is Double -> {
-                private.toInt() == 1
-            }
-            else -> {
-                true
-            }
-        }
+        private?.let {
+            it == 1
+        } ?: false
 
     @Transient
     val seenActual: Boolean =
-        when (seen) {
-            is Boolean -> {
-                seen
-            }
-            is Double -> {
-                seen.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+        seen?.let {
+            it == 1
+        } ?: false
 }

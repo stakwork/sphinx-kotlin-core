@@ -66,6 +66,10 @@ interface ContactRepository {
         routeHint: LightningRouteHint?
     ): Response<Any, ResponseError>
 
+    suspend fun forceKeyExchange(
+        contactId: ContactId,
+    )
+
     // TODO: add chatId to argument to update alias photo
     suspend fun updateProfilePic(
 //        chatId: ChatId?,
@@ -76,4 +80,6 @@ interface ContactRepository {
     ): Response<Any, ResponseError>
 
     suspend fun toggleContactBlocked(contact: Contact): Response<Boolean, ResponseError>
+
+    suspend fun setGithubPat(pat: String): Response<Boolean, ResponseError>
 }

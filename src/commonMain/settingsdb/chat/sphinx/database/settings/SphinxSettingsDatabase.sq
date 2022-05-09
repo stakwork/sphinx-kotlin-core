@@ -1,0 +1,31 @@
+import chat.sphinx.wrapper.settings.SettingsKey;
+
+CREATE TABLE settingsDbo (
+    key TEXT AS SettingsKey,
+    value TEXT
+);
+
+settingsGetAllKeys:
+SELECT key
+FROM settingsDbo;
+
+chatGetValueForKey:
+SELECT value
+FROM settingsDbo
+WHERE key = ?;
+
+settingsUpsert {
+    UPDATE settingsDbo
+    SET
+        value = :value
+    WHERE key = :key;
+
+    INSERT OR IGNORE INTO settingsDbo(
+        key,
+        value
+    )
+    VALUES (
+        :key,
+        :value
+    );
+}

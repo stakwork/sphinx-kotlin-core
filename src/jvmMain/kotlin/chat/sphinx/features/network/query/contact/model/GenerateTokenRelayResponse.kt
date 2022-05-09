@@ -7,6 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 class GenerateTokenRelayResponse(
     override val success: Boolean,
-    override val response: GenerateTokenResponse?,
-    override val error: String?
+    override val response: GenerateTokenResponse? = null,
+    override val error: String? = null
 ) : RelayResponse<GenerateTokenResponse>()

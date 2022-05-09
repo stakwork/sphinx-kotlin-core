@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 data class PostSubscriptionDto(
     val amount: Long,
     val contact_id: Long,
-    val chat_id: Long?,
-    val end_number: Long?,
-    val end_date: String?,
+    val chat_id: Long? = null,
+    val end_number: Long? = null,
+    val end_date: String? = null,
     val interval: String
 )

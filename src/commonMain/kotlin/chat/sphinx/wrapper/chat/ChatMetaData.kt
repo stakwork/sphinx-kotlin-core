@@ -1,5 +1,6 @@
 package chat.sphinx.wrapper.chat
 
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.ItemId
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.Sat
@@ -22,7 +23,7 @@ inline fun String.toChatMetaDataOrNull(): ChatMetaData? =
 )
 fun String.toChatMetaData(): ChatMetaData {
     val chatMetaData = try {
-        Json.decodeFromString<ChatMetaDataLongIdMoshi>(this).let {
+        SphinxJson.decodeFromString<ChatMetaDataLongIdMoshi>(this).let {
             ChatMetaData(
                 FeedId(it.itemID.toString()),
                 ItemId(it.itemID),
@@ -37,7 +38,7 @@ fun String.toChatMetaData(): ChatMetaData {
 
     return chatMetaData ?: run {
         try {
-            Json.decodeFromString<ChatMetaDataStringIdMoshi>(this).let {
+            SphinxJson.decodeFromString<ChatMetaDataStringIdMoshi>(this).let {
                 ChatMetaData(
                     FeedId(it.itemID),
                     ItemId(-1),
