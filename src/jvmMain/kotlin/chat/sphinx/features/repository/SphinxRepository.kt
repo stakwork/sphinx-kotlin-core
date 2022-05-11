@@ -2041,7 +2041,6 @@ abstract class SphinxRepository(
                 .mapToList(io)
                 .map { listMessageDbo ->
                     withContext(default) {
-
                         val reactionsMap: MutableMap<MessageUUID, ArrayList<Message>> =
                             LinkedHashMap(listMessageDbo.size)
 
@@ -5568,7 +5567,14 @@ abstract class SphinxRepository(
             )
         }.flow.map { pagingData: PagingData<MessageDbo> ->
             pagingData.map { messageDbo: MessageDbo ->
-                messageDboPresenterMapper.mapFrom(messageDbo)
+//                messageDboPresenterMapper.mapFrom(messageDbo)
+                mapMessageDboAndDecryptContentIfNeeded(
+                    queries,
+                    messageDbo,
+                    emptyList(), // TODO: load reactions messageDbo.uuid?.let { reactionsMap[it] },
+                    emptyList(), // TODO: load purchaseItems messageDbo.muid?.let { purchaseItemsMap[it] },
+                    messageDbo.reply_uuid,
+                )
             }
         }
         // TODO: Give it a scope it is cached in...

@@ -73,7 +73,9 @@ data class MessageDto(
 
     fun setMediaLocalFile(file: Path) {
         mediaLocalFile = try {
-            if (getFileSystem().exists(file) && getFileSystem().listOrNull(file) == null) {
+            val fileExists = getFileSystem().exists(file)
+            val isFile = getFileSystem().listOrNull(file) == null
+            if (getFileSystem().exists(file) && isFile) {
                 file
             } else {
                 null
