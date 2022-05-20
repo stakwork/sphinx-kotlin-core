@@ -159,7 +159,7 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getToday00(): DateTime =
             getFormatToday00()
             .format(
-                com.soywiz.klock.DateTime.now()
+                DateTimeTz.nowLocal()
             )
             .toDateTime()
 
