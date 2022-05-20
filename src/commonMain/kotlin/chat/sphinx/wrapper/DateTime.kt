@@ -139,7 +139,7 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
          * Returns a string value using [FORMAT_RELAY]
          * */
         fun nowUTC(): String =
-            getFormatRelay().format(DateTimeTz.nowLocal())
+            getFormatRelay().format(com.soywiz.klock.DateTime.now())
 
         @Volatile
         private var formatToday00: DateFormat? = null
@@ -159,7 +159,7 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getToday00(): DateTime =
             getFormatToday00()
             .format(
-                DateTimeTz.nowLocal()
+                com.soywiz.klock.DateTime.now()
             )
             .toDateTime()
 

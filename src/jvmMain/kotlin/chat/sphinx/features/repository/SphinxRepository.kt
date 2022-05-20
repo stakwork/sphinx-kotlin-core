@@ -198,6 +198,7 @@ abstract class SphinxRepository(
             Exhaustive@
             when (msg) {
                 is SphinxSocketIOMessage.Type.Contact -> {
+                    // TODO: Contact Refresh...
                     contactLock.withLock {
                         queries.transaction {
                             updatedContactIds.add(ContactId(msg.dto.id))
@@ -213,6 +214,7 @@ abstract class SphinxRepository(
                     )
                 }
                 is SphinxSocketIOMessage.Type.Invite -> {
+                    // TODO: Contact Refresh
                     contactLock.withLock {
                         queries.transaction {
                             updatedContactIds.add(ContactId(msg.dto.contact_id))
@@ -225,6 +227,7 @@ abstract class SphinxRepository(
                 }
                 is SphinxSocketIOMessage.Type.MessageType, is SphinxSocketIOMessage.Type.Group -> {
 
+                    // TODO: Message refresh
                     val messageDto: MessageDto? = when (msg) {
                         is SphinxSocketIOMessage.Type.MessageType -> msg.dto
                         is SphinxSocketIOMessage.Type.Group -> msg.dto.message
