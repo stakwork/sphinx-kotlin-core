@@ -1,6 +1,7 @@
 package chat.sphinx.di.container
 
 import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
+import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.concepts.repository.chat.ChatRepository
 import chat.sphinx.concepts.repository.contact.ContactRepository
 import chat.sphinx.concepts.repository.dashboard.RepositoryDashboard
@@ -20,7 +21,8 @@ import kotlinx.coroutines.flow.*
 class RepositoryModule(
     appModule: AppModule,
     authenticationModule: AuthenticationModule,
-    networkModule: NetworkModule
+    networkModule: NetworkModule,
+    sphinxNotificationManager: SphinxNotificationManager
 ) {
     val accountOwnerFlow: StateFlow<Contact?> = flow {
         emitAll(
@@ -69,7 +71,7 @@ class RepositoryModule(
         networkModule.networkQueryFeedSearch,
         authenticationModule.rsa,
         networkModule.socketIOManager,
-        appModule.sphinxNotificationManager,
+        sphinxNotificationManager,
         appModule.sphinxLogger,
     )
     val chatRepository: ChatRepository = sphinxRepositoryPlatform

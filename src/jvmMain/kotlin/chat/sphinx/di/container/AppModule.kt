@@ -34,5 +34,4 @@ class AppModule {
         FileSystem.SYSTEM_TEMPORARY_DIRECTORY,
         dispatchers,
     )
-    val sphinxNotificationManager: SphinxNotificationManager? = null
 }

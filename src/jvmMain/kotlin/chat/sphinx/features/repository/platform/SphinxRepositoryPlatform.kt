@@ -52,7 +52,7 @@ class SphinxRepositoryPlatform(
     networkQueryFeedSearch: NetworkQueryFeedSearch,
     rsa: RSA,
     socketIOManager: SocketIOManager,
-    sphinxNotificationManager: SphinxNotificationManager?,
+    sphinxNotificationManager: SphinxNotificationManager,
     LOG: SphinxLogger,
 ): SphinxRepository(
     accountOwner,
