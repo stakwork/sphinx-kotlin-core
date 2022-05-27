@@ -110,8 +110,6 @@ kotlin {
                 implementation("org.jsoup:jsoup:1.14.3")
                 implementation("io.socket:engine.io-client:1.0.0")
                 implementation("org.cryptonode.jncryptor:jncryptor:1.2.0")
-                implementation("com.github.bisq-network.netlayer:tor.external:$netlayerVersion")
-                implementation("com.github.bisq-network.netlayer:tor.native:$netlayerVersion")
             }
         }
         val jvmTest by getting
