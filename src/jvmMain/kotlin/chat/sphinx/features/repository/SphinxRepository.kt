@@ -2198,12 +2198,14 @@ abstract class SphinxRepository(
         SynchronizedMap<ChatId, Seen>()
     }
 
-    override suspend fun readMessages(chatId: ChatId) {
-        readMessagesImpl(
-            chatId = chatId,
-            queries = coreDB.getSphinxDatabaseQueries(),
-            executeNetworkRequest = true
-        )
+    override fun readMessages(chatId: ChatId) {
+        applicationScope.launch(mainImmediate) {
+            readMessagesImpl(
+                chatId = chatId,
+                queries = coreDB.getSphinxDatabaseQueries(),
+                executeNetworkRequest = true
+            )
+        }
     }
 
     private suspend fun readMessagesImpl(

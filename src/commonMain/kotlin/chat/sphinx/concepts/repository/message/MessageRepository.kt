@@ -31,7 +31,7 @@ interface MessageRepository {
 
     fun updateMessageContentDecrypted(messageId: MessageId, messageContentDecrypted: MessageContentDecrypted)
 
-    suspend fun readMessages(chatId: ChatId)
+    fun readMessages(chatId: ChatId)
 
     fun sendMessage(sendMessage: SendMessage?)
 
