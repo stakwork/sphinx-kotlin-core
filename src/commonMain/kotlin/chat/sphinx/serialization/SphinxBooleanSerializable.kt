@@ -24,12 +24,12 @@ object SphinxBooleanSerializable : KSerializer<Any> {
 
     override fun deserialize(decoder: Decoder): SphinxBoolean {
         return try {
-            SphinxBoolean(decoder.decodeBoolean())
-        } catch(e: Exception) {
-            null
-        } ?: try {
             SphinxBoolean(decoder.decodeInt())
         } catch (e: Exception) {
+            null
+        } ?: try {
+            SphinxBoolean(decoder.decodeBoolean())
+        } catch(e: Exception) {
             SphinxBoolean(false)
         }
     }
