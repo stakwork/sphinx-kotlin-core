@@ -1,5 +1,6 @@
 package chat.sphinx.concepts.network.query.meme_server.model
 
+import chat.sphinx.serialization.SphinxBoolean
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -39,19 +40,8 @@ data class PostMemeServerUploadDto(
     val expiry: String? = null,
     val width: Long,
     val height: Long,
-    val template: @Polymorphic Any? = null,
+    val template: SphinxBoolean? = null,
 ) {
     @Transient
-    val templateActual: Boolean =
-        when (template) {
-            is Boolean -> {
-                template
-            }
-            is Double -> {
-                template.toInt() == 1
-            }
-            else -> {
-                false
-            }
-        }
+    val templateActual: Boolean = template?.value ?: false
 }

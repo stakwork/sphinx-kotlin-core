@@ -1,6 +1,7 @@
 package chat.sphinx.concepts.network.query.subscription.model
 
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
+import chat.sphinx.serialization.SphinxBoolean
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -16,8 +17,8 @@ data class SubscriptionDto(
     val end_number: Int? = null,
     val end_date: String? = null,
     val count: Int,
-    val ended: Boolean? = null,
-    val paused: Boolean? = null,
+    val ended: SphinxBoolean? = null,
+    val paused: SphinxBoolean? = null,
     val created_at: String,
     val updated_at: String,
     val interval: String,
@@ -26,9 +27,9 @@ data class SubscriptionDto(
 ) {
     @Transient
     val endedActual: Boolean =
-        ended ?: false
+        ended?.value ?: false
 
     @Transient
     val pausedActual: Boolean =
-        paused ?: false
+        paused?.value ?: false
 }

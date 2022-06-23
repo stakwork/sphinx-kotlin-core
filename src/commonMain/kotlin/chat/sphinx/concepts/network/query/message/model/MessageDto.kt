@@ -2,6 +2,7 @@ package chat.sphinx.concepts.network.query.message.model
 
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
+import chat.sphinx.serialization.SphinxBoolean
 import chat.sphinx.utils.platform.getFileSystem
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
@@ -32,7 +33,7 @@ data class MessageDto(
     val media_key: String? = null,
     val media_type: String? = null,
     val media_token: String? = null,
-    val seen: Int,
+    val seen: SphinxBoolean,
     val created_at: String,
     val updated_at: String,
     val sender_alias: String? = null,
@@ -44,7 +45,7 @@ data class MessageDto(
     val contact: ContactDto? = null,
 ) {
     @Transient
-    val seenActual: Boolean = seen == 1
+    val seenActual: Boolean = seen.value
 
     @Transient
     @Volatile
