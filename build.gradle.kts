@@ -72,10 +72,9 @@ kotlin {
                 api("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
                 api("com.squareup.sqldelight:coroutines-extensions:$sqlDelightVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
-                api("com.squareup.okio:okio:3.0.0")
                 implementation("io.ktor:ktor-client-core:1.6.7")
                 implementation("io.ktor:ktor-client-cio:1.6.7")
-                implementation("com.squareup.okio:okio:$okioVersion")
+                api("com.squareup.okio:okio:$okioVersion")
                 implementation("com.soywiz.korlibs.klock:klock:$klockVersion")
                 api("io.matthewnelson.kotlin-components:kmp-tor:$kmpTorVersion")
 

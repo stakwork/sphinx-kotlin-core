@@ -84,10 +84,6 @@ import kotlinx.coroutines.flow.collect
 
 abstract class CoreDBImpl: CoreDB() {
 
-    companion object {
-        const val DB_NAME = "sphinx.db"
-    }
-
     private val sphinxDatabaseQueriesStateFlow: MutableStateFlow<SphinxDatabaseQueries?> =
         MutableStateFlow(null)
 

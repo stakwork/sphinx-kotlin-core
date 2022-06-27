@@ -3,6 +3,9 @@ package chat.sphinx.concepts.coredb
 import chat.sphinx.database.core.SphinxDatabaseQueries
 
 abstract class CoreDB {
+    companion object {
+        const val DB_NAME = "sphinx.db"
+    }
 
     abstract val isInitialized: Boolean
 

@@ -1,9 +1,11 @@
 package chat.sphinx.database
 
 import chat.sphinx.concepts.authentication.encryption_key.EncryptionKey
+import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.database.core.SphinxDatabase
 import com.squareup.sqldelight.db.SqlDriver
 import com.squareup.sqldelight.sqlite.driver.JdbcSqliteDriver
+import okhttp3.internal.closeQuietly
 
 actual class DriverFactory {
 
@@ -17,7 +19,7 @@ actual class DriverFactory {
     }
 
     actual fun createDriver(encryptionKey: EncryptionKey): SqlDriver {
-        val driver: SqlDriver = JdbcSqliteDriver("jdbc:sqlite:dev.db")
+        val driver: SqlDriver = JdbcSqliteDriver("jdbc:sqlite:${CoreDB.DB_NAME}")
         val currentVersion = getVersion(driver)
         if (currentVersion == 0) {
             SphinxDatabase.Schema.create(driver)

@@ -12,7 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.StringFormat
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
+import java.io.Closeable
 
 fun checkFromIndexSize(fromIndex: Int, size: Int, length: Int): Int {
     return if (length or fromIndex or size >= 0 && size <= length - fromIndex) {
@@ -54,4 +54,14 @@ expect fun createPlatformSettings(): Settings
 
 val SphinxJson: Json = Json {
     ignoreUnknownKeys = true
+}
+
+/** Closes this, ignoring any checked exceptions. */
+fun Closeable.closeQuietly() {
+    try {
+        close()
+    } catch (rethrown: RuntimeException) {
+        throw rethrown
+    } catch (_: Exception) {
+    }
 }
