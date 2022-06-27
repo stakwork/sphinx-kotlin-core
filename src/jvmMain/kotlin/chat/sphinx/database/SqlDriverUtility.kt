@@ -3,11 +3,12 @@ package chat.sphinx.database
 import chat.sphinx.concepts.authentication.encryption_key.EncryptionKey
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.database.core.SphinxDatabase
+import chat.sphinx.utils.platform.getFileSystem
 import com.squareup.sqldelight.db.SqlDriver
 import com.squareup.sqldelight.sqlite.driver.JdbcSqliteDriver
-import okhttp3.internal.closeQuietly
+import okio.Path.Companion.toPath
 
-actual class DriverFactory {
+actual class SqlDriverUtility {
 
     private fun getVersion(driver: SqlDriver): Int {
         val sqlCursor = driver.executeQuery(null, "PRAGMA user_version;", 0, null)
@@ -32,5 +33,9 @@ actual class DriverFactory {
             }
         }
         return driver
+    }
+
+    actual fun deleteDatabase() {
+        getFileSystem().delete(CoreDB.DB_NAME.toPath())
     }
 }

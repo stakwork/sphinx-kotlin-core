@@ -1,8 +1,7 @@
 package chat.sphinx.di.container
 
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
-import chat.sphinx.concepts.notification.SphinxNotificationManager
-import chat.sphinx.database.DriverFactory
+import chat.sphinx.database.SqlDriverUtility
 import chat.sphinx.database.SphinxCoreDBImpl
 import chat.sphinx.features.coredb.CoreDBImpl
 import chat.sphinx.features.media_cache.MediaCacheHandlerImpl
@@ -23,9 +22,9 @@ class AppModule {
     val sphinxLogger: SphinxLogger = sphinxLoggerImpl
     val buildConfigDebug = BuildConfigDebug(true) // TODO: Configure it correctly...
     val buildConfigVersionCode = BuildConfigVersionCode(21) // TODO: Configure it correctly...
-    val driverFactory = DriverFactory()
+    val sqlDriverUtility = SqlDriverUtility()
     val sphinxCoreDBImpl = SphinxCoreDBImpl(
-        driverFactory,
+        sqlDriverUtility,
         buildConfigDebug
     )
     val coreDBImpl: CoreDBImpl = sphinxCoreDBImpl
