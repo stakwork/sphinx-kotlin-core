@@ -8,6 +8,7 @@ import com.squareup.sqldelight.db.SqlDriver
 import com.squareup.sqldelight.sqlite.driver.JdbcSqliteDriver
 import okio.Path.Companion.toPath
 
+
 actual class SqlDriverUtility {
 
     private fun getVersion(driver: SqlDriver): Int {
@@ -16,11 +17,10 @@ actual class SqlDriverUtility {
     }
 
     private fun setVersion(version: Int, driver: SqlDriver) {
-        driver.execute(null, String.format("PRAGMA user_version = %d;", version), 0, null)
+        driver.execute(null, "PRAGMA user_version = $version;", 0, null)
     }
 
-    actual fun createDriver(encryptionKey: EncryptionKey): SqlDriver {
-        val driver: SqlDriver = JdbcSqliteDriver("jdbc:sqlite:${CoreDB.DB_NAME}")
+    private fun handleMigration(driver: SqlDriver) {
         val currentVersion = getVersion(driver)
         if (currentVersion == 0) {
             SphinxDatabase.Schema.create(driver)
@@ -32,6 +32,39 @@ actual class SqlDriverUtility {
                 setVersion(schemeVersion, driver)
             }
         }
+    }
+
+    private fun getJournalMode(driver: SqlDriver): String {
+        val sqlCursor = driver.executeQuery(null, "PRAGMA journal_mode;", 0, null)
+        return sqlCursor.getString(0) ?: ""
+    }
+
+    private fun setJournalMode(journalMode: String, driver: SqlDriver) {
+        driver.execute(null, "PRAGMA journal_mode = $journalMode;", 0, null)
+    }
+
+    /**
+     * Sphinx app is multi-threaded. This journal mode should allow us to run the app without the SQLITE_BUSY exception
+     */
+    val SPHINX_JOURNAL_MODE = "WAL" // Journal Mode to handle multi threading
+
+    private fun handleJournalMode(driver: SqlDriver) {
+        setJournalMode(SPHINX_JOURNAL_MODE, driver)
+        // Would've liked to check journal mode before setting it but that seems to not work...
+//        val currentJournalMode = getJournalMode(driver)
+//
+//        if (currentJournalMode != SPHINX_JOURNAL_MODE) {
+//            driver.close()
+//            setJournalMode(SPHINX_JOURNAL_MODE, driver)
+//        }
+    }
+
+    actual fun createDriver(encryptionKey: EncryptionKey): SqlDriver {
+        val driver = JdbcSqliteDriver("jdbc:sqlite:${CoreDB.DB_NAME}")
+
+        handleJournalMode(driver)
+        handleMigration(driver)
+
         return driver
     }
 
