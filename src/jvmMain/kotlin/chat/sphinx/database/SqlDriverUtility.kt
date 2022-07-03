@@ -4,8 +4,12 @@ import chat.sphinx.concepts.authentication.encryption_key.EncryptionKey
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.database.core.SphinxDatabase
 import chat.sphinx.utils.platform.getFileSystem
+import chat.sphinx.utils.platform.getSphinxDirectory
+import chat.sphinx.utils.platform.getUserHomeDirectory
 import com.squareup.sqldelight.db.SqlDriver
 import com.squareup.sqldelight.sqlite.driver.JdbcSqliteDriver
+import okio.FileSystem
+import okio.Path
 import okio.Path.Companion.toPath
 
 
@@ -60,7 +64,7 @@ actual class SqlDriverUtility {
     }
 
     actual fun createDriver(encryptionKey: EncryptionKey): SqlDriver {
-        val driver = JdbcSqliteDriver("jdbc:sqlite:${CoreDB.DB_NAME}")
+        val driver = JdbcSqliteDriver("jdbc:sqlite:${getSphinxDirectory().resolve(CoreDB.DB_NAME)}")
 
         handleJournalMode(driver)
         handleMigration(driver)
