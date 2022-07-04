@@ -14,6 +14,7 @@ import okio.Path.Companion.toPath
 
 
 actual class SqlDriverUtility {
+    val sphinxDatabaseFilepath = getSphinxDirectory().resolve(CoreDB.DB_NAME)
 
     private fun getVersion(driver: SqlDriver): Int {
         val sqlCursor = driver.executeQuery(null, "PRAGMA user_version;", 0, null)
@@ -64,7 +65,7 @@ actual class SqlDriverUtility {
     }
 
     actual fun createDriver(encryptionKey: EncryptionKey): SqlDriver {
-        val driver = JdbcSqliteDriver("jdbc:sqlite:${getSphinxDirectory().resolve(CoreDB.DB_NAME)}")
+        val driver = JdbcSqliteDriver("jdbc:sqlite:$sphinxDatabaseFilepath")
 
         handleJournalMode(driver)
         handleMigration(driver)
@@ -73,6 +74,6 @@ actual class SqlDriverUtility {
     }
 
     actual fun deleteDatabase() {
-        getFileSystem().delete(CoreDB.DB_NAME.toPath())
+        getFileSystem().delete(sphinxDatabaseFilepath)
     }
 }
