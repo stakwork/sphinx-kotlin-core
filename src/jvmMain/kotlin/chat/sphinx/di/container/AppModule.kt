@@ -9,6 +9,7 @@ import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.utils.SphinxDispatchers
 import chat.sphinx.utils.SphinxLoggerImpl
 import chat.sphinx.utils.build_config.BuildConfigDebug
+import chat.sphinx.utils.platform.getSphinxDirectory
 import io.matthewnelson.build_config.BuildConfigVersionCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -30,7 +31,7 @@ class AppModule {
     val coreDBImpl: CoreDBImpl = sphinxCoreDBImpl
     val mediaCacheHandler: MediaCacheHandler = MediaCacheHandlerImpl(
         applicationScope,
-        FileSystem.SYSTEM_TEMPORARY_DIRECTORY,
+        getSphinxDirectory().resolve("cache"),
         dispatchers,
     )
 }
