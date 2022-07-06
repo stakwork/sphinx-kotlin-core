@@ -4,6 +4,7 @@ import chat.sphinx.utils.platform.getCurrentTimeInMillis
 import com.soywiz.klock.*
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
+import java.util.*
 import kotlin.jvm.JvmInline
 import kotlin.jvm.Volatile
 
@@ -58,18 +59,22 @@ inline fun DateTime.hhmmElseDate(today00: DateTime = DateTime.getToday00()): Str
 inline fun DateTime.chatTimeFormat(
     today00: DateTime = DateTime.getToday00(),
     sixDaysAgo: DateTime = DateTime.getSixDaysAgo()
-): String =
-    when {
+): String {
+    val offset: Int = TimeZone.getDefault().rawOffset
+    val dateWithOffset = value.addOffset(TimeSpan(offset.toDouble()))
+
+    return when {
         today00.before(this) -> {
-            DateTime.getFormathmma().format(value)
+            DateTime.getFormathmma().format(dateWithOffset)
         }
         sixDaysAgo.before(this) -> {
-            DateTime.getFormatEEEhmma().format(value)
+            DateTime.getFormatEEEhmma().format(dateWithOffset)
         }
         else -> {
-            DateTime.getFormatddmmmhhmm().format(value)
+            DateTime.getFormatddmmmhhmm().format(dateWithOffset)
         }
     }
+}
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun DateTime.invoiceExpirationTimeFormat(): String =
