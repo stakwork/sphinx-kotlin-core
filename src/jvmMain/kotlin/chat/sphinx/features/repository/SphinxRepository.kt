@@ -3587,9 +3587,9 @@ abstract class SphinxRepository(
 
                             if (owner?.nodePubKey != chat.ownerPubKey) {
                                 val didChangeNameOrPhotoUrl = (
-                                        tribeDto.name != chat.name?.value ?: "" ||
-                                                tribeDto.img != chat.photoUrl?.value ?: ""
-                                        )
+                                    tribeDto.name != chat.name?.value ?: "" ||
+                                    tribeDto.img != chat.photoUrl?.value ?: ""
+                                )
 
                                 chatLock.withLock {
                                     queries.transaction {

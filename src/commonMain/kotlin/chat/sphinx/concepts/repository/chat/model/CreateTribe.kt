@@ -190,7 +190,7 @@ class CreateTribe private constructor(
             appUrl = tribeDto.app_url?.toAppUrl()
             feedUrl = tribeDto.feed_url?.toFeedUrl()
             feedType = tribeDto.feed_type?.toFeedType()
-            unlisted = tribeDto.unlisted
+            unlisted = tribeDto.unlisted?.value
         }
 
         @Synchronized

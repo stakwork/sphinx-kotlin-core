@@ -1,5 +1,6 @@
 package chat.sphinx.concepts.network.query.chat.model
 
+import chat.sphinx.serialization.SphinxBoolean
 import chat.sphinx.utils.platform.getFileSystem
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Polymorphic
@@ -22,9 +23,9 @@ data class TribeDto(
     val price_per_message: Long = 0,
     val escrow_amount: Long = 0,
     val escrow_millis: Long = 0,
-    val unlisted: Boolean? = null,
-    val private: Int? = null,
-    val deleted: Int? = null,
+    val unlisted: SphinxBoolean,
+    val private: SphinxBoolean,
+    val deleted: SphinxBoolean,
     val app_url: String? = null,
     val feed_url: String? = null,
     val feed_type: Int? = null,
