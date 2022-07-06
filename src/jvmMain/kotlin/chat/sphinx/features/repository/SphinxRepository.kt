@@ -5595,12 +5595,6 @@ abstract class SphinxRepository(
                         filepath,
                         message.id
                     )
-
-                    // to proc table change so new file path is pushed to UI
-                    queries.messageUpdateContentDecrypted(
-                        message.messageContentDecrypted,
-                        message.id
-                    )
                 }
             }
         }
