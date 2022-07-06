@@ -6,7 +6,6 @@ import androidx.paging.PagingData
 import chat.sphinx.concepts.repository.message.model.SendMessage
 import chat.sphinx.concepts.repository.message.model.SendPayment
 import chat.sphinx.concepts.repository.message.model.SendPaymentRequest
-import chat.sphinx.database.core.MessageDbo
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
@@ -18,6 +17,7 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import kotlinx.coroutines.flow.Flow
+import okio.Path
 
 interface MessageRepository {
     suspend fun getAllMessagesToShowByChatIdPaginated(chatId: ChatId): Flow<PagingData<Message>>
@@ -78,4 +78,6 @@ interface MessageRepository {
         messageId: MessageId,
         type: MessageType,
     ): LoadResponse<Any, ResponseError>
+
+    suspend fun messageMediaUpdateLocalFile(message: Message, filepath: Path)
 }

@@ -5585,4 +5585,24 @@ abstract class SphinxRepository(
         // TODO: Give it a scope it is cached in...
     }
 
+    override suspend fun messageMediaUpdateLocalFile(message: Message, filepath: Path) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        messageLock.withLock {
+            withContext(io) {
+                queries.transaction {
+                    queries.messageMediaUpdateFile(
+                        filepath,
+                        message.id
+                    )
+
+                    // to proc table change so new file path is pushed to UI
+                    queries.messageUpdateContentDecrypted(
+                        message.messageContentDecrypted,
+                        message.id
+                    )
+                }
+            }
+        }
+    }
 }
