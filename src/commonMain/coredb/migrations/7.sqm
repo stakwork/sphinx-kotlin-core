@@ -1,0 +1,5 @@
+import chat.sphinx.wrapper.PhotoUrl;
+import chat.sphinx.wrapper.message.RecipientAlias;
+
+ALTER TABLE messageDbo ADD COLUMN recipient_alias TEXT AS RecipientAlias;
+ALTER TABLE messageDbo ADD COLUMN recipient_pic TEXT AS PhotoUrl;

@@ -2414,6 +2414,8 @@ abstract class SphinxRepository(
                                 } else {
                                     MessageType.Message
                                 },
+                                null,
+                                null,
                                 provisionalId,
                                 null,
                                 chatDbo.id,
@@ -2426,7 +2428,8 @@ abstract class SphinxRepository(
                                 null,
                                 message?.second,
                                 message?.first,
-                                null
+                                null,
+                                false.toFlagged()
                             )
 
                             if (media != null) {

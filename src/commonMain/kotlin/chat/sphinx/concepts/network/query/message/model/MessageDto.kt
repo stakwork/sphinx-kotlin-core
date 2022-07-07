@@ -27,7 +27,6 @@ data class MessageDto(
     val message_content: String? = null,
     val remote_message_content: String? = null,
     val status: Int? = null,
-//    val status_map: Map<Long, Int?>?, // contact_id : their message's 'status'
     val parent_id: Long? = null,
     val subscription_id: Long? = null,
     val media_key: String? = null,
@@ -43,6 +42,8 @@ data class MessageDto(
     val network_type: Int? = null,
     val chat: ChatDto? = null,
     val contact: ContactDto? = null,
+    val recipient_alias: String?,
+    val recipient_pic: String?,
 ) {
     @Transient
     val seenActual: Boolean = seen.value

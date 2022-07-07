@@ -68,6 +68,7 @@ import chat.sphinx.features.coredb.adapters.feed.FeedTitleAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedTypeAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedUrlAdapter
 import chat.sphinx.features.coredb.adapters.feed.SubscribedAdapter
+import chat.sphinx.features.coredb.adapters.message.*
 import chat.sphinx.features.coredb.adapters.message.FlaggedAdapter
 import chat.sphinx.features.coredb.adapters.message.MessageContentAdapter
 import chat.sphinx.features.coredb.adapters.message.MessageContentDecryptedAdapter
@@ -75,6 +76,7 @@ import chat.sphinx.features.coredb.adapters.message.MessageMUIDAdapter
 import chat.sphinx.features.coredb.adapters.message.MessageStatusAdapter
 import chat.sphinx.features.coredb.adapters.message.MessageTypeAdapter
 import chat.sphinx.features.coredb.adapters.message.MessageUUIDAdapter
+import chat.sphinx.features.coredb.adapters.message.RecipientAliasAdapter
 import chat.sphinx.features.coredb.adapters.message.ReplyUUIDAdapter
 import chat.sphinx.features.coredb.adapters.message.SenderAliasAdapter
 import com.squareup.sqldelight.db.SqlDriver
@@ -196,6 +198,8 @@ abstract class CoreDBImpl: CoreDB() {
                     reply_uuidAdapter = ReplyUUIDAdapter(),
                     muidAdapter = MessageMUIDAdapter(),
                     flaggedAdapter = FlaggedAdapter.getInstance(),
+                    recipient_aliasAdapter = RecipientAliasAdapter(),
+                    recipient_picAdapter = PhotoUrlAdapter.getInstance(),
                 ),
                 messageMediaDboAdapter = MessageMediaDbo.Adapter(
                     idAdapter = MessageIdAdapter.getInstance(),

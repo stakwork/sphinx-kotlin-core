@@ -14,6 +14,8 @@ inline fun SphinxDatabaseQueries.upsertMessage(dbo: MessageDbo): Unit =
         dbo.original_muid,
         dbo.reply_uuid,
         dbo.type,
+        dbo.recipient_alias,
+        dbo.recipient_pic,
         dbo.id,
         dbo.uuid,
         dbo.chat_id,
@@ -26,5 +28,6 @@ inline fun SphinxDatabaseQueries.upsertMessage(dbo: MessageDbo): Unit =
         dbo.expiration_date,
         dbo.message_content,
         dbo.message_content_decrypted,
-        dbo.muid
+        dbo.muid,
+        dbo.flagged
     )
