@@ -42,8 +42,8 @@ data class MessageDto(
     val network_type: Int? = null,
     val chat: ChatDto? = null,
     val contact: ContactDto? = null,
-    val recipient_alias: String?,
-    val recipient_pic: String?,
+    val recipient_alias: String? = null,
+    val recipient_pic: String? = null,
 ) {
     @Transient
     val seenActual: Boolean = seen.value
