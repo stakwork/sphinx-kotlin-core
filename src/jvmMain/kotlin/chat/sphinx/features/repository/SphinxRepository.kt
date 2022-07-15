@@ -302,6 +302,7 @@ abstract class SphinxRepository(
                                                 latestMessageUpdatedTimeMap,
                                                 queries
                                             )
+                                            // Don't send notification when I'm the sender
                                             sphinxNotificationManager.notify(
                                                 notificationId = id.value.toInt(),
                                                 title = "New ${chatTypeText(chatDto?.type)} message",
