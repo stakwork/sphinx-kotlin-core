@@ -302,6 +302,11 @@ abstract class SphinxRepository(
                                                 latestMessageUpdatedTimeMap,
                                                 queries
                                             )
+                                            sphinxNotificationManager.notify(
+                                                notificationId = id.value.toInt(),
+                                                title = "New ${chatTypeText(chatDto?.type)} message",
+                                                message = "Message from ${nnMessageDto.sender_alias}"
+                                            )
                                         }
                                     }
                                 }
@@ -313,6 +318,13 @@ abstract class SphinxRepository(
         }
     }
 
+    private fun chatTypeText(type: Int?): String {
+        return if (type == 0) {
+            "chat"
+        } else {
+            "tribe"
+        }
+    }
     /////////////
     /// Chats ///
     /////////////
