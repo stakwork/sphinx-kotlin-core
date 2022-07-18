@@ -202,6 +202,16 @@ inline fun Message.getColorKey(): String {
 }
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun Message.getRecipientColorKey(
+    tribeAdminId: ContactId
+): String {
+    recipientAlias?.let { recipientAlias ->
+        return "message-${tribeAdminId.value}-${recipientAlias.value}-color"
+    }
+    return "message-${tribeAdminId.value}-color"
+}
+
+@Suppress("NOTHING_TO_INLINE")
 inline fun Message.hasSameSenderThanMessage(message: Message): Boolean {
     val hasSameSenderId = this.sender.value == message.sender.value
     val hasSameSenderAlias = (this.senderAlias?.value ?: "") == (message.senderAlias?.value ?: "")
