@@ -46,7 +46,6 @@ inline fun BalanceDto.toNodeBalance(): NodeBalance =
 
 inline val MessageDto.updateChatDboLatestMessage: Boolean
     get() = type.toMessageType().show           &&
-            type != MessageType.BOT_RES         &&
             status != MessageStatus.DELETED
 
 @Suppress("NOTHING_TO_INLINE")

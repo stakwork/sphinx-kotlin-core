@@ -31,7 +31,7 @@ inline fun Message.retrieveTextToShow(): String? =
             return null
         }
         if (type.isBotRes()) {
-            return null
+            return decrypted.value
         }
         if (type.isInvoice()) {
             return null
