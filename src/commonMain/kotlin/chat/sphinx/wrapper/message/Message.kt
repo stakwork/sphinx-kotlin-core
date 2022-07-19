@@ -15,8 +15,11 @@ import chat.sphinx.wrapper.time
 
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun Message.retrieveTextToShow(): String? =
-    messageContentDecrypted?.let { decrypted ->
+inline fun Message.retrieveTextToShow(): String? {
+    if (messageDecryptionError) {
+        return "DECRYPTION ERROR"
+    }
+    return messageContentDecrypted?.let { decrypted ->
         // TODO Handle podcast clips `clip::.....`
         if (giphyData != null) {
             return giphyData?.text
@@ -31,13 +34,14 @@ inline fun Message.retrieveTextToShow(): String? =
             return null
         }
         if (type.isBotRes()) {
-            return null
+            return decrypted.value
         }
         if (type.isInvoice()) {
             return null
         }
         decrypted.value
     }
+}
 
 //Invoice memo shows on a different TextView than messageContent
 @Suppress("NOTHING_TO_INLINE")
@@ -199,6 +203,16 @@ inline fun Message.getColorKey(): String {
         return "message-${sender.value}-${senderAlias.value}-color"
     }
     return "message-${sender.value}-color"
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.getRecipientColorKey(
+    tribeAdminId: ContactId
+): String {
+    recipientAlias?.let { recipientAlias ->
+        return "message-${tribeAdminId.value}-${recipientAlias.value}-color"
+    }
+    return "message-${tribeAdminId.value}-color"
 }
 
 @Suppress("NOTHING_TO_INLINE")
