@@ -110,7 +110,7 @@ class NetworkQueryMemeServerImpl(
     ): Response<PostMemeServerUploadDto, ResponseError> {
 
         val passwordCopy: CharArray = password.value.copyOf()
-        val tmpFile = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.resolve(file).toFile()
+        val tmpFile = FileSystem.SYSTEM_TEMPORARY_DIRECTORY.resolve(file.name + ".tmp").toFile()
 
         return try {
             // will throw an exception if the media type is invalid
