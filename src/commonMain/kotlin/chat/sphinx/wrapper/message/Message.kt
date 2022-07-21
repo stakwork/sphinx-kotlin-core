@@ -4,8 +4,10 @@ import chat.sphinx.utils.platform.getCurrentTimeInMillis
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.Seen
+import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
+import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.LightningPaymentHash
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.lightning.Sat
@@ -246,12 +248,25 @@ inline val Message.isMediaAttachmentAvailable: Boolean
 inline val Message.isCopyAllowed: Boolean
     get() = (this.retrieveTextToShow() ?: "").isNotEmpty() || (this.retrieveInvoiceTextToShow() ?: "").isNotEmpty()
 
+inline val Message.isCopyLinkAllowed: Boolean
+    get() = this.isSphinxCallLink
+
 inline val Message.isReplyAllowed: Boolean
     get() = (type.isAttachment() || type.isMessage() || type.isBotRes()) &&
             (uuid?.value ?: "").isNotEmpty()
 
 inline val Message.isResendAllowed: Boolean
     get() = type.isMessage() && status.isFailed()
+
+inline val Message.isSaveAllowed: Boolean
+    get() = this.isMediaAttachmentAvailable
+
+inline fun Message.isDeleteAllowed(
+    chat: Chat,
+    ownerPubKey: LightningNodePubKey?
+): Boolean {
+   return (this.sender == chat.contactIds.firstOrNull() || chat.ownerPubKey == ownerPubKey)
+}
 
 //Paid types
 inline val Message.isPaidMessage: Boolean
