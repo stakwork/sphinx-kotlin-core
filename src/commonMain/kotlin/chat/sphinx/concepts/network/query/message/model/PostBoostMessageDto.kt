@@ -1,10 +1,10 @@
-package chat.sphinx.features.network.query.message.model
+package chat.sphinx.concepts.network.query.message.model
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class PostBoostMessage(
-    val boost: Boolean = true,
+data class PostBoostMessageDto(
+    val boost: Boolean,
     val text: String = "",
     val chat_id: Long,
     val amount: Long,

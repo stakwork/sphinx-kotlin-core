@@ -3118,11 +3118,13 @@ abstract class SphinxRepository(
             }
 
             networkQueryMessage.boostMessage(
-                chatId,
-                pricePerMessage,
-                escrowAmount,
-                owner.tipAmount ?: Sat(20L),
-                messageUUID,
+                boostMessageDto = PostBoostMessageDto(
+                    boost = true,
+                    chat_id = chatId.value,
+                    amount = pricePerMessage.value + escrowAmount.value + (owner.tipAmount ?: Sat(20L)).value,
+                    message_price = pricePerMessage.value + escrowAmount.value,
+                    reply_uuid = messageUUID.value
+                )
             ).collect { loadResponse ->
                 Exhaustive@
                 when (loadResponse) {

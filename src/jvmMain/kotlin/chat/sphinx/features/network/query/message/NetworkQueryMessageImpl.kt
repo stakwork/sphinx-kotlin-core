@@ -136,30 +136,15 @@ class NetworkQueryMessageImpl(
         )
 
     override fun boostMessage(
-        chatId: ChatId,
-        pricePerMessage: Sat,
-        escrowAmount: Sat,
-        tipAmount: Sat,
-        messageUUID: MessageUUID,
+        boostMessageDto: PostBoostMessageDto,
         relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
     ): Flow<LoadResponse<MessageDto, ResponseError>> {
-        val postBoostMessageDto: PostBoostMessage = try {
-            PostBoostMessage(
-                chat_id = chatId.value,
-                amount = pricePerMessage.value + escrowAmount.value + tipAmount.value,
-                message_price = pricePerMessage.value + escrowAmount.value,
-                reply_uuid = messageUUID.value
-            )
-        } catch (e: IllegalArgumentException) {
-            return flowOf(Response.Error(ResponseError("Incorrect Arguments provided", e)))
-        }
-
         return networkRelayCall.relayPost(
             responseJsonSerializer = MessageRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_MESSAGES,
             requestBodyPair = Pair(
-                postBoostMessageDto,
-                PostBoostMessage.serializer()
+                boostMessageDto,
+                PostBoostMessageDto.serializer()
             ),
             relayData = relayData
         )
