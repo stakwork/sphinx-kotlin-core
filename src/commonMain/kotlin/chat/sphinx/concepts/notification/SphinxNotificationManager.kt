@@ -8,7 +8,7 @@ interface SphinxNotificationManager {
         const val CHANNEL_ID = "SphinxNotification"
         const val CHANNEL_DESCRIPTION = "Notifications for Sphinx Chat"
         const val MEDIA_NOTIFICATION_ID = 1984
-        const val DOWNLOAD_NOTIFICATION_ID = 1985
+        const val DOWNLOAD_NOTIFICATION_ID = 1985L
 
         val SERVICE_INTENT_FILTER: String by lazy {
             SecureRandom.nextBits(130).toString(32)
@@ -16,7 +16,7 @@ interface SphinxNotificationManager {
     }
 
     fun notify(
-        notificationId: Int,
+        notificationId: Long,
         groupId: String? = null,
         title: String,
         message: String

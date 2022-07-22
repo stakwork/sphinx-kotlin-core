@@ -303,11 +303,13 @@ abstract class SphinxRepository(
                                                 queries
                                             )
                                             // Don't send notification when I'm the sender
-                                            sphinxNotificationManager.notify(
-                                                notificationId = id.value.toInt(),
-                                                title = "New ${chatTypeText(chatDto?.type)} message",
-                                                message = "Message from ${nnMessageDto.sender_alias}"
-                                            )
+                                            nnMessageDto.sender_alias?.let { senderAlias ->
+                                                sphinxNotificationManager.notify(
+                                                    notificationId = id.value,
+                                                    title = "New ${chatTypeText(chatDto?.type)} message",
+                                                    message = "Message from $senderAlias"
+                                                )
+                                            }
                                         }
                                     }
                                 }
