@@ -102,6 +102,17 @@ inline fun Message.retrieveVideoUrlAndMessageMedia(): Pair<String, MessageMedia?
 }
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun Message.retrieveFileUrlAndMessageMedia(): Pair<String, MessageMedia?>? {
+    return messageMedia?.let { media ->
+        if (media.mediaType.isPdf || media.mediaType.isUnknown) {
+            retrieveUrlAndMessageMedia()
+        } else {
+            null
+        }
+    }
+}
+
+@Suppress("NOTHING_TO_INLINE")
 inline fun Message.retrieveUrlAndMessageMedia(): Pair<String, MessageMedia?>? {
     var mediaData: Pair<String, MessageMedia?>? = null
 
@@ -245,6 +256,12 @@ inline val Message.isMediaAttachmentAvailable: Boolean
             (retrieveImageUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
              retrieveVideoUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false)
 
+inline val Message.isAttachmentAvailable: Boolean
+    get() = type.canContainMedia &&
+            (retrieveImageUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
+                    retrieveVideoUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
+                    retrieveFileUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false)
+
 inline val Message.isCopyAllowed: Boolean
     get() = (this.retrieveTextToShow() ?: "").isNotEmpty() || (this.retrieveInvoiceTextToShow() ?: "").isNotEmpty()
 
@@ -259,7 +276,7 @@ inline val Message.isResendAllowed: Boolean
     get() = type.isMessage() && status.isFailed()
 
 inline val Message.isSaveAllowed: Boolean
-    get() = this.isMediaAttachmentAvailable
+    get() = this.isAttachmentAvailable
 
 inline fun Message.isDeleteAllowed(
     chat: Chat,

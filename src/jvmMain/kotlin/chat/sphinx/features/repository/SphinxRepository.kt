@@ -2412,6 +2412,7 @@ abstract class SphinxRepository(
                                     chatDbo.id,
                                     MediaKeyDecrypted(media.first.value.joinToString("")),
                                     media.third.filePath,
+                                    null
                                 )
                             }
 
@@ -2455,7 +2456,8 @@ abstract class SphinxRepository(
                                     provisionalId,
                                     chatDbo.id,
                                     MediaKeyDecrypted(media.first.value.joinToString("")),
-                                    media.third.filePath
+                                    media.third.filePath,
+                                    null
                                 )
                             }
                         }
@@ -5327,41 +5329,44 @@ abstract class SphinxRepository(
                     !message.status.isDeleted() &&
                     (!message.isPaidPendingMessage || sent)
                 ) {
-                    val streamToFilePath: Path? = mediaCacheHandler.createFile(
-                        message.messageMedia?.mediaType ?: media.mediaType
-                    )
+                    memeServerTokenHandler.retrieveAuthenticationToken(host)?.let { token ->
+                        memeInputStreamHandler.retrieveMediaInputStream(
+                            url.value,
+                            token,
+                            media.mediaKeyDecrypted,
+                        )?.let { streamAndFileName ->
 
-                    if (streamToFilePath != null) {
-                        memeServerTokenHandler.retrieveAuthenticationToken(host)?.let { token ->
-                            memeInputStreamHandler.retrieveMediaInputStream(
-                                url.value,
-                                token,
-                                media.mediaKeyDecrypted,
-                            )?.let { stream ->
-                                mediaCacheHandler.copyTo(stream, streamToFilePath)
-                                messageLock.withLock {
-                                    withContext(io) {
-                                        queries.transaction {
-                                            queries.messageMediaUpdateFile(
-                                                streamToFilePath,
-                                                messageId
-                                            )
+                            mediaCacheHandler.createFile(
+                                mediaType = message.messageMedia?.mediaType ?: media.mediaType,
+                                extension = streamAndFileName.second?.getExtension()
+                            )?.let { streamToFile ->
 
-                                            // to proc table change so new file path is pushed to UI
-                                            queries.messageUpdateContentDecrypted(
-                                                message.messageContentDecrypted,
-                                                messageId
-                                            )
+                                streamAndFileName.first?.let { stream ->
+                                    mediaCacheHandler.copyTo(stream, streamToFile)
+                                    messageLock.withLock {
+                                        withContext(io) {
+                                            queries.transaction {
+
+                                                queries.messageMediaUpdateFile(
+                                                    streamToFile,
+                                                    streamAndFileName.second,
+                                                    messageId
+                                                )
+
+                                                // to proc table change so new file path is pushed to UI
+                                                queries.messageUpdateContentDecrypted(
+                                                    message.messageContentDecrypted,
+                                                    messageId
+                                                )
+                                            }
                                         }
                                     }
+
+                                    // hold downloadLock until table change propagates to UI
+                                    delay(200L)
                                 }
-
-                                // hold downloadLock until table change propagates to UI
-                                delay(200L)
-
-                            } ?: FileSystem.SYSTEM.delete(streamToFilePath)
-
-                        } ?: FileSystem.SYSTEM.delete(streamToFilePath)
+                            }
+                        }
                     }
                 }
 
@@ -5435,33 +5440,35 @@ abstract class SphinxRepository(
                             url,
                             authenticationToken = null,
                             mediaKeyDecrypted = null,
-                        )?.let { stream ->
-                            sphinxNotificationManager.notify(
-                                notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
-                                title = "Completing Download",
-                                message = "Finishing up download of file",
-                            )
-                            mediaCacheHandler.copyTo(stream, streamToFilePath)
+                        )?.let { streamAndFileName ->
+                            streamAndFileName.first?.let { stream ->
+                                sphinxNotificationManager.notify(
+                                    notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
+                                    title = "Completing Download",
+                                    message = "Finishing up download of file",
+                                )
+                                mediaCacheHandler.copyTo(stream, streamToFilePath)
 
-                            feedItemLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        queries.feedItemUpdateLocalFile(
-                                            streamToFilePath,
-                                            feedItemId
-                                        )
+                                feedItemLock.withLock {
+                                    withContext(io) {
+                                        queries.transaction {
+                                            queries.feedItemUpdateLocalFile(
+                                                streamToFilePath,
+                                                feedItemId
+                                            )
+                                        }
                                     }
                                 }
-                            }
 
-                            sphinxNotificationManager.notify(
-                                notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
-                                title = "Download complete",
-                                message = "item can now be accessed offline",
-                            )
-                            // hold downloadLock until table change propagates to UI
-                            delay(200L)
-                            downloadCompleteCallback.invoke(streamToFilePath)
+                                sphinxNotificationManager.notify(
+                                    notificationId = SphinxNotificationManager.DOWNLOAD_NOTIFICATION_ID,
+                                    title = "Download complete",
+                                    message = "item can now be accessed offline",
+                                )
+                                // hold downloadLock until table change propagates to UI
+                                delay(200L)
+                                downloadCompleteCallback.invoke(streamToFilePath)
+                            } ?: FileSystem.SYSTEM.delete(streamToFilePath)
                         } ?: FileSystem.SYSTEM.delete(streamToFilePath)
                     }
                 } else {
@@ -5613,6 +5620,7 @@ abstract class SphinxRepository(
                 queries.transaction {
                     queries.messageMediaUpdateFile(
                         filepath,
+                        null,
                         message.id
                     )
                 }

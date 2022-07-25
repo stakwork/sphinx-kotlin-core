@@ -1,6 +1,7 @@
 package chat.sphinx.concepts.meme_input_stream
 
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
+import chat.sphinx.wrapper.message.media.FileName
 import chat.sphinx.wrapper.message.media.MediaKeyDecrypted
 import java.io.InputStream
 
@@ -10,5 +11,5 @@ abstract class MemeInputStreamHandler {
         url: String,
         authenticationToken: AuthenticationToken?,
         mediaKeyDecrypted: MediaKeyDecrypted?
-    ): InputStream?
+    ): Pair<InputStream?, FileName?>?
 }

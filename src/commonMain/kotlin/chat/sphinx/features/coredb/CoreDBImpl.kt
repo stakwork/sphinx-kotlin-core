@@ -4,10 +4,6 @@ import chat.sphinx.concepts.authentication.encryption_key.EncryptionKey
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.database.core.*
 import chat.sphinx.features.coredb.adapters.invite.InviteStringAdapter
-import chat.sphinx.features.coredb.adapters.media.MediaKeyAdapter
-import chat.sphinx.features.coredb.adapters.media.MediaKeyDecryptedAdapter
-import chat.sphinx.features.coredb.adapters.media.MediaTokenAdapter
-import chat.sphinx.features.coredb.adapters.media.MediaTypeAdapter
 import chat.sphinx.features.coredb.adapters.subscription.CronAdapter
 import chat.sphinx.features.coredb.adapters.subscription.EndNumberAdapter
 import chat.sphinx.features.coredb.adapters.subscription.SubscriptionCountAdapter
@@ -68,6 +64,12 @@ import chat.sphinx.features.coredb.adapters.feed.FeedTitleAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedTypeAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedUrlAdapter
 import chat.sphinx.features.coredb.adapters.feed.SubscribedAdapter
+import chat.sphinx.features.coredb.adapters.media.*
+import chat.sphinx.features.coredb.adapters.media.FileNameAdapter
+import chat.sphinx.features.coredb.adapters.media.MediaKeyAdapter
+import chat.sphinx.features.coredb.adapters.media.MediaKeyDecryptedAdapter
+import chat.sphinx.features.coredb.adapters.media.MediaTokenAdapter
+import chat.sphinx.features.coredb.adapters.media.MediaTypeAdapter
 import chat.sphinx.features.coredb.adapters.message.*
 import chat.sphinx.features.coredb.adapters.message.FlaggedAdapter
 import chat.sphinx.features.coredb.adapters.message.MessageContentAdapter
@@ -209,6 +211,7 @@ abstract class CoreDBImpl: CoreDB() {
                     media_typeAdapter = MediaTypeAdapter(),
                     media_tokenAdapter = MediaTokenAdapter(),
                     local_fileAdapter = PathAdapter.getInstance(),
+                    file_nameAdapter = FileNameAdapter(),
                 ),
                 subscriptionDboAdapter = SubscriptionDbo.Adapter(
                     idAdapter = SubscriptionIdAdapter.getInstance(),

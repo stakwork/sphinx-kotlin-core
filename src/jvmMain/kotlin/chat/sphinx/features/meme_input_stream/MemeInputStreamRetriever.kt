@@ -6,7 +6,9 @@ import chat.sphinx.concepts.network.client.crypto.CryptoScheme
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
 import chat.sphinx.wrapper.meme_server.headerKey
 import chat.sphinx.wrapper.meme_server.headerValue
+import chat.sphinx.wrapper.message.media.FileName
 import chat.sphinx.wrapper.message.media.MediaKeyDecrypted
+import chat.sphinx.wrapper.message.media.toFileName
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -25,7 +27,7 @@ internal data class MemeInputStreamRetriever(
     suspend fun getMemeInputStream(
         dispatchers: CoroutineDispatchers,
         okHttpClient: OkHttpClient
-    ): InputStream? {
+    ): Pair<InputStream?, FileName?>? {
         val request = Request.Builder().apply {
             url(url)
             authenticationToken?.let {
@@ -57,6 +59,24 @@ internal data class MemeInputStreamRetriever(
             }
         }
 
-        return response?.body?.source()?.inputStream()
+        val inputStream = if (response?.isSuccessful == false) {
+            null
+        } else {
+            response?.body?.source()?.inputStream()
+        }
+
+        response?.header("Content-Disposition")?.let { contentDisposition ->
+            if (contentDisposition.contains("filename=")) {
+                return Pair(
+                    inputStream,
+                    contentDisposition
+                        .replaceBefore("filename=", "")
+                        .replace("filename=", "")
+                        .toFileName()
+                )
+            }
+        }
+
+        return Pair(inputStream, null)
     }
 }

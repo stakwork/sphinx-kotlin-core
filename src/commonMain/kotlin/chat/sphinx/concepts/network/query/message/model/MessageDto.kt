@@ -4,6 +4,7 @@ import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
 import chat.sphinx.serialization.SphinxBoolean
 import chat.sphinx.utils.platform.getFileSystem
+import chat.sphinx.wrapper.message.media.FileName
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -72,6 +73,15 @@ data class MessageDto(
     @Volatile
     var mediaLocalFile: Path? = null
         private set
+
+    @Transient
+    @Volatile
+    var localFileName: FileName? = null
+        private set
+
+    fun setLocalFileName(fileName: FileName) {
+        localFileName = fileName
+    }
 
     fun setMediaLocalFile(file: Path) {
         mediaLocalFile = try {

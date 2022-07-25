@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.io.errors.IOException
 import okio.*
+import java.io.File
 import java.io.InputStream
 import kotlin.io.use
 
@@ -35,14 +36,18 @@ class MediaCacheHandlerImpl(
         const val AUDIO_CACHE_DIR = "sphinx_audio_cache"
         const val IMAGE_CACHE_DIR = "sphinx_image_cache"
         const val VIDEO_CACHE_DIR = "sphinx_video_cache"
+        const val PDF_CACHE_DIR = "sphinx_pdf_cache"
         const val PAID_TEXT_CACHE_DIR = "sphinx_paid_text_cache"
+        const val GENERIC_FILES_CACHE_DIR = "sphinx_files_cache"
 
         const val DATE_FORMAT = "yyy_MM_dd_HH_mm_ss_SSS"
 
         const val AUD = "AUD"
         const val IMG = "IMG"
         const val VID = "VID"
+        const val PDF = "PDF"
         const val TXT = "TXT"
+        const val FILE = "FILE"
 
         private val cacheDirLock = SynchronizedObject()
     }
@@ -65,13 +70,28 @@ class MediaCacheHandlerImpl(
         }
     }
 
+    private val pdfCache: Path by lazy {
+        cacheDir.resolve(PDF_CACHE_DIR).also {
+            FileSystem.SYSTEM.createDirectory(it)
+        }
+    }
+
+    private val genericFilesCache: Path by lazy {
+        cacheDir.resolve(GENERIC_FILES_CACHE_DIR).also {
+            FileSystem.SYSTEM.createDirectory(it)
+        }
+    }
+
     private val paidTextCache: Path by lazy {
         cacheDir.resolve(PAID_TEXT_CACHE_DIR).also {
             FileSystem.SYSTEM.createDirectory(it)
         }
     }
 
-    override fun createFile(mediaType: MediaType): Path? {
+    override fun createFile(
+        mediaType: MediaType,
+        extension: String?
+    ): Path? {
         return when (mediaType) {
             is MediaType.Audio -> {
                 mediaType.value.split("/").lastOrNull()?.let { fileType ->
@@ -102,8 +122,17 @@ class MediaCacheHandlerImpl(
                 null
             }
             is MediaType.Pdf -> {
-                // TODO: Implement
-                null
+                mediaType.value.split("/").lastOrNull()?.let { fileType ->
+                    when {
+                        fileType.contains("pdf", ignoreCase = true) -> {
+                            createPdfFile("pdf")
+                        }
+                        else -> {
+                            null
+                        }
+                    }
+                }
+
             }
             is MediaType.Text -> {
                 // TODO: Implement
@@ -135,7 +164,7 @@ class MediaCacheHandlerImpl(
                 }
             }
             is MediaType.Unknown -> {
-                null
+                createGenericFile(extension ?: "txt")
             }
         }
     }
@@ -149,8 +178,14 @@ class MediaCacheHandlerImpl(
     override fun createVideoFile(extension: String): Path =
         createFileImpl(videoCache, VID, extension)
 
+    override fun createPdfFile(extension: String): Path =
+        createFileImpl(pdfCache, PDF, extension)
+
     override fun createPaidTextFile(extension: String): Path =
         createFileImpl(paidTextCache, TXT, extension)
+
+    private fun createGenericFile(extension: String): Path =
+        createFileImpl(genericFilesCache, FILE, extension)
 
     private fun createFileImpl(cacheDir: Path, prefix: String, extension: String): Path {
         if (!FileSystem.SYSTEM.exists(cacheDir)) {
