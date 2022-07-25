@@ -2412,7 +2412,7 @@ abstract class SphinxRepository(
                                     chatDbo.id,
                                     MediaKeyDecrypted(media.first.value.joinToString("")),
                                     media.third.filePath,
-                                    null
+                                    media.third.fileName
                                 )
                             }
 
@@ -2457,7 +2457,7 @@ abstract class SphinxRepository(
                                     chatDbo.id,
                                     MediaKeyDecrypted(media.first.value.joinToString("")),
                                     media.third.filePath,
-                                    null
+                                    media.third.fileName
                                 )
                             }
                         }
@@ -2739,7 +2739,11 @@ abstract class SphinxRepository(
                                             upsertContact(contactDto, queries)
                                         }
 
-                                        upsertMessage(loadResponse.value, queries)
+                                        upsertMessage(
+                                            loadResponse.value,
+                                            queries,
+                                            media?.third?.fileName
+                                        )
 
                                         provisionalMessageId?.let { provId ->
                                             deleteMessageById(provId, queries)
