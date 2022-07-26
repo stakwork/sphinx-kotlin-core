@@ -313,7 +313,7 @@ abstract class SphinxRepository(
                                                 sphinxNotificationManager.notify(
                                                     notificationId = id.value,
                                                     title = if (chatName != null) {
-                                                        "Message from $senderAlias on $chatName"
+                                                        "$chatName: message from $senderAlias"
                                                     } else {
                                                         "Message from $senderAlias"
                                                     },
