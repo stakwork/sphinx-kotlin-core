@@ -252,15 +252,18 @@ abstract class SphinxRepository(
                     }
 
                     messageDto?.let { nnMessageDto ->
+                        val supervisor = SupervisorJob(currentCoroutineContext().job)
+                        val scope = CoroutineScope(supervisor)
+
                         decryptMessageDtoContentIfAvailable(
                             nnMessageDto,
-                            coroutineScope { this },
+                            scope,
                             io
                         )?.join()
 
                         decryptMessageDtoMediaKeyIfAvailable(
                             nnMessageDto,
-                            coroutineScope { this },
+                            scope,
                             io
                         )?.join()
 
@@ -302,12 +305,19 @@ abstract class SphinxRepository(
                                                 latestMessageUpdatedTimeMap,
                                                 queries
                                             )
-                                            // Don't send notification when I'm the sender
-                                            nnMessageDto.sender_alias?.let { senderAlias ->
+
+                                            val sender = nnMessageDto.sender_alias ?: contactDto?.alias
+                                            val chatName = chatDto?.name
+
+                                            sender?.let { senderAlias ->
                                                 sphinxNotificationManager.notify(
                                                     notificationId = id.value,
-                                                    title = "New ${chatTypeText(chatDto?.type)} message",
-                                                    message = "Message from $senderAlias"
+                                                    title = if (chatName != null) {
+                                                        "Message from $senderAlias on $chatName"
+                                                    } else {
+                                                        "Message from $senderAlias"
+                                                    },
+                                                    message = nnMessageDto.getNotificationText() ?: ""
                                                 )
                                             }
                                         }

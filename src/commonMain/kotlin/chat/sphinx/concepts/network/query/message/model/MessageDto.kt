@@ -4,7 +4,12 @@ import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
 import chat.sphinx.serialization.SphinxBoolean
 import chat.sphinx.utils.platform.getFileSystem
+import chat.sphinx.wrapper.lightning.asFormattedString
+import chat.sphinx.wrapper.lightning.toSat
+import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.FileName
+import chat.sphinx.wrapper.message.media.MediaType
+import chat.sphinx.wrapper.message.media.toMediaType
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -94,6 +99,90 @@ data class MessageDto(
             }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    fun getNotificationText(): String? {
+        return when {
+            this.status == MessageStatus.DELETED -> {
+                "Message deleted"
+            }
+            this.type == MessageType.PAYMENT -> {
+                val amount: String = this.amount.toSat()?.asFormattedString(separator = ',', appendUnit = true) ?: "0"
+                "Payment Received: $amount"
+            }
+            this.type.toMessageType().isGroupJoin() -> {
+                "Has joined the tribe"
+            }
+            this.type.toMessageType().isGroupLeave() -> {
+                "Just left the tribe"
+            }
+            this.type.toMessageType().isMemberRequest() -> {
+                "Wants to join the tribe"
+            }
+            this.type.toMessageType().isMemberReject() -> {
+                "The admin declined your request"
+            }
+            this.type.toMessageType().isMemberApprove() -> {
+                "Welcome! You’re now a member"
+            }
+            this.type.toMessageType().isGroupKick() -> {
+                "The admin has removed you from this group"
+            }
+            this.type.toMessageType().isTribeDelete() -> {
+                "The admin deleted this tribe"
+            }
+            this.type.toMessageType().isBoost() -> {
+                "Boost received"
+            }
+            this.type.toMessageType().isMessage() -> {
+                this.messageContentDecrypted?.let { decrypted ->
+                    decrypted
+                } ?: null
+            }
+            this.type.toMessageType().isInvoice() -> {
+                "Invoice received"
+
+            }
+            this.type.toMessageType().isDirectPayment() -> {
+                "Payment received"
+            }
+            this.type.toMessageType().isAttachment() -> {
+                this.media_type?.toMediaType()?.let { type ->
+                    when (type) {
+                        is MediaType.Audio -> {
+                            "Audio clip"
+                        }
+                        is MediaType.Image -> {
+                            if (type.isGif) {
+                                "Gif"
+                            } else {
+                                "Image"
+                            }
+                        }
+                        is MediaType.Pdf -> {
+                            "Pdf"
+                        }
+                        is MediaType.Text -> {
+                            "Paid message"
+                        }
+                        is MediaType.Unknown -> {
+                            "Attachment"
+                        }
+                        is MediaType.Video -> {
+                            "Video"
+                        }
+                    }?.let { element ->
+                        "$element received"
+                    }
+                } ?: ""
+            }
+            this.type.toMessageType().isBotRes() -> {
+                "Bot response received"
+            }
+            else -> {
+                null
+            }
         }
     }
 }
