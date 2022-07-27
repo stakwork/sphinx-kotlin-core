@@ -15,7 +15,7 @@ import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
-import chat.sphinx.concepts.network.query.transport_key.NetworkQueryTransportKey
+import chat.sphinx.concepts.network.query.relay_keys.NetworkQueryRelayKeys
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
@@ -34,7 +34,7 @@ import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
 import chat.sphinx.features.network.query.redeem_badge_token.NetworkQueryRedeemBadgeTokenImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
 import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
-import chat.sphinx.features.network.query.transport_key.NetworkQueryTransportKeyImpl
+import chat.sphinx.features.network.query.transport_key.NetworkQueryRelayKeysImpl
 import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeExternalImpl
 import chat.sphinx.features.network.query.version.NetworkQueryVersionImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
@@ -61,7 +61,7 @@ class NetworkModule(
     appModule: AppModule,
     authenticationModule: AuthenticationModule
 ) {
-    val torManager = createTorManager(
+    private val torManager = createTorManager(
         appModule.applicationScope,
         authenticationModule.authenticationStorage,
         appModule.buildConfigDebug,
@@ -92,8 +92,8 @@ class NetworkModule(
         torManager,
         appModule.sphinxLogger,
     )
-    val networkClient: NetworkClient = networkClientImpl
-    val networkClientCache: NetworkClientCache = networkClientImpl
+    private val networkClient: NetworkClient = networkClientImpl
+    private val networkClientCache: NetworkClientCache = networkClientImpl
     private val socketIOManagerImpl = SocketIOManagerImpl(
         appModule.dispatchers,
         networkClient,
@@ -122,29 +122,40 @@ class NetworkModule(
     )
     private val networkQueryContactImpl = NetworkQueryContactImpl(networkRelayCall)
     val networkQueryContact: NetworkQueryContact = networkQueryContactImpl
+
     private val networkQueryInviteImpl = NetworkQueryInviteImpl(networkRelayCall)
     val networkQueryInvite: NetworkQueryInvite = networkQueryInviteImpl
+
     private val networkQueryLightningImpl = NetworkQueryLightningImpl(networkRelayCall)
     val networkQueryLightning: NetworkQueryLightning = networkQueryLightningImpl
+
     private val networkQueryMessageImpl = NetworkQueryMessageImpl(networkRelayCall)
     val networkQueryMessage: NetworkQueryMessage = networkQueryMessageImpl
+
     private val networkQuerySubscriptionImpl = NetworkQuerySubscriptionImpl(networkRelayCall)
     val networkQuerySubscription: NetworkQuerySubscription = networkQuerySubscriptionImpl
+
     private val networkQueryMemeServerImpl = NetworkQueryMemeServerImpl(
         appModule.dispatchers,
         networkRelayCall
     )
     val networkQueryMemeServer: NetworkQueryMemeServer = networkQueryMemeServerImpl
+
     private val networkQueryVersionImpl = NetworkQueryVersionImpl(networkRelayCall)
     val networkQueryVersion: NetworkQueryVersion = networkQueryVersionImpl
+
     private val networkQueryAuthorizeExternalImpl = NetworkQueryAuthorizeExternalImpl(networkRelayCall)
     val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal = networkQueryAuthorizeExternalImpl
+
     private val networkQueryFeedSearchImpl = NetworkQueryFeedSearchImpl(networkRelayCall)
     val networkQueryFeedSearch: NetworkQueryFeedSearch = networkQueryFeedSearchImpl
+
     private val networkQuerySaveProfileImpl = NetworkQuerySaveProfileImpl(networkRelayCall)
     val networkQuerySaveProfile: NetworkQuerySaveProfile = networkQuerySaveProfileImpl
+
     private val networkQueryRedeemBadgeTokenImpl = NetworkQueryRedeemBadgeTokenImpl(networkRelayCall)
     val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken = networkQueryRedeemBadgeTokenImpl
-    val networkQueryTransportKeyImpl = NetworkQueryTransportKeyImpl(networkRelayCall)
-    val networkQueryTransportKey: NetworkQueryTransportKey = networkQueryTransportKeyImpl
+
+    private val networkQueryRelayKeysImpl = NetworkQueryRelayKeysImpl(networkRelayCall)
+    val networkQueryRelayKeys: NetworkQueryRelayKeys = networkQueryRelayKeysImpl
 }

@@ -21,6 +21,7 @@ import chat.sphinx.response.message
 import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import io.socket.client.IO
 import io.socket.client.Manager
@@ -159,7 +160,7 @@ class SocketIOManagerImpl(
     private class SocketInstanceHolder(
         val socket: Socket,
         val socketIOClient: OkHttpClient,
-        val relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>,
+        val relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>,
         val socketIOSupervisor: Job = SupervisorJob(),
         val socketIOScope: CoroutineScope = CoroutineScope(socketIOSupervisor)
     )
@@ -190,7 +191,7 @@ class SocketIOManagerImpl(
     }
 
     override suspend fun connect(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Response<Any, ResponseError> =
         lock.withLock {
             instance?.let { nnInstance ->
@@ -224,9 +225,9 @@ class SocketIOManagerImpl(
 
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "UNCHECKED_CAST")
     private suspend fun buildSocket(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Response<SocketInstanceHolder, ResponseError> {
-        val nnRelayData: Triple<AuthorizationToken, TransportToken?, RelayUrl> = relayData
+        val nnRelayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl> = relayData
             ?: relayDataHandler.retrieveRelayUrlAndToken().let { response ->
                 Exhaustive@
                 when (response) {
@@ -280,10 +281,10 @@ class SocketIOManagerImpl(
 
                     val headers = requestArgs[0] as java.util.Map<String, List<String>>
 
-                    if (nnRelayData.second != null) {
-                        headers.put(TransportToken.TRANSPORT_TOKEN_HEADER, listOf(nnRelayData.second!!.value))
+                    if (nnRelayData.first.second != null) {
+                        headers.put(TransportToken.TRANSPORT_TOKEN_HEADER, listOf(nnRelayData.first.second!!.value))
                     } else {
-                        headers.put(AuthorizationToken.AUTHORIZATION_HEADER, listOf(nnRelayData.first.value))
+                        headers.put(AuthorizationToken.AUTHORIZATION_HEADER, listOf(nnRelayData.first.first.value))
                     }
                 }
             } catch (e: Exception) {

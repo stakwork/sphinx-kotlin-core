@@ -8,18 +8,19 @@ import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
 abstract class NetworkQueryAuthorizeExternal {
 
     abstract fun verifyExternal(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null,
     ): Flow<LoadResponse<VerifyExternalDto, ResponseError>>
 
     abstract fun signBase64(
         base64: String,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null,
     ): Flow<LoadResponse<SignBase64Dto, ResponseError>>
 
     abstract fun authorizeExternal(

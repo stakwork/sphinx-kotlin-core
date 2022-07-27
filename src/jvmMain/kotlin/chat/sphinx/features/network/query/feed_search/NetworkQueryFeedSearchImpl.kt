@@ -9,6 +9,7 @@ import chat.sphinx.wrapper.feed.FeedType
 import chat.sphinx.wrapper.feed.isPodcast
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
@@ -26,7 +27,7 @@ class NetworkQueryFeedSearchImpl(
     override fun searchFeeds(
         searchTerm: String,
         feedType: FeedType,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<List<FeedSearchResultDto>, ResponseError>> =
         networkRelayCall.getList(
             url = if (feedType.isPodcast())
