@@ -1,4 +1,4 @@
-package chat.sphinx.concepts.network.query.transport_key.model
+package chat.sphinx.concepts.network.query.relay_keys.model
 
 import kotlinx.serialization.Serializable
 

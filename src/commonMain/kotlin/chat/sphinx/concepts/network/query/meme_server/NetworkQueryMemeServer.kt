@@ -14,6 +14,7 @@ import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import okio.Path
@@ -27,7 +28,7 @@ abstract class NetworkQueryMemeServer {
 
     abstract fun signChallenge(
         challenge: AuthenticationChallenge,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>? = null,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null,
     ): Flow<LoadResponse<MemeServerChallengeSigDto, ResponseError>>
 
     abstract fun verifyAuthentication(

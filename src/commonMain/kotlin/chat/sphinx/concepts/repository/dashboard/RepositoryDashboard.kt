@@ -69,4 +69,7 @@ interface RepositoryDashboard {
     val networkRefreshMessages: Flow<LoadResponse<RestoreProgress, ResponseError>>
 
     suspend fun didCancelRestore()
+
+    fun getAndSaveTransportKey()
+    fun getOrCreateHMacKey()
 }

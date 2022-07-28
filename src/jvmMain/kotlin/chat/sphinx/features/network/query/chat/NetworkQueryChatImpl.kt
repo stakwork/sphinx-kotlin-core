@@ -15,6 +15,7 @@ import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.feed.FeedUrl
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
@@ -55,7 +56,7 @@ class NetworkQueryChatImpl(
     }
 
     override fun getChats(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<List<chat.sphinx.concepts.network.query.chat.model.ChatDto>, ResponseError>> =
         if (relayData == null) {
             getChatsFlowNullData
@@ -97,7 +98,7 @@ class NetworkQueryChatImpl(
     override fun updateChat(
         chatId: ChatId,
         putChatDto: chat.sphinx.concepts.network.query.chat.model.PutChatDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = UpdateChatRelayResponse.serializer(),
@@ -112,7 +113,7 @@ class NetworkQueryChatImpl(
     override fun kickMemberFromChat(
         chatId: ChatId,
         contactId: ContactId,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>>  =
         networkRelayCall.relayPut(
             responseJsonSerializer = UpdateChatRelayResponse.serializer(),
@@ -129,7 +130,7 @@ class NetworkQueryChatImpl(
     override fun updateTribe(
     chatId: ChatId,
     postGroupDto: chat.sphinx.concepts.network.query.chat.model.PostGroupDto,
-    relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+    relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = PostGroupRelayResponse.serializer(),
@@ -146,7 +147,7 @@ class NetworkQueryChatImpl(
     ////////////
     override fun createTribe(
         postGroupDto: chat.sphinx.concepts.network.query.chat.model.PostGroupDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto?, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = PostGroupRelayResponse.serializer(),
@@ -160,7 +161,7 @@ class NetworkQueryChatImpl(
 
     override fun streamSats(
         postStreamSatsDto: chat.sphinx.concepts.network.query.chat.model.PostStreamSatsDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<Any?, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = StreamSatsRelayResponse.serializer(),
@@ -175,7 +176,7 @@ class NetworkQueryChatImpl(
     override fun toggleMuteChat(
         chatId: ChatId,
         muted: ChatMuted,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>> =
         toggleMuteChatImpl(
             endpoint = "/chats/${chatId.value}/${if (muted.isTrue()) UN_MUTE_CHAT else MUTE_CHAT}",
@@ -184,7 +185,7 @@ class NetworkQueryChatImpl(
 
     private fun toggleMuteChatImpl(
         endpoint: String,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = UpdateChatRelayResponse.serializer(),
@@ -198,7 +199,7 @@ class NetworkQueryChatImpl(
 
     override fun joinTribe(
         tribeDto: TribeDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<chat.sphinx.concepts.network.query.chat.model.ChatDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = JoinTribeRelayResponse.serializer(),
@@ -212,7 +213,7 @@ class NetworkQueryChatImpl(
 
     override suspend fun deleteChat(
         chatId: ChatId,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<Map<String, Long>, ResponseError>> =
         networkRelayCall.relayDelete(
             responseJsonSerializer = DeleteChatRelayResponse.serializer(),

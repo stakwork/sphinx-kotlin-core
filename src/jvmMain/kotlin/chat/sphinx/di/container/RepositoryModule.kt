@@ -24,7 +24,7 @@ class RepositoryModule(
     networkModule: NetworkModule,
     sphinxNotificationManager: SphinxNotificationManager
 ) {
-    val accountOwnerFlow: StateFlow<Contact?> = flow {
+    private val accountOwnerFlow: StateFlow<Contact?> = flow {
         emitAll(
             appModule.coreDBImpl.getSphinxDatabaseQueries().contactGetOwner()
                 .asFlow()
@@ -38,7 +38,8 @@ class RepositoryModule(
         SharingStarted.WhileSubscribed(5_000),
         null
     )
-    val memeServerTokenHandlerImpl = MemeServerTokenHandlerImpl(
+
+    private val memeServerTokenHandlerImpl = MemeServerTokenHandlerImpl(
         accountOwnerFlow,
         appModule.applicationScope,
         authenticationModule.authenticationStorage,
@@ -46,8 +47,10 @@ class RepositoryModule(
         networkModule.networkQueryMemeServer,
         appModule.sphinxLogger,
     )
+
     val memeServerTokenHandler: MemeServerTokenHandler = memeServerTokenHandlerImpl
-    val sphinxRepositoryPlatform = SphinxRepositoryPlatform(
+
+    private val sphinxRepositoryPlatform = SphinxRepositoryPlatform(
         accountOwnerFlow,
         appModule.applicationScope,
         authenticationModule.authenticationCoreManager,
@@ -69,11 +72,13 @@ class RepositoryModule(
         networkModule.networkQueryRedeemBadgeToken,
         networkModule.networkQuerySubscription,
         networkModule.networkQueryFeedSearch,
+        networkModule.networkQueryRelayKeys,
         authenticationModule.rsa,
         networkModule.socketIOManager,
         sphinxNotificationManager,
         appModule.sphinxLogger,
     )
+
     val chatRepository: ChatRepository = sphinxRepositoryPlatform
     val contactRepository: ContactRepository = sphinxRepositoryPlatform
     val lightningRepository: LightningRepository = sphinxRepositoryPlatform

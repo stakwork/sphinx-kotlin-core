@@ -15,6 +15,7 @@ import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.LightningRouteHint
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 
@@ -49,7 +50,7 @@ class NetworkQueryLightningImpl(
     }
 
     override fun getInvoices(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<InvoicesDto, ResponseError>> =
         if (relayData == null) {
             getInvoicesFlowNullData
@@ -70,7 +71,7 @@ class NetworkQueryLightningImpl(
     }
 
     override fun getChannels(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ChannelsDto, ResponseError>> =
         if (relayData == null) {
             getChannelsFlowNullData
@@ -91,7 +92,7 @@ class NetworkQueryLightningImpl(
     }
 
     override fun getBalance(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<BalanceDto, ResponseError>> =
         if (relayData == null) {
             getBalanceFlowNullData
@@ -112,7 +113,7 @@ class NetworkQueryLightningImpl(
     }
 
     override fun getBalanceAll(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<BalanceAllDto, ResponseError>> =
         if (relayData == null) {
             getBalanceAllFlowNullData
@@ -126,7 +127,7 @@ class NetworkQueryLightningImpl(
 
     override fun checkRoute(
         publicKey: LightningNodePubKey,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<RouteSuccessProbabilityDto, ResponseError>> =
         checkRouteImpl(
             endpoint = ENDPOINT_ROUTE + "?pubkey=${publicKey.value}&route_hint=",
@@ -136,7 +137,7 @@ class NetworkQueryLightningImpl(
     override fun checkRoute(
         publicKey: LightningNodePubKey,
         routeHint: LightningRouteHint,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<RouteSuccessProbabilityDto, ResponseError>> =
         checkRouteImpl(
             endpoint = ENDPOINT_ROUTE + "?pubkey=${publicKey.value}&route_hint=${routeHint.value}",
@@ -145,7 +146,7 @@ class NetworkQueryLightningImpl(
 
     override fun checkRoute(
         chatId: ChatId,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<RouteSuccessProbabilityDto, ResponseError>> =
         checkRouteImpl(
             endpoint = ENDPOINT_ROUTE_2 + "?chat_id=${chatId.value}",
@@ -154,7 +155,7 @@ class NetworkQueryLightningImpl(
 
     private fun checkRouteImpl(
         endpoint: String,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<RouteSuccessProbabilityDto, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = CheckRouteRelayResponse.serializer(),
@@ -163,7 +164,7 @@ class NetworkQueryLightningImpl(
         )
 
     override fun getLogs(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<String, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = GetLogsRelayResponse.serializer(),
@@ -173,7 +174,7 @@ class NetworkQueryLightningImpl(
 
     override fun postRequestPayment(
         postPaymentDto: PostRequestPaymentDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<LightningPaymentInvoiceDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = PostInvoicePaymentRelayResponse.serializer(),
@@ -187,7 +188,7 @@ class NetworkQueryLightningImpl(
 
     override fun putLightningPaymentRequest(
         payRequestDto: PayRequestDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<PaymentMessageDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = PayLightningPaymentRequestRelayResponse.serializer(),

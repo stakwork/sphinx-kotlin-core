@@ -15,6 +15,7 @@ import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.message.MessagePagination
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -56,7 +57,7 @@ class NetworkQueryContactImpl(
     }
 
     override fun getContacts(
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<GetContactsResponse, ResponseError>> =
         if (relayData == null) {
             getContactsFlowNullData
@@ -71,7 +72,7 @@ class NetworkQueryContactImpl(
 
     override fun getLatestContacts(
         date: DateTime?,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<GetLatestContactsResponse, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = GetLatestContactsRelayResponse.serializer(),
@@ -88,7 +89,7 @@ class NetworkQueryContactImpl(
         chatId: ChatId,
         offset: Int,
         limit: Int,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<GetTribeMembersResponse, ResponseError>> =
         networkRelayCall.relayGet(
             responseJsonSerializer = GetTribeMembersRelayResponse.serializer(),
@@ -102,7 +103,7 @@ class NetworkQueryContactImpl(
     override fun updateContact(
         contactId: ContactId,
         putContactDto: PutContactDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = ContactRelayResponse.serializer(),
@@ -117,7 +118,7 @@ class NetworkQueryContactImpl(
     override fun toggleBlockedContact(
         contactId: ContactId,
         blocked: Blocked,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         toggleBlockedContactImpl(
             endpoint = String.format(ENDPOINT_BLOCK_CONTACT, (if (blocked.isTrue()) UN_BLOCK_CONTACT else BLOCK_CONTACT), contactId.value),
@@ -126,7 +127,7 @@ class NetworkQueryContactImpl(
 
     private fun toggleBlockedContactImpl(
         endpoint: String,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPut(
             responseJsonSerializer = ContactRelayResponse.serializer(),
@@ -147,7 +148,7 @@ class NetworkQueryContactImpl(
     override fun generateToken(
         password: String?,
         publicKey: String?,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<GenerateTokenResponse, ResponseError>> {
         return networkRelayCall.relayPost(
             responseJsonSerializer = GenerateTokenRelayResponse.serializer(),
@@ -186,7 +187,7 @@ class NetworkQueryContactImpl(
 
     override fun createContact(
         postContactDto: PostContactDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = ContactRelayResponse.serializer(),
@@ -200,7 +201,7 @@ class NetworkQueryContactImpl(
 
     override fun generateGithubPAT(
         patDto: GithubPATDto,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<Any, ResponseError>> {
         return networkRelayCall.relayPost(
             responseJsonSerializer = GenerateGithubPATRelayResponse.serializer(),
@@ -218,7 +219,7 @@ class NetworkQueryContactImpl(
     //////////////
     override suspend fun deleteContact(
         contactId: ContactId,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Response<Any, ResponseError> {
 
         var response: Response<Any, ResponseError> = Response.Success(true)
@@ -239,7 +240,7 @@ class NetworkQueryContactImpl(
     override fun createNewInvite(
         nickname: String,
         welcomeMessage: String,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = CreateInviteRelayResponse.serializer(),
@@ -256,7 +257,7 @@ class NetworkQueryContactImpl(
 
     override fun exchangeKeys(
         contactId: ContactId,
-        relayData: Triple<AuthorizationToken, TransportToken?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ContactDto, ResponseError>> =
         networkRelayCall.relayPost(
             responseJsonSerializer = ContactRelayResponse.serializer(),
