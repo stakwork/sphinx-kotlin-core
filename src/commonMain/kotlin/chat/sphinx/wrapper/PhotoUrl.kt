@@ -14,6 +14,14 @@ inline fun String.toPhotoUrl(): PhotoUrl? =
 inline val PhotoUrl.thumbnailUrl: PhotoUrl
     get() = PhotoUrl(this.value + "?thumb=true")
 
+@Suppress("NOTHING_TO_INLINE")
+inline val PhotoUrl.notThumbnailUrl: PhotoUrl
+    get() = PhotoUrl(this.value.replace("?thumb=true", ""))
+
+@Suppress("NOTHING_TO_INLINE")
+inline val PhotoUrl.isThumbnailUrl: Boolean
+    get() = this.value.contains("?thumb=true")
+
 @JvmInline
 value class PhotoUrl(val value: String) {
     init {
