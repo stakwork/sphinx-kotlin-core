@@ -194,6 +194,8 @@ abstract class SphinxRepository(
      * */
     @Suppress("BlockingMethodInNonBlockingContext")
     override suspend fun onSocketIOMessageReceived(msg: SphinxSocketIOMessage) {
+        val ownerId: ContactId? = accountOwner.firstOrNull()?.id
+
         coreDB.getSphinxDatabaseQueriesOrNull()?.let { queries ->
             Exhaustive@
             when (msg) {
@@ -303,11 +305,18 @@ abstract class SphinxRepository(
                                                 queries
                                             )
                                             // Don't send notification when I'm the sender
-                                            nnMessageDto.sender_alias?.let { senderAlias ->
+                                            if (ownerId?.value != messageDto.sender) {
                                                 sphinxNotificationManager.notify(
                                                     notificationId = id.value,
-                                                    title = "New ${chatTypeText(chatDto?.type)} message",
-                                                    message = "Message from $senderAlias"
+                                                    title = chatNotificationTitle(
+                                                        chatDto,
+                                                        contactDto
+                                                    ),
+                                                    message = chatNotificationMessage(
+                                                        chatDto,
+                                                        messageDto,
+                                                        contactDto
+                                                    )
                                                 )
                                             }
                                         }
@@ -321,11 +330,32 @@ abstract class SphinxRepository(
         }
     }
 
-    private fun chatTypeText(type: Int?): String {
-        return if (type == 0) {
-            "chat"
+    private fun chatNotificationTitle(chatDto: ChatDto?, contactDto: ContactDto?): String {
+        val chatName = chatNameText(chatDto, contactDto)
+
+        return if (chatDto?.type == 0) {
+            "New message from $chatName"
         } else {
-            "tribe"
+            "New message in $chatName"
+        }
+    }
+
+    private fun chatNotificationMessage(chatDto: ChatDto?, messageDto: MessageDto?, contactDto: ContactDto?): String {
+        return if (chatDto?.type == 0) {
+            // Chat
+            "New message waiting for you"
+        } else {
+            // Tribe or group messages
+            val alias = messageDto?.sender_alias ?: contactDto?.alias ?: "sender"
+            "Message from $alias"
+        }
+    }
+
+    private fun chatNameText(chatDto: ChatDto?, contactDto: ContactDto?): String {
+        return if (chatDto?.type == 0) {
+            contactDto?.alias ?: "unknown sender"
+        } else {
+            chatDto?.name ?: "unknown tribe"
         }
     }
     /////////////
