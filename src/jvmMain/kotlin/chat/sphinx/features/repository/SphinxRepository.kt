@@ -332,13 +332,6 @@ abstract class SphinxRepository(
         }
     }
 
-    private fun chatTypeText(type: Int?): String {
-        return if (type == 0) {
-            "chat"
-        } else {
-            "tribe"
-        }
-    }
     /////////////
     /// Chats ///
     /////////////
