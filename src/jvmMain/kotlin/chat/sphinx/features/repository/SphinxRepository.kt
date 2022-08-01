@@ -5373,6 +5373,15 @@ abstract class SphinxRepository(
                                     // hold downloadLock until table change propagates to UI
                                     delay(200L)
                                 }
+                            } ?: run {
+                                if (message.messageMedia?.mediaType?.isSphinxText == true && sent) {
+                                    streamAndFileName?.first?.bufferedReader().use { it?.readText() }?.toMessageContentDecrypted()?.let {
+                                        queries.messageUpdateContentDecrypted(
+                                            it,
+                                            messageId
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

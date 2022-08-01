@@ -18,9 +18,6 @@ import chat.sphinx.wrapper.time
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Message.retrieveTextToShow(): String? {
-    if (messageDecryptionError) {
-        return "DECRYPTION ERROR"
-    }
     return messageContentDecrypted?.let { decrypted ->
         // TODO Handle podcast clips `clip::.....`
         if (giphyData != null) {
