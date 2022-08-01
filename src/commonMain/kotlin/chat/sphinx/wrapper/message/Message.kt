@@ -251,10 +251,8 @@ inline val Message.isBoostAllowed: Boolean
             !type.isDirectPayment() &&
             (uuid?.value ?: "").isNotEmpty()
 
-inline val Message.isMediaAttachmentAvailable: Boolean
-    get() = type.canContainMedia &&
-            (retrieveImageUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
-             retrieveVideoUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false)
+inline val Message.isMediaMessage: Boolean
+    get() = type.isAttachment() && (messageMedia?.mediaType?.isImage == true || messageMedia?.mediaType?.isVideo == true)
 
 inline val Message.isAttachmentAvailable: Boolean
     get() = type.canContainMedia &&
