@@ -299,28 +299,20 @@ abstract class SphinxRepository(
                                             chatId = nnChatDtoId
                                         }
 
-                                        chatId?.let { id ->
+                                        chatId?.let { nnChatId ->
                                             updateChatDboLatestMessage(
                                                 nnMessageDto,
-                                                id,
+                                                nnChatId,
                                                 latestMessageUpdatedTimeMap,
                                                 queries
                                             )
 
-                                            val sender = nnMessageDto.sender_alias ?: contactDto?.alias
-                                            val chatName = chatDto?.name
-
-                                            sender?.let { senderAlias ->
-                                                sphinxNotificationManager.notify(
-                                                    notificationId = id.value,
-                                                    title = if (chatName != null) {
-                                                        "$chatName: message from $senderAlias"
-                                                    } else {
-                                                        "Message from $senderAlias"
-                                                    },
-                                                    message = nnMessageDto.getNotificationText() ?: ""
-                                                )
-                                            }
+                                            showNotification(
+                                                nnChatId,
+                                                chatDto,
+                                                nnMessageDto,
+                                                contactDto
+                                            )
                                         }
                                     }
                                 }
@@ -328,6 +320,30 @@ abstract class SphinxRepository(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun showNotification(
+        chatId: ChatId,
+        chatDto: ChatDto?,
+        messageDto: MessageDto,
+        contactDto: ContactDto?
+    ) {
+        if (chatDto?.is_muted?.value == false) {
+            val sender = messageDto.sender_alias ?: contactDto?.alias
+            val chatName = chatDto?.name
+
+            sender?.let { senderAlias ->
+                sphinxNotificationManager.notify(
+                    notificationId = chatId.value,
+                    title = if (chatName != null) {
+                        "$chatName: message from $senderAlias"
+                    } else {
+                        "Message from $senderAlias"
+                    },
+                    message = messageDto.getNotificationText() ?: ""
+                )
             }
         }
     }
@@ -2219,6 +2235,8 @@ abstract class SphinxRepository(
 
     override fun readMessages(chatId: ChatId) {
         applicationScope.launch(mainImmediate) {
+            sphinxNotificationManager.clearNotification(chatId.value)
+
             readMessagesImpl(
                 chatId = chatId,
                 queries = coreDB.getSphinxDatabaseQueries(),

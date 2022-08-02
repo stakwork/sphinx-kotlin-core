@@ -22,7 +22,7 @@ interface SphinxNotificationManager {
         message: String
     )
 
-    fun clearNotification(notificationId: Int)
+    fun clearNotification(notificationId: Long)
 
     suspend fun toast(
         windowTitle: String,
