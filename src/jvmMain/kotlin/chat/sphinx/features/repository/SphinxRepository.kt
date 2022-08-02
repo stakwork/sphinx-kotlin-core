@@ -119,8 +119,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
-import okio.Source
-import okio.source
+import okio.Path.Companion.toOkioPath
 import kotlin.math.absoluteValue
 
 abstract class SphinxRepository(
@@ -1421,7 +1420,7 @@ abstract class SphinxRepository(
     }
 
     override suspend fun updateProfilePic(
-        source: Source,
+        path: Path,
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
@@ -1437,7 +1436,7 @@ abstract class SphinxRepository(
                 val networkResponse = networkQueryMemeServer.uploadAttachment(
                     authenticationToken = token,
                     mediaType = mediaType,
-                    source = source,
+                    path = path,
                     fileName = fileName,
                     contentLength = contentLength,
                     memeServerHost = memeServerHost,
@@ -1617,7 +1616,7 @@ abstract class SphinxRepository(
         } else if (profilePic != null) {
             response = updateChatProfilePic(
                 chatId,
-                profilePic.source,
+                profilePic.path,
                 profilePic.mediaType,
                 profilePic.fileName,
                 profilePic.contentLength
@@ -1629,7 +1628,7 @@ abstract class SphinxRepository(
 
     suspend fun updateChatProfilePic(
         chatId: ChatId,
-        source: Source,
+        path: Path,
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
@@ -1647,7 +1646,7 @@ abstract class SphinxRepository(
                 val networkResponse = networkQueryMemeServer.uploadAttachment(
                     authenticationToken = token,
                     mediaType = mediaType,
-                    source = source,
+                    path = path,
                     fileName = fileName,
                     contentLength = contentLength,
                     memeServerHost = memeServerHost,
@@ -3521,7 +3520,7 @@ abstract class SphinxRepository(
                 val networkResponse = networkQueryMemeServer.uploadAttachment(
                     authenticationToken = token,
                     mediaType = MediaType.Image("${MediaType.IMAGE}/${imgFile.extension}"),
-                    source = imgFile.source(),
+                    path = imgFile.toOkioPath(),
                     fileName = imgFile.name,
                     contentLength = imgFile.length(),
                     memeServerHost = memeServerHost,
@@ -4815,7 +4814,7 @@ abstract class SphinxRepository(
                     val networkResponse = networkQueryMemeServer.uploadAttachment(
                         authenticationToken = token,
                         mediaType = MediaType.Image("${MediaType.IMAGE}/${imgFile.extension}"),
-                        source = imgFile.source(),
+                        path = imgFile.toOkioPath(),
                         fileName = imgFile.name,
                         contentLength = imgFile.length(),
                         memeServerHost = memeServerHost,
@@ -4896,7 +4895,7 @@ abstract class SphinxRepository(
                     val networkResponse = networkQueryMemeServer.uploadAttachment(
                         authenticationToken = token,
                         mediaType = MediaType.Image("${MediaType.IMAGE}/${imgFile.extension}"),
-                        source = imgFile.source(),
+                        path = imgFile.toOkioPath(),
                         fileName = imgFile.name,
                         contentLength = imgFile.length(),
                         memeServerHost = memeServerHost,

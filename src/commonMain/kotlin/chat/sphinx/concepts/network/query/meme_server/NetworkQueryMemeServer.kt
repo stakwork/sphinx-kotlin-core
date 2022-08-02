@@ -18,7 +18,6 @@ import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import okio.Path
-import okio.Source
 
 abstract class NetworkQueryMemeServer {
 
@@ -54,7 +53,7 @@ abstract class NetworkQueryMemeServer {
     abstract suspend fun uploadAttachment(
         authenticationToken: AuthenticationToken,
         mediaType: MediaType,
-        source: Source,
+        path: Path,
         fileName: String,
         contentLength: Long?,
         memeServerHost: MediaHost = MediaHost.DEFAULT,

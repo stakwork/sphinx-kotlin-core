@@ -15,7 +15,7 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.media.MediaType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import okio.Source
+import okio.Path
 
 /**
  * All [Contact]s are cached to the DB such that a network refresh will update
@@ -73,7 +73,7 @@ interface ContactRepository {
     // TODO: add chatId to argument to update alias photo
     suspend fun updateProfilePic(
 //        chatId: ChatId?,
-        source: Source,
+        path: Path,
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
