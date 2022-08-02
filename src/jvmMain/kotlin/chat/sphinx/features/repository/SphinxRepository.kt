@@ -5369,12 +5369,9 @@ abstract class SphinxRepository(
                                             }
                                         }
                                     }
-
-                                    // hold downloadLock until table change propagates to UI
-                                    delay(200L)
                                 }
                             } ?: run {
-                                if (message.messageMedia?.mediaType?.isSphinxText == true && sent) {
+                                if (message.messageMedia?.mediaType?.isSphinxText == true) {
                                     streamAndFileName?.first?.bufferedReader().use { it?.readText() }?.toMessageContentDecrypted()?.let {
                                         queries.messageUpdateContentDecrypted(
                                             it,
@@ -5383,6 +5380,7 @@ abstract class SphinxRepository(
                                     }
                                 }
                             }
+                            delay(200L)
                         }
                     }
                 }

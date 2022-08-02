@@ -289,6 +289,11 @@ inline val Message.isPaidPendingMessage: Boolean
             (messageMedia?.price?.value ?: 0L) > 0L &&
             (retrievePurchaseStatus()?.isPurchaseAccepted() != true)
 
+inline val Message.isPurchaseSucceeded: Boolean
+    get() = type.isAttachment() &&
+            (messageMedia?.price?.value ?: 0L) > 0L &&
+            (retrievePurchaseStatus()?.isPurchaseAccepted() == true)
+
 inline val Message.isPaidTextMessage: Boolean
     get() = type.isAttachment() && messageMedia?.mediaType?.isSphinxText == true && (messageMedia?.price?.value ?: 0L) > 0L
 
