@@ -23,4 +23,18 @@ interface SphinxNotificationManager {
     )
 
     fun clearNotification(notificationId: Int)
+
+    suspend fun toast(
+        windowTitle: String,
+        message: String,
+        color: ULong,
+        delay: Long = 2000L
+    )
+
+    suspend fun confirmAlert(
+        windowTitle: String,
+        title: String,
+        message: String,
+        confirm: () -> Unit
+    )
 }
