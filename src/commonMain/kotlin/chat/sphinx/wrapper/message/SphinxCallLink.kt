@@ -47,6 +47,17 @@ value class SphinxCallLink(val value: String) {
     inline val startAudioOnly : Boolean
         get() = getParameter(AUDIO_ONLY_PARAM).toBoolean()
 
+    inline val audioCallLink : String
+        get() {
+            if (value.contains("#$AUDIO_ONLY_PARAM=true")) {
+                return value
+            }
+            return "$value#$AUDIO_ONLY_PARAM=true"
+        }
+
+    inline val videoCallLink : String
+        get() = value.replace("#$AUDIO_ONLY_PARAM=true", "")
+
     inline val callServer : String
         get() = value.substringBefore("sphinx.call")
 
