@@ -73,6 +73,13 @@ interface MessageRepository {
         messageUUID: MessageUUID,
     ): Response<Any, ResponseError>
 
+    suspend fun sendTribePayment(
+        chatId: ChatId,
+        amount: Sat,
+        messageUUID: MessageUUID,
+        text: String,
+    )
+
     suspend fun processMemberRequest(
         contactId: ContactId,
         messageId: MessageId,
