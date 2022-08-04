@@ -185,7 +185,7 @@ class NetworkQueryMemeServerImpl(
     override suspend fun uploadAttachment(
         authenticationToken: AuthenticationToken,
         mediaType: MediaType,
-        source: Source,
+        path: Path,
         fileName: String,
         contentLength: Long?,
         memeServerHost: MediaHost,
@@ -199,20 +199,7 @@ class NetworkQueryMemeServerImpl(
                 headers = mapOf(Pair(authenticationToken.headerKey, authenticationToken.headerValue)),
             )
 
-            val dataBody: RequestBody = object : RequestBody() {
-
-                override fun contentType(): okhttp3.MediaType {
-                    return type
-                }
-
-                override fun contentLength(): Long {
-                    return contentLength ?: super.contentLength()
-                }
-
-                override fun writeTo(sink: BufferedSink) {
-                    source.use { source -> sink.writeAll(source) }
-                }
-            }
+            val dataBody: RequestBody = path.toFile().asRequestBody(type)
 
             val requestBody: RequestBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
