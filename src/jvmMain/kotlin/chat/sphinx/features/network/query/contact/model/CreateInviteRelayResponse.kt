@@ -2,6 +2,7 @@ package chat.sphinx.features.network.query.contact.model
 
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
 import chat.sphinx.concepts.network.relay_call.RelayResponse
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
 
@@ -9,6 +10,7 @@ import kotlinx.serialization.json.JsonNames
 class CreateInviteRelayResponse(
     override val success: Boolean,
 
+    @SerialName("contact")
     @JsonNames("contact")
     override val response: ContactDto? = null,
 

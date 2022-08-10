@@ -1,5 +1,6 @@
 package chat.sphinx.concepts.network.query.verify_external.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
 
@@ -16,6 +17,7 @@ data class VerifyExternalInfoDto(
 
     var url: String? = null
 
+    @SerialName("verification_signature")
     @JsonNames("verification_signature")
     var verificationSignature: String? = null
 }

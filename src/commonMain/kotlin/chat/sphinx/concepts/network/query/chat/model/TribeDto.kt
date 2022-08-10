@@ -6,6 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.JsonNames
 import okio.Path
 
@@ -35,11 +36,11 @@ data class TribeDto(
     var host: String? = null
     var uuid: String? = null
 
-    @OptIn(ExperimentalSerializationApi::class)
+    @SerialName("my_alias")
     @JsonNames("my_alias")
     var myAlias: String? = null
 
-    @OptIn(ExperimentalSerializationApi::class)
+    @SerialName("my_photo_url")
     @JsonNames("my_photo_url")
     var myPhotoUrl: String? = null
 
