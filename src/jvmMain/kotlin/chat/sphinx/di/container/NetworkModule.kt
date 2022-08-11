@@ -78,10 +78,13 @@ class NetworkModule(
         authenticationModule.rsa
     )
     val relayDataHandler: RelayDataHandler = relayDataHandlerImpl
+
     private val networkClientImpl = NetworkClientImpl(
+        appModule.applicationScope,
         appModule.buildConfigDebug,
         Cache.networkCache(),
         appModule.dispatchers,
+        authenticationModule.authenticationStorage,
         NetworkClientImpl.RedactedLoggingHeaders(
             listOf(
                 AuthorizationToken.AUTHORIZATION_HEADER,
@@ -92,7 +95,7 @@ class NetworkModule(
         torManager,
         appModule.sphinxLogger,
     )
-    private val networkClient: NetworkClient = networkClientImpl
+    val networkClient: NetworkClient = networkClientImpl
     private val networkClientCache: NetworkClientCache = networkClientImpl
     private val socketIOManagerImpl = SocketIOManagerImpl(
         appModule.dispatchers,

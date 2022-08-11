@@ -8,4 +8,6 @@ abstract class NetworkClient {
 
     abstract fun addListener(listener: NetworkClientClearedListener): Boolean
     abstract fun removeListener(listener: NetworkClientClearedListener): Boolean
+
+    abstract suspend fun setTorRequired(required: Boolean)
 }
