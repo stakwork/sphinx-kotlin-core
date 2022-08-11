@@ -3668,7 +3668,6 @@ abstract class SphinxRepository(
 
                         is Response.Success -> {
                             val tribeDto = loadResponse.value
-
                             if (owner?.nodePubKey != chat.ownerPubKey) {
                                 val didChangeNameOrPhotoUrl = (
                                     tribeDto.name != chat.name?.value ?: "" ||
@@ -3694,16 +3693,20 @@ abstract class SphinxRepository(
 
                             }
 
-                            chat.host?.let { host ->
-                                tribeDto.feed_url?.toFeedUrl()?.let { feedUrl ->
-                                    val feedType = (tribeDto.feed_type ?: 0).toFeedType()
-
-                                    tribeData = TribeData(host, chat.uuid, feedUrl, feedType)
-                                }
+                            chat.host.let { host ->
+                                tribeData = TribeData(
+                                    host,
+                                    chat.uuid,
+                                    tribeDto.app_url?.toAppUrl(),
+                                    tribeDto.feed_url?.toFeedUrl(),
+                                    (tribeDto.feed_type ?: 0).toFeedType()
+                                )
                             }
                         }
                     }
                 }
+            } else {
+                println("Kgothatso conditions are not met")
             }
         }
 
