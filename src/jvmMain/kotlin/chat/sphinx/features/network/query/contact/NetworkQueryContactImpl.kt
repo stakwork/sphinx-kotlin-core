@@ -227,7 +227,6 @@ class NetworkQueryContactImpl(
         networkRelayCall.relayDelete(
             responseJsonSerializer = DeleteContactRelayResponse.serializer(),
             "/contacts/${contactId.value}",
-//            requestBodyPair = null
         ).collect { loadResponse ->
             if (loadResponse is Response.Error) {
                 response = loadResponse

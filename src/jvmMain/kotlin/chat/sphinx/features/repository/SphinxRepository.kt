@@ -967,18 +967,21 @@ abstract class SphinxRepository(
                                 val contactMap: MutableMap<ContactId, ContactDto> =
                                     LinkedHashMap(contactsToInsert.size)
 
-                                chatLock.withLock {
-                                    messageLock.withLock {
-                                        contactLock.withLock {
-                                            queries.transaction {
-                                                for (dto in loadResponse.value.contacts) {
-                                                    if (dto.deletedActual || dto.fromGroupActual) {
-                                                        deleteContactById(ContactId(dto.id), queries)
-                                                    } else {
-                                                        upsertContact(dto, queries)
-                                                        contactMap[ContactId(dto.id)] = dto
-                                                    }
+                                contactLock.withLock {
+                                    inviteLock.withLock {
+                                        queries.transaction {
+                                            for (dto in loadResponse.value.contacts) {
+                                                if (dto.deletedActual || dto.fromGroupActual) {
+                                                    deleteContactById(ContactId(dto.id), queries)
+                                                } else {
+                                                    upsertContact(dto, queries)
+                                                    contactMap[ContactId(dto.id)] = dto
                                                 }
+                                            }
+
+                                            for (dto in loadResponse.value.invites) {
+                                                updatedContactIds.add(ContactId(dto.contact_id))
+                                                upsertInvite(dto, queries)
                                             }
                                         }
                                     }
@@ -988,17 +991,6 @@ abstract class SphinxRepository(
                                     loadResponse.value.chats,
                                     contactMap,
                                 )
-
-                                inviteLock.withLock {
-                                    contactLock.withLock {
-                                        queries.transaction {
-                                            for (dto in loadResponse.value.invites) {
-                                                updatedContactIds.add(ContactId(dto.contact_id))
-                                                upsertInvite(dto, queries)
-                                            }
-                                        }
-                                    }
-                                }
 
                                 subscriptionLock.withLock {
                                     queries.transaction {
@@ -4651,17 +4643,16 @@ abstract class SphinxRepository(
 
         val response = networkQueryContact.deleteContact(invite.contactId)
 
-        if (response is Response.Success) {
-            contactLock.withLock {
-                withContext(io) {
-                    queries.transaction {
-                        updatedContactIds.add(invite.contactId)
-                        deleteContactById(invite.contactId, queries)
-                    }
+        contactLock.withLock {
+            withContext(io) {
+                queries.transaction {
+                    updatedContactIds.add(invite.contactId)
+                    deleteContactById(invite.contactId, queries)
                 }
-
             }
+
         }
+
         return response
     }
 
