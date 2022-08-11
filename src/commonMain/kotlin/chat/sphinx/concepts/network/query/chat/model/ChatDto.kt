@@ -1,6 +1,7 @@
 package chat.sphinx.concepts.network.query.chat.model
 
 import chat.sphinx.serialization.SphinxBoolean
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonNames
@@ -26,6 +27,7 @@ data class ChatDto(
     val escrow_millis: Long? = null,
     val unlisted: SphinxBoolean? = null,
     val private: SphinxBoolean? = null,
+    @SerialName("owner_pubkey")
     @JsonNames("owner_pubkey")
     val owner_pub_key: String? = null,
     val seen: SphinxBoolean? = null,
