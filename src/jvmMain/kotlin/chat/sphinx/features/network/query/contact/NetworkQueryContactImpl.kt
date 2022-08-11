@@ -249,7 +249,7 @@ class NetworkQueryContactImpl(
                     Pair("nickname", nickname),
                     Pair("welcome_message", welcomeMessage),
                 ),
-                PolymorphicSerializer(Any::class)
+                Json.serializersModule.serializer()
             ),
             relayData = relayData
         )
