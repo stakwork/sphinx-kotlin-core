@@ -15,6 +15,7 @@ import chat.sphinx.crypto.common.exceptions.EncryptionException
 import chat.sphinx.crypto.common.extensions.toHex
 import chat.sphinx.crypto.k_openssl.KOpenSSL
 import chat.sphinx.crypto.k_openssl.algos.AES256CBC_PBKDF2_HMAC_SHA256
+import chat.sphinx.di.container.SphinxContainer
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.response.Response
 //import chat.sphinx.crypto.k_openssl.KOpenSSL
@@ -149,8 +150,8 @@ class RelayDataHandlerImpl(
             }
 
             authenticationStorage.putString(RELAY_URL_KEY, encryptedRelayUrl.value)
-            // TODO: Figure out how to set Tor required
-//            torManager.setTorRequired(formattedUrl.isOnionAddress)
+            SphinxContainer.networkModule.networkClient.setTorRequired(formattedUrl.isOnionAddress)
+
             relayUrlCache = formattedUrl
             return true
         }

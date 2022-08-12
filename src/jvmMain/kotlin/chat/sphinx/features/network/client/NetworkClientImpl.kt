@@ -1,13 +1,16 @@
 package chat.sphinx.features.network.client
 
+import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.client.cache.NetworkClientCache
 import chat.sphinx.concepts.network.tor.SocksProxyAddress
 import chat.sphinx.concepts.network.tor.toSocksProxyAddress
+import chat.sphinx.di.container.SphinxContainer
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.utils.build_config.BuildConfigDebug
+import chat.sphinx.wrapper.relay.isOnionAddress
 import io.matthewnelson.kmp.tor.controller.common.config.TorConfig
 import io.matthewnelson.kmp.tor.controller.common.events.TorEvent
 import io.matthewnelson.kmp.tor.manager.TorManager
@@ -34,16 +37,14 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import kotlin.jvm.Volatile
 
-inline fun TorManager.isTorRequired(): Boolean {
-    // TODO: Implement a check to see if
-    return true
-}
 
 
 class NetworkClientImpl(
+    private val applicationScope: CoroutineScope,
     private val debug: BuildConfigDebug,
     private val cache: Cache,
     private val dispatchers: CoroutineDispatchers,
+    private val authenticationStorage: AuthenticationStorage,
     redactedLoggingHeaders: RedactedLoggingHeaders?,
     private val torManager: TorManager,
     private val LOG: SphinxLogger,
@@ -59,6 +60,76 @@ class NetworkClientImpl(
     val addressInfo: StateFlow<TorManagerEvent.AddressInfo> get() = listener.addressInfo
     val state: StateFlow<TorManagerEvent.State> get() = listener.state
 
+    private val lock = Mutex()
+    private val requirementChangeLock = Mutex()
+
+    override suspend fun setTorRequired(required: Boolean) {
+        lock.withLock {
+            val requiredString = if (required) TRUE else FALSE
+
+            when (isTorRequiredCache) {
+                null -> {
+
+                    applicationScope.launch(mainImmediate) {
+                        requirementChangeLock.withLock {
+                            val persisted = authenticationStorage.getString(TOR_MANAGER_REQUIRED, null)
+
+                            isTorRequiredCache = if (persisted != requiredString) {
+                                authenticationStorage.putString(TOR_MANAGER_REQUIRED, requiredString)
+                                required
+                            } else {
+                                required
+                            }
+                        }
+                    }.join()
+
+                }
+                required -> {
+                    // no change, do nothing
+                }
+                else -> {
+                    applicationScope.launch(mainImmediate) {
+                        requirementChangeLock.withLock {
+                            authenticationStorage.putString(TOR_MANAGER_REQUIRED, requiredString)
+                            isTorRequiredCache = required
+                        }
+                    }.join()
+                }
+            }
+        }
+    }
+
+    private suspend fun isTorRequired(): Boolean {
+        var required: Boolean?
+
+        lock.withLock {
+            requirementChangeLock.withLock {
+                required = isTorRequiredCache ?: authenticationStorage.getString(TOR_MANAGER_REQUIRED, null)?.let { persisted ->
+                    when (persisted) {
+                        null -> {
+                            null
+                        }
+                        TRUE -> {
+                            isTorRequiredCache = true
+                            true
+                        }
+                        else -> {
+                            isTorRequiredCache = false
+                            false
+                        }
+                    }
+                }
+            }
+        }
+
+        return required ?: run {
+            val relayUrl = SphinxContainer.networkModule.relayDataHandlerImpl.retrieveRelayUrl()
+            val required = relayUrl?.isOnionAddress == true
+            setTorRequired(required)
+            return required
+        }
+    }
+
     companion object {
         const val TAG = "NetworkClientImpl"
 
@@ -67,6 +138,14 @@ class NetworkClientImpl(
 
         const val CACHE_CONTROL = "Cache-Control"
         const val MAX_STALE = "public, max-stale=$MAX_STALE_VALUE"
+
+        // PersistentStorage keys
+        const val TOR_MANAGER_REQUIRED = "TOR_MANAGER_REQUIRED"
+
+        @Volatile
+        private var isTorRequiredCache: Boolean? = null
+        const val TRUE = "T"
+        const val FALSE = "F"
     }
 
     /////////////////
@@ -171,7 +250,7 @@ class NetworkClientImpl(
                 readTimeout(TIME_OUT, TimeUnit.SECONDS)
                 writeTimeout(TIME_OUT, TimeUnit.SECONDS)
 
-                if (torManager.isTorRequired() == true) {
+                if (isTorRequired()) {
 
                     torManager.start()
 
@@ -244,7 +323,7 @@ class NetworkClientImpl(
                     }
 
                     // check again in case the setting has changed
-                    if (torManager.isTorRequired() != true) {
+                    if (isTorRequired()) {
                         proxy(null)
                         currentClientSocksProxyAddress = null
 
