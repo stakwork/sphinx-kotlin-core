@@ -77,6 +77,13 @@ inline fun DateTime.chatTimeFormat(
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
+inline fun DateTime.localDateTimeString(format: DateFormat): String {
+    val offset: Int = TimeZone.getDefault().rawOffset
+    val dateWithOffset = value.addOffset(TimeSpan(offset.toDouble()))
+    return format.format(dateWithOffset)
+}
+
+@Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun DateTime.invoiceExpirationTimeFormat(): String =
     DateTime.getFormathmma().format(value)
 
