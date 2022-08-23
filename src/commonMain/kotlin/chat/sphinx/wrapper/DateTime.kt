@@ -78,6 +78,21 @@ inline fun DateTime.chatTimeFormat(
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
+inline fun DateTime.separatorTimeFormat(): String {
+    val offset: Int = TimeZone.getDefault().rawOffset
+    val dateWithOffset = value.addOffset(TimeSpan(offset.toDouble()))
+
+    return when {
+        DateTime.getToday00().before(this) -> {
+            "Today"
+        }
+        else -> {
+            DateTime.getFormatMMMEEEdd().format(dateWithOffset)
+        }
+    }
+}
+
+@Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun DateTime.invoiceExpirationTimeFormat(): String =
     DateTime.getFormathmma().format(value)
 
