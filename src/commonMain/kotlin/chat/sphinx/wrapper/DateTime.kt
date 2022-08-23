@@ -5,6 +5,7 @@ import com.soywiz.klock.*
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import java.util.*
+import java.util.Date
 import kotlin.jvm.JvmInline
 import kotlin.jvm.Volatile
 
@@ -104,6 +105,20 @@ inline fun DateTime.getMinutesDifferenceWithDateTime(dateTime: DateTime): Double
     val diff: Long = this.time - dateTime.time
     val seconds = diff.toDouble() / 1000
     return seconds / 60
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun DateTime.getDayOfYear(): Int {
+    val date: Date = Date(this.time)
+    val calendar: Calendar = GregorianCalendar()
+    calendar.timeZone = TimeZone.getDefault()
+    calendar.time = date
+    return calendar[Calendar.DAY_OF_YEAR]
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun DateTime.isDifferentDayThan(dateTime: DateTime): Boolean {
+    return this.getDayOfYear() != dateTime.getDayOfYear()
 }
 
 /**
