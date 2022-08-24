@@ -38,6 +38,9 @@ inline fun Message.retrieveTextToShow(): String? {
         if (type.isInvoice()) {
             return null
         }
+        if (type.isInvoicePayment()) {
+            return null
+        }
         decrypted.value
     }
 }
