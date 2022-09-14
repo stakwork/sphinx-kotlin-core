@@ -1,6 +1,9 @@
 package chat.sphinx.concepts.network.query.chat.model
 
 import chat.sphinx.serialization.SphinxBoolean
+import chat.sphinx.wrapper_chat.isMuteChat
+import chat.sphinx.wrapper_chat.isOnlyMentions
+import chat.sphinx.wrapper_chat.toNotificationLevel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -39,8 +42,19 @@ data class ChatDto(
     val pending_contact_ids: List<Long>? = null,
     val notify: Int?,
 ) {
-    @Transient
-    val isMutedActual: Boolean = is_muted?.value ?: false
+    fun isMutedActual(): Boolean {
+        notify?.let {
+            return it.toNotificationLevel().isMuteChat()
+        }
+        return is_muted?.value ?: false
+    }
+
+    fun isOnlyMentions(): Boolean {
+        notify?.let {
+            return it.toNotificationLevel().isOnlyMentions()
+        }
+        return false
+    }
 
     @Transient
     val deletedActual: Boolean = deleted?.value ?: false

@@ -329,22 +329,36 @@ abstract class SphinxRepository(
         chatId: ChatId,
         chatDto: ChatDto?,
         messageDto: MessageDto,
-        contactDto: ContactDto?
+        contactDto: ContactDto?,
     ) {
-        if (chatDto?.is_muted?.value == false) {
-            val sender = messageDto.sender_alias ?: contactDto?.alias
-            val chatName = chatDto?.name
+        applicationScope.launch(mainImmediate) {
+            if (chatDto?.isMutedActual() == true) {
+                return@launch
+            }
 
-            sender?.let { senderAlias ->
-                sphinxNotificationManager.notify(
-                    notificationId = chatId.value,
-                    title = if (chatName != null) {
-                        "$chatName: message from $senderAlias"
-                    } else {
-                        "Message from $senderAlias"
-                    },
-                    message = messageDto.getNotificationText() ?: ""
-                )
+            if (chatDto?.isOnlyMentions() == true) {
+                val alias = chatDto?.my_alias ?: getOwner()?.alias?.value ?: ""
+
+                if ((messageDto.messageContentDecrypted?.lowercase()?.contains("@${alias.lowercase()}") == false)) {
+                    return@launch
+                }
+            }
+
+            if (chatDto?.is_muted?.value == false) {
+                val sender = messageDto.sender_alias ?: contactDto?.alias
+                val chatName = chatDto?.name
+
+                sender?.let { senderAlias ->
+                    sphinxNotificationManager.notify(
+                        notificationId = chatId.value,
+                        title = if (chatName != null) {
+                            "$chatName: message from $senderAlias"
+                        } else {
+                            "Message from $senderAlias"
+                        },
+                        message = messageDto.getNotificationText() ?: ""
+                    )
+                }
             }
         }
     }
@@ -5823,5 +5837,24 @@ abstract class SphinxRepository(
         }
 
         return response
+    }
+
+    suspend fun getOwner() : Contact? {
+        var owner: Contact? = accountOwner.value
+
+        if (owner == null) {
+            try {
+                accountOwner.collect {
+                    if (it != null) {
+                        owner = it
+                        throw Exception()
+                    }
+                }
+            } catch (e: Exception) {
+            }
+            delay(25L)
+        }
+
+        return owner
     }
 }

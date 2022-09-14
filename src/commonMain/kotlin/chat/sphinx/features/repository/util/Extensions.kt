@@ -145,7 +145,7 @@ inline fun TransactionCallbacks.upsertChat(
     val chatType = dto.type.toChatType()
     val createdAt = dto.created_at.toDateTime()
     val contactIds = dto.contact_ids.map { ContactId(it) }
-    val muted = dto.isMutedActual.toChatMuted()
+    val muted = dto.isMutedActual().toChatMuted()
     val chatPhotoUrl = dto.photo_url?.toPhotoUrl()
     val pricePerMessage = dto.price_per_message?.toSat()
     val escrowAmount = dto.escrow_amount?.toSat()
