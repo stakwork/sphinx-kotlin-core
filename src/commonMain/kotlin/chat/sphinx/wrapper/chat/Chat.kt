@@ -10,10 +10,15 @@ import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
 import chat.sphinx.wrapper_chat.NotificationLevel
+import chat.sphinx.wrapper_chat.isMuteChat
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isMuted(): Boolean =
-    isMuted.isTrue()
+    notifyActualValue().isMuteChat()
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Chat.notifyActualValue(): NotificationLevel =
+    notify ?: (if (isMuted.isTrue()) NotificationLevel.MuteChat else NotificationLevel.SeeAll)
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isUnlisted(): Boolean =

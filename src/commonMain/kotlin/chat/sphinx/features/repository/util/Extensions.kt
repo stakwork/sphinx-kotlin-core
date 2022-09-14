@@ -25,6 +25,7 @@ import chat.sphinx.wrapper.subscription.Cron
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.SubscriptionCount
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.toNotificationLevel
 import com.squareup.sqldelight.TransactionCallbacks
 
@@ -95,6 +96,15 @@ inline fun TransactionCallbacks.updateChatMuted(
 ) {
     queries.chatUpdateMuted(muted, chatId)
     queries.dashboardUpdateMuted(muted, chatId)
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun TransactionCallbacks.updateChatNotificationLevel(
+    chatId: ChatId,
+    notificationLevel: NotificationLevel?,
+    queries: SphinxDatabaseQueries
+) {
+    queries.chatUpdateNotificationLevel(notificationLevel, chatId)
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
