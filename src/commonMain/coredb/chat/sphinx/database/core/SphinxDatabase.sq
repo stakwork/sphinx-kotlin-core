@@ -227,7 +227,7 @@ chatUpsert {
         :meta_data,
         :my_photo_url,
         :my_alias,
-        :pending_contact_ids.
+        :pending_contact_ids,
         :notify
     );
 }
