@@ -1,13 +1,13 @@
 package chat.sphinx.authentication.model
 
+import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.lightning.toLightningNodePubKey
-import chat.sphinx.wrapper.message.FeedBoost
-import chat.sphinx.wrapper.message.PodBoostMoshi
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayHMacKey
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.rsa.RsaPublicKey
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -84,3 +84,37 @@ fun Step1Json.toJsonString(): String =
             invite_data_json
         )
     )
+@Throws(AssertionError::class)
+fun Step2Json.toJsonString(): String =
+    Json.encodeToString(
+        Step2Json(invite_data_json)
+    )
+
+@Throws(AssertionError::class)
+fun Step3Json.toJsonString(): String =
+    Json.encodeToString(
+        Step3Json(invite_data_json)
+    )
+@Throws(AssertionError::class)
+fun Step4Json.toJsonString(): String =
+    Json.encodeToString(
+        Step4Json(invite_data_json)
+    )
+
+@Serializable
+data class Step2Json(val invite_data_json: Step1Json.InviteDataJson)
+@Serializable
+data class Step3Json(val invite_data_json: Step1Json.InviteDataJson)
+@Serializable
+data class Step4Json(val invite_data_json: Step1Json.InviteDataJson)
+
+fun String.toStep1Json(): Step1Json =
+    SphinxJson.decodeFromString<Step1Json>(this).let {
+        Step1Json(
+            relay_url = it.relay_url,
+            authorization_token = it.authorization_token,
+            transport_key = it.transport_key,
+            h_mac_key = it.h_mac_key,
+            invite_data_json = it.invite_data_json
+        )
+    }
