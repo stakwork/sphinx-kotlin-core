@@ -3,10 +3,7 @@ package chat.sphinx.features.coredb
 import chat.sphinx.concepts.authentication.encryption_key.EncryptionKey
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.database.core.*
-import chat.sphinx.features.coredb.adapters.invite.InviteStringAdapter
-import chat.sphinx.features.coredb.adapters.subscription.CronAdapter
-import chat.sphinx.features.coredb.adapters.subscription.EndNumberAdapter
-import chat.sphinx.features.coredb.adapters.subscription.SubscriptionCountAdapter
+import chat.sphinx.features.coredb.adapters.chat.*
 import chat.sphinx.features.coredb.adapters.chat.ChatAliasAdapter
 import chat.sphinx.features.coredb.adapters.chat.ChatGroupKeyAdapter
 import chat.sphinx.features.coredb.adapters.chat.ChatHostAdapter
@@ -18,6 +15,11 @@ import chat.sphinx.features.coredb.adapters.chat.ChatStatusAdapter
 import chat.sphinx.features.coredb.adapters.chat.ChatTypeAdapter
 import chat.sphinx.features.coredb.adapters.chat.ChatUUIDAdapter
 import chat.sphinx.features.coredb.adapters.chat.ChatUnlistedAdapter
+import chat.sphinx.features.coredb.adapters.chat.NotifyAdapter
+import chat.sphinx.features.coredb.adapters.invite.InviteStringAdapter
+import chat.sphinx.features.coredb.adapters.subscription.CronAdapter
+import chat.sphinx.features.coredb.adapters.subscription.EndNumberAdapter
+import chat.sphinx.features.coredb.adapters.subscription.SubscriptionCountAdapter
 import chat.sphinx.features.coredb.adapters.common.*
 import chat.sphinx.features.coredb.adapters.common.ChatIdAdapter
 import chat.sphinx.features.coredb.adapters.common.ContactIdAdapter
@@ -138,7 +140,8 @@ abstract class CoreDBImpl: CoreDB() {
                     my_aliasAdapter = ChatAliasAdapter(),
                     pending_contact_idsAdapter = ContactIdsAdapter.getInstance(),
                     latest_message_idAdapter = MessageIdAdapter.getInstance(),
-                    content_seen_atAdapter = DateTimeAdapter.getInstance()
+                    content_seen_atAdapter = DateTimeAdapter.getInstance(),
+                    notifyAdapter = NotifyAdapter()
                 ),
                 contactDboAdapter = ContactDbo.Adapter(
                     idAdapter = ContactIdAdapter.getInstance(),

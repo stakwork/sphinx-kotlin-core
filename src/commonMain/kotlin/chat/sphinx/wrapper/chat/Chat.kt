@@ -9,6 +9,7 @@ import chat.sphinx.wrapper.isTrue
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
+import chat.sphinx.wrapper_chat.NotificationLevel
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isMuted(): Boolean =
@@ -75,4 +76,5 @@ data class Chat(
     val pendingContactIds: List<ContactId>?,
     val latestMessageId: MessageId?,
     val contentSeenAt: DateTime?,
+    val notify: NotificationLevel?,
 )

@@ -1,6 +1,8 @@
 package chat.sphinx.features.coredb.adapters.chat
 
 import chat.sphinx.wrapper.chat.*
+import chat.sphinx.wrapper_chat.NotificationLevel
+import chat.sphinx.wrapper_chat.toNotificationLevel
 import com.squareup.sqldelight.ColumnAdapter
 
 internal class ChatUUIDAdapter: ColumnAdapter<ChatUUID, String> {
@@ -123,3 +125,14 @@ internal class ChatAliasAdapter: ColumnAdapter<ChatAlias, String> {
         return value.value
     }
 }
+
+internal class NotifyAdapter: ColumnAdapter<NotificationLevel, Long> {
+    override fun decode(databaseValue: Long): NotificationLevel {
+        return databaseValue.toInt().toNotificationLevel()
+    }
+
+    override fun encode(value: NotificationLevel): Long {
+        return value.value.toLong()
+    }
+}
+

@@ -14,6 +14,7 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
+import chat.sphinx.wrapper_chat.NotificationLevel
 import kotlinx.coroutines.flow.Flow
 
 abstract class NetworkQueryChat {
@@ -76,6 +77,12 @@ abstract class NetworkQueryChat {
     abstract fun toggleMuteChat(
         chatId: ChatId,
         muted: ChatMuted,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
+    ): Flow<LoadResponse<ChatDto, ResponseError>>
+
+    abstract fun setNotificationLevel(
+        chatId: ChatId,
+        notificationLevel: NotificationLevel,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<ChatDto, ResponseError>>
 
