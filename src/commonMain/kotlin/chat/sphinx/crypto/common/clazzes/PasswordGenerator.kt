@@ -76,7 +76,7 @@ class PasswordGenerator(passwordLength: Int, chars: Set<Char> = DEFAULT_CHARS) {
 
     val password: Password = CharArray(passwordLength).let { array ->
         repeat(passwordLength) { index ->
-            array[index] = chars.elementAt(SecureRandom.nextInt(chars.size))
+            array[index] = chars.elementAt(SecureRandom.nextDouble(chars.size.toDouble()).toInt())
         }
 
         Password(array)
