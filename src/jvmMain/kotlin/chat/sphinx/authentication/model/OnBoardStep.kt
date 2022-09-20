@@ -33,12 +33,12 @@ sealed class OnBoardStep(
 
     }
 
-    data class Step2_NameAndPin private constructor(override val inviterData: OnBoardInviterData): OnBoardStep(inviterData) {
+    data class Step2_Name private constructor(override val inviterData: OnBoardInviterData): OnBoardStep(inviterData) {
 
         companion object {
             @JvmSynthetic
-            internal operator fun invoke(inviterData: OnBoardInviterData): Step2_NameAndPin =
-                Step2_NameAndPin(inviterData)
+            internal operator fun invoke(inviterData: OnBoardInviterData): Step2_Name =
+                Step2_Name(inviterData)
         }
     }
 

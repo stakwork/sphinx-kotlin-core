@@ -17,7 +17,6 @@ class OnBoardStepHandler {
     val scope = SphinxContainer.appModule.applicationScope
     val dispatchers = SphinxContainer.appModule.dispatchers
 
-
     companion object {
         private val lock = Mutex()
 
@@ -43,15 +42,7 @@ class OnBoardStepHandler {
         inviterData: OnBoardInviterData?
     ): OnBoardStep.Step1_WelcomeMessage? {
         lock.withLock {
-            val inviterDataRealized: OnBoardInviterData = inviterData
-                ?: OnBoardInviterData(
-                    nickname = "Sphinx Support",
-                    pubkey = null,
-                    routeHint = null,
-                    message = "Welcome to Sphinx",
-                    action = null,
-                    pin = null,
-                )
+            val inviterDataRealized: OnBoardInviterData = inviterData ?: getDefaultInviterData()
 
             val step1 = OnBoardStep.Step1_WelcomeMessage(
                 relayUrl,
@@ -76,13 +67,15 @@ class OnBoardStepHandler {
         }
     }
 
-    suspend fun persistOnBoardStep2Data(inviterData: OnBoardInviterData): OnBoardStep.Step2_NameAndPin? {
+    suspend fun persistOnBoardStep2Data(inviterData: OnBoardInviterData?): OnBoardStep.Step2_Name? {
         lock.withLock {
 
-            val step2 = OnBoardStep.Step2_NameAndPin(inviterData)
+            val inviterDataRealized: OnBoardInviterData = inviterData ?: getDefaultInviterData()
+
+            val step2 = OnBoardStep.Step2_Name(inviterDataRealized)
             val step2Json: String = try {
                 withContext(dispatchers.default) {
-                    Step2Json(inviterData.toInviteDataJson()).toJsonString()
+                    Step2Json(inviterDataRealized.toInviteDataJson()).toJsonString()
                 }
             } catch (e: Exception) {
                 LOG.e(TAG, "Step2 Json Conversion Error", e)
@@ -95,13 +88,14 @@ class OnBoardStepHandler {
         }
     }
 
-    suspend fun persistOnBoardStep3Data(inviterData: OnBoardInviterData): OnBoardStep.Step3_Picture? {
+    suspend fun persistOnBoardStep3Data(inviterData: OnBoardInviterData?): OnBoardStep.Step3_Picture? {
         lock.withLock {
 
-            val step3 = OnBoardStep.Step3_Picture(inviterData)
+            val inviterDataRealized: OnBoardInviterData = inviterData ?: getDefaultInviterData()
+            val step3 = OnBoardStep.Step3_Picture(inviterDataRealized)
             val step3Json: String = try {
                 withContext(dispatchers.default) {
-                    Step3Json(inviterData.toInviteDataJson()).toJsonString()
+                    Step3Json(inviterDataRealized.toInviteDataJson()).toJsonString()
                 }
             } catch (e: Exception) {
                 LOG.e(TAG, "Step3 Json Conversion Error", e)
@@ -114,13 +108,14 @@ class OnBoardStepHandler {
         }
     }
 
-    suspend fun persistOnBoardStep4Data(inviterData: OnBoardInviterData): OnBoardStep.Step4_Ready? {
+    suspend fun persistOnBoardStep4Data(inviterData: OnBoardInviterData?): OnBoardStep.Step4_Ready? {
         lock.withLock {
 
-            val step4 = OnBoardStep.Step4_Ready(inviterData)
+            val inviterDataRealized: OnBoardInviterData = inviterData ?: getDefaultInviterData()
+            val step4 = OnBoardStep.Step4_Ready(inviterDataRealized)
             val step4Json: String = try {
                 withContext(dispatchers.default) {
-                    Step4Json(inviterData.toInviteDataJson()).toJsonString()
+                    Step4Json(inviterDataRealized.toInviteDataJson()).toJsonString()
                 }
             } catch (e: Exception) {
                 LOG.e(TAG, "Step4 Json Conversion Error", e)
@@ -133,10 +128,25 @@ class OnBoardStepHandler {
         }
     }
 
+    private fun getDefaultInviterData(): OnBoardInviterData {
+        return OnBoardInviterData(
+            nickname = "Sphinx Support",
+            pubkey = null,
+            routeHint = null,
+            message = "Welcome to Sphinx",
+            action = null,
+            pin = null,
+        )
+    }
+
     suspend fun finishOnBoardSteps() {
         lock.withLock {
             authenticationStorage.removeString(KEY)
         }
+    }
+
+    suspend fun isSignupInProgress(): Boolean {
+        return retrieveOnBoardStep() != null
     }
 
     @Suppress("BlockingMethodInNonBlockingContext")
@@ -152,15 +162,15 @@ class OnBoardStepHandler {
                         }
                         STEP_2 -> {
                             withContext(dispatchers.default) {
-                                val inviterData = stepString.drop(STEP_SIZE).toStep1Json().invite_data_json.toOnBoardInviteData()
+                                val inviterData = stepString.drop(STEP_SIZE).toStep2Json().invite_data_json.toOnBoardInviteData()
                                 inviterData.let {
-                                    OnBoardStep.Step2_NameAndPin(inviterData)
+                                    OnBoardStep.Step2_Name(inviterData)
                                 }
                             }
                         }
                         STEP_3 -> {
                             withContext(dispatchers.default) {
-                                val inviterData = stepString.drop(STEP_SIZE).toStep1Json().invite_data_json.toOnBoardInviteData()
+                                val inviterData = stepString.drop(STEP_SIZE).toStep3Json().invite_data_json.toOnBoardInviteData()
                                 inviterData.let {
                                     OnBoardStep.Step3_Picture(inviterData)
                                 }
@@ -168,7 +178,7 @@ class OnBoardStepHandler {
                         }
                         STEP_4 -> {
                             withContext(dispatchers.default) {
-                                val inviterData = stepString.drop(STEP_SIZE).toStep1Json().invite_data_json.toOnBoardInviteData()
+                                val inviterData = stepString.drop(STEP_SIZE).toStep4Json().invite_data_json.toOnBoardInviteData()
                                 inviterData.let {
                                     OnBoardStep.Step4_Ready(inviterData)
                                 }

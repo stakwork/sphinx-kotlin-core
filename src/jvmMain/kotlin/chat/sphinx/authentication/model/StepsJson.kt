@@ -118,3 +118,24 @@ fun String.toStep1Json(): Step1Json =
             invite_data_json = it.invite_data_json
         )
     }
+
+fun String.toStep2Json(): Step2Json =
+    SphinxJson.decodeFromString<Step2Json>(this).let {
+        Step2Json(
+            invite_data_json = it.invite_data_json
+        )
+    }
+
+fun String.toStep3Json(): Step3Json =
+    SphinxJson.decodeFromString<Step3Json>(this).let {
+        Step3Json(
+            invite_data_json = it.invite_data_json
+        )
+    }
+
+fun String.toStep4Json(): Step4Json =
+    SphinxJson.decodeFromString<Step4Json>(this).let {
+        Step4Json(
+            invite_data_json = it.invite_data_json
+        )
+    }
