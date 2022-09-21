@@ -91,6 +91,16 @@ inline fun Message.retrieveImageUrlAndMessageMedia(): Pair<String, MessageMedia?
 }
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun Message.retrieveAudioUrlAndMessageMedia(): Pair<String, MessageMedia?>? {
+    return messageMedia?.let { media ->
+        if (media.mediaType.isAudio) {
+            retrieveUrlAndMessageMedia()
+        } else {
+            null
+        }
+    }
+}
+@Suppress("NOTHING_TO_INLINE")
 inline fun Message.retrieveVideoUrlAndMessageMedia(): Pair<String, MessageMedia?>? {
     return messageMedia?.let { media ->
         if (media.mediaType.isVideo) {
@@ -257,6 +267,7 @@ inline val Message.isMediaMessage: Boolean
 inline val Message.isAttachmentAvailable: Boolean
     get() = type.canContainMedia &&
             (retrieveImageUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
+                    retrieveAudioUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
                     retrieveVideoUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
                     retrieveFileUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false)
 
