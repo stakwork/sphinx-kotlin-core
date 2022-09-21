@@ -1,18 +1,14 @@
 package chat.sphinx.features.network.query.invite
 
 import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
-import chat.sphinx.concepts.network.query.invite.model.HubLowestNodePriceResponse
-import chat.sphinx.concepts.network.query.invite.model.HubRedeemInviteResponse
-import chat.sphinx.concepts.network.query.invite.model.PayInviteDto
-import chat.sphinx.concepts.network.query.invite.model.RedeemInviteResponseDto
+import chat.sphinx.concepts.network.query.invite.model.*
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
+import chat.sphinx.features.network.query.invite.model.FinishInviteRelayResponse
 import chat.sphinx.features.network.query.invite.model.PayInviteResponse
-import chat.sphinx.features.network.query.invite.model.RedeemInviteRelayResponse
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.invite.InviteString
 import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
@@ -21,7 +17,6 @@ class NetworkQueryInviteImpl(
 ): NetworkQueryInvite() {
 
     companion object {
-        private const val ENDPOINT_INVITES = "/invites"
         private const val ENDPOINT_SIGNUP = "/api/v1/signup"
         private const val ENDPOINT_SIGNUP_FINISH = "/invites/finish"
         private const val ENDPOINT_LOWEST_PRICE = "/api/v1/nodes/pricing"
@@ -39,32 +34,27 @@ class NetworkQueryInviteImpl(
 
 
     override fun redeemInvite(
-        inviteString: InviteString
+        inviteString: String
     ): Flow<LoadResponse<HubRedeemInviteResponse, ResponseError>> {
         return networkRelayCall.post(
             url = HUB_URL + ENDPOINT_SIGNUP,
             responseJsonSerializer = HubRedeemInviteResponse.serializer(),
             requestBodyPair = Pair(
-                mapOf(
-                    Pair("invite_string", inviteString.value),
-                ),
-                PolymorphicSerializer(Any::class)
+                InvitePostDto(inviteString),
+                InvitePostDto.serializer()
             )
         )
     }
 
-    // TODO: Refactor to use post instead of relayUnauthenticatedPost
     override fun finishInvite(
         inviteString: String
-    ): Flow<LoadResponse<RedeemInviteResponseDto, ResponseError>> {
+    ): Flow<LoadResponse<FinishInviteResponseDto, ResponseError>> {
         return networkRelayCall.relayPost(
-            responseJsonSerializer = RedeemInviteRelayResponse.serializer(),
+            responseJsonSerializer = FinishInviteRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_SIGNUP_FINISH,
             requestBodyPair = Pair(
-                mapOf(
-                    Pair("invite_string", inviteString),
-                ),
-                PolymorphicSerializer(Any::class)
+                InvitePostDto(inviteString),
+                InvitePostDto.serializer()
             )
         )
     }
@@ -81,23 +71,4 @@ class NetworkQueryInviteImpl(
             )
         )
     }
-
-    ///////////
-    /// GET ///
-    ///////////
-
-    ///////////
-    /// PUT ///
-    ///////////
-
-    ////////////
-    /// POST ///
-    ////////////
-//    app.post('/invites', invites.createInvite)
-//    app.post('/invites/:invite_string/pay', invites.payInvite)
-//    app.post('/invites/finish', invites.finishInvite)
-
-    //////////////
-    /// DELETE ///
-    //////////////
 }
