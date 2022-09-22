@@ -9,6 +9,5 @@ data class HubRedeemInviteResponse(
     @SerialName("object")
     @JsonNames("object")
     val response: RedeemInviteResponseDto? = null,
-
     val error: String? = null
 )

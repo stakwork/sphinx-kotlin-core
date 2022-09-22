@@ -9,7 +9,7 @@ data class RedeemInviteDto(
     val invite_status: Int,
     val pubkey: String? = null,
     val expires_on: String? = null,
-    val fee_paid: Long? = null,
+    val fee_paid: Double? = null,
     val message: String? = null,
     var nickname: String? = null,
     var pin: String? = null,

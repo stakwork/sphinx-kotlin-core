@@ -7,15 +7,17 @@ import chat.sphinx.wrapper.rsa.RsaPublicKey
 
 
 @Suppress("DataClassPrivateConstructor", "ClassName")
-sealed class OnBoardStep {
+sealed class OnBoardStep(
+    open val inviterData: OnBoardInviterData
+) {
 
     data class Step1_WelcomeMessage private constructor(
         val relayUrl: RelayUrl,
         val authorizationToken: AuthorizationToken,
         val transportKey: RsaPublicKey?,
         val hMacKey: RelayHMacKey?,
-        val inviterData: OnBoardInviterData
-    ): OnBoardStep() {
+        override val inviterData: OnBoardInviterData
+    ): OnBoardStep(inviterData) {
 
         companion object {
             @JvmSynthetic
@@ -31,16 +33,16 @@ sealed class OnBoardStep {
 
     }
 
-    data class Step2_NameAndPin private constructor(val inviterData: OnBoardInviterData): OnBoardStep() {
+    data class Step2_Name private constructor(override val inviterData: OnBoardInviterData): OnBoardStep(inviterData) {
 
         companion object {
             @JvmSynthetic
-            internal operator fun invoke(inviterData: OnBoardInviterData): Step2_NameAndPin =
-                Step2_NameAndPin(inviterData)
+            internal operator fun invoke(inviterData: OnBoardInviterData): Step2_Name =
+                Step2_Name(inviterData)
         }
     }
 
-    data class Step3_Picture private constructor(val inviterData: OnBoardInviterData): OnBoardStep() {
+    data class Step3_Picture private constructor(override val inviterData: OnBoardInviterData): OnBoardStep(inviterData) {
 
         companion object {
             @JvmSynthetic
@@ -49,7 +51,7 @@ sealed class OnBoardStep {
         }
     }
 
-    data class Step4_Ready private constructor(val inviterData: OnBoardInviterData): OnBoardStep() {
+    data class Step4_Ready private constructor(override val inviterData: OnBoardInviterData): OnBoardStep(inviterData) {
 
         companion object {
             @JvmSynthetic

@@ -118,8 +118,29 @@ class MediaCacheHandlerImpl(
                 }
             }
             is MediaType.Image -> {
-                // use image loader
-                null
+                mediaType.value.split("/").lastOrNull()?.let { fileType ->
+                    when {
+                        fileType.contains("jpeg", ignoreCase = true) -> {
+                            createImageFile("jpeg")
+                        }
+                        fileType.contains("jpg", ignoreCase = true) -> {
+                            createImageFile("jpg")
+                        }
+                        fileType.contains("bmp", ignoreCase = true) -> {
+                            createImageFile("bmp")
+                        }
+                        fileType.contains("png", ignoreCase = true) -> {
+                            createImageFile("png")
+                        }
+                        fileType.contains("gif", ignoreCase = true) -> {
+                            createImageFile("gif")
+                        }
+                        else -> {
+                            null
+                        }
+                    }
+                }
+
             }
             is MediaType.Pdf -> {
                 mediaType.value.split("/").lastOrNull()?.let { fileType ->

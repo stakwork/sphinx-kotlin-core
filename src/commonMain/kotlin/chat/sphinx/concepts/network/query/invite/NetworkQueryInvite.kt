@@ -1,9 +1,6 @@
 package chat.sphinx.concepts.network.query.invite
 
-import chat.sphinx.concepts.network.query.invite.model.HubLowestNodePriceResponse
-import chat.sphinx.concepts.network.query.invite.model.HubRedeemInviteResponse
-import chat.sphinx.concepts.network.query.invite.model.PayInviteDto
-import chat.sphinx.concepts.network.query.invite.model.RedeemInviteResponseDto
+import chat.sphinx.concepts.network.query.invite.model.*
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.invite.InviteString
@@ -30,12 +27,12 @@ abstract class NetworkQueryInvite {
 
     // TODO: Return RedeemInviteResponse
     abstract fun redeemInvite(
-        inviteString: InviteString
+        inviteString: String
     ): Flow<LoadResponse<HubRedeemInviteResponse, ResponseError>>
 
     abstract fun finishInvite(
         inviteString: String
-    ): Flow<LoadResponse<RedeemInviteResponseDto, ResponseError>>
+    ): Flow<LoadResponse<FinishInviteResponseDto, ResponseError>>
 
     abstract fun payInvite(
         inviteString: InviteString
