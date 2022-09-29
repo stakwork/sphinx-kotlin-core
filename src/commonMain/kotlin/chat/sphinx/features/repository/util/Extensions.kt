@@ -127,7 +127,8 @@ inline fun TransactionCallbacks.upsertChat(
     dto: chat.sphinx.concepts.network.query.chat.model.ChatDto,
     chatSeenMap: SynchronizedMap<ChatId, Seen>,
     queries: SphinxDatabaseQueries,
-    contactDto: ContactDto? = null
+    contactDto: ContactDto? = null,
+    ownerPubKey: LightningNodePubKey? = null
 ) {
     val seen = dto.seenActual.toSeen()
     val chatId = ChatId(dto.id)
@@ -139,6 +140,7 @@ inline fun TransactionCallbacks.upsertChat(
     val pricePerMessage = dto.price_per_message?.toSat()
     val escrowAmount = dto.escrow_amount?.toSat()
     val chatName = dto.name?.toChatName()
+    val adminPubKey = dto.owner_pub_key?.toLightningNodePubKey()
 
     queries.chatUpsert(
         chatName,
@@ -164,7 +166,7 @@ inline fun TransactionCallbacks.upsertChat(
         escrowAmount,
     )
 
-    if (chatType.isTribe() && (pricePerMessage != null || escrowAmount != null)) {
+    if (chatType.isTribe() && (ownerPubKey == adminPubKey) && (pricePerMessage != null || escrowAmount != null)) {
         queries.chatUpdateTribeData(pricePerMessage, escrowAmount, chatName, chatPhotoUrl, chatId)
     }
 

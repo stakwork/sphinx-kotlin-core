@@ -4913,7 +4913,8 @@ abstract class SphinxRepository(
                                                     chatDto,
                                                     chatSeenMap,
                                                     queries,
-                                                    null
+                                                    null,
+                                                    accountOwner.value?.nodePubKey
                                                 )
                                             }
                                         }
