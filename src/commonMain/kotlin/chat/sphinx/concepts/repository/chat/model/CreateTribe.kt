@@ -35,7 +35,7 @@ class CreateTribe private constructor(
     ) {
         class Tag (
             val name: String,
-            val image: Int,
+            val image: String,
             var isSelected: Boolean = false
         ) {
             override fun toString(): String {
@@ -118,12 +118,7 @@ class CreateTribe private constructor(
         }
         @Synchronized
         fun setImg(imgPath: Path?): Builder {
-            this.img?.let {
-                try {
-                    getFileSystem().delete(it)
-                } catch (e: Exception) {}
-            }
-            this.img = img
+            this.img = imgPath
             return this
         }
 
