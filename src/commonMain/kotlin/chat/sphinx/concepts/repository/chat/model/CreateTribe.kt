@@ -2,7 +2,6 @@ package chat.sphinx.concepts.repository.chat.model
 
 import chat.sphinx.concepts.network.query.chat.model.PostGroupDto
 import chat.sphinx.concepts.network.query.chat.model.TribeDto
-import chat.sphinx.utils.platform.getFileSystem
 import chat.sphinx.wrapper.chat.AppUrl
 import chat.sphinx.wrapper.chat.toAppUrl
 import chat.sphinx.wrapper.feed.FeedType
@@ -35,7 +34,7 @@ class CreateTribe private constructor(
     ) {
         class Tag (
             val name: String,
-            val image: Int,
+            val image: String,
             var isSelected: Boolean = false
         ) {
             override fun toString(): String {
@@ -118,12 +117,7 @@ class CreateTribe private constructor(
         }
         @Synchronized
         fun setImg(imgPath: Path?): Builder {
-            this.img?.let {
-                try {
-                    getFileSystem().delete(it)
-                } catch (e: Exception) {}
-            }
-            this.img = img
+            this.img = imgPath
             return this
         }
 
@@ -139,7 +133,7 @@ class CreateTribe private constructor(
             return this
         }
 
-        fun selectedTags(): Array<Tag> {
+        private fun selectedTags(): Array<Tag> {
             return tags.filter {
                 it.isSelected
             }.toTypedArray()
@@ -220,8 +214,8 @@ class CreateTribe private constructor(
             }
     }
 
-    fun toPostGroupDto(imageUrl: String? = null): chat.sphinx.concepts.network.query.chat.model.PostGroupDto {
-        return chat.sphinx.concepts.network.query.chat.model.PostGroupDto(
+    fun toPostGroupDto(imageUrl: String? = null): PostGroupDto {
+        return PostGroupDto(
             name = name,
             description = description,
             is_tribe = isTribe,

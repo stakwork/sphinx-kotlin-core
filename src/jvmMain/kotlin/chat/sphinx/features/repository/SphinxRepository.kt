@@ -3714,6 +3714,7 @@ abstract class SphinxRepository(
                                             tribeDto.name,
                                             tribeDto.description,
                                             img = tribeDto.img ?: "",
+                                            tags = arrayOf()
                                         )
                                     ).collect {}
                                 }
@@ -4932,6 +4933,21 @@ abstract class SphinxRepository(
                                 response = Response.Success(chatDto)
                                 val queries = coreDB.getSphinxDatabaseQueries()
 
+                                var owner: Contact? = accountOwner.value
+
+                                if (owner == null) {
+                                    try {
+                                        accountOwner.collect {
+                                            if (it != null) {
+                                                owner = it
+                                                throw Exception()
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                    }
+                                    delay(25L)
+                                }
+
                                 chatLock.withLock {
                                     messageLock.withLock {
                                         withContext(io) {
@@ -4940,7 +4956,8 @@ abstract class SphinxRepository(
                                                     chatDto,
                                                     chatSeenMap,
                                                     queries,
-                                                    null
+                                                    null,
+                                                    owner?.nodePubKey
                                                 )
                                             }
                                         }
@@ -5013,6 +5030,21 @@ abstract class SphinxRepository(
                             response = Response.Success(loadResponse.value)
                             val queries = coreDB.getSphinxDatabaseQueries()
 
+                            var owner: Contact? = accountOwner.value
+
+                            if (owner == null) {
+                                try {
+                                    accountOwner.collect {
+                                        if (it != null) {
+                                            owner = it
+                                            throw Exception()
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                }
+                                delay(25L)
+                            }
+
                             chatLock.withLock {
                                 messageLock.withLock {
                                     withContext(io) {
@@ -5021,7 +5053,8 @@ abstract class SphinxRepository(
                                                 loadResponse.value,
                                                 chatSeenMap,
                                                 queries,
-                                                null
+                                                null,
+                                                owner?.nodePubKey
                                             )
                                         }
                                     }

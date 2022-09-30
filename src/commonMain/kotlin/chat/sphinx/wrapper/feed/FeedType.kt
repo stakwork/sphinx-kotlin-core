@@ -13,6 +13,23 @@ inline fun FeedType.isNewsletter(): Boolean =
     this is FeedType.Newsletter
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun FeedType.toFeedTypeString(): String =
+    when (this) {
+        FeedType.Podcast -> {
+            "Podcast "
+        }
+        FeedType.Newsletter -> {
+            "Newsletter"
+        }
+        FeedType.Video -> {
+            "Video"
+        }
+        else -> {
+            ""
+        }
+    }
+
+@Suppress("NOTHING_TO_INLINE")
 inline fun Int.toFeedType(): FeedType =
     when (this) {
         FeedType.PODCAST -> {
