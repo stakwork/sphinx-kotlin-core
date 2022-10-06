@@ -14,6 +14,9 @@ import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.crypto.common.clazzes.Password
+import chat.sphinx.di.container.AppModule
+import chat.sphinx.di.container.AuthenticationModule
+import chat.sphinx.di.container.SphinxContainer
 import chat.sphinx.features.crypto_rsa.RSAAlgorithm
 import chat.sphinx.features.crypto_rsa.RSAImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
@@ -172,12 +175,19 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
         Cache(testDirectory.resolve("okhttp_test_cache").toFile(), 2000000L /*2MB*/)
     }
 
+    private val appModule = AppModule()
+    private val authenticationModule = AuthenticationModule(
+        SphinxContainer.appModule
+    )
+
     protected open val networkClient: NetworkClient by lazy {
         NetworkClientImpl(
+            appModule.applicationScope,
             // true will add interceptors to the OkHttpClient
             BuildConfigDebug(useLoggingInterceptors),
             okHttpCache,
             dispatchers,
+            authenticationModule.authenticationStorage,
             null,
             testTorManager,
             testLogger,
