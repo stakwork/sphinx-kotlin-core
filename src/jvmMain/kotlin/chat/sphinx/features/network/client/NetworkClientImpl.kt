@@ -99,7 +99,7 @@ class NetworkClientImpl(
         }
     }
 
-    private suspend fun isTorRequired(): Boolean {
+    override suspend fun isTorRequired(): Boolean {
         var required: Boolean?
 
         lock.withLock {
