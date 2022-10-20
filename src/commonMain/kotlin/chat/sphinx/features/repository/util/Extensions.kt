@@ -367,6 +367,7 @@ fun TransactionCallbacks.upsertMessage(
         dto.type.toMessageType(),
         dto.recipient_alias?.toRecipientAlias(),
         dto.recipient_pic?.toPhotoUrl(),
+        dto.pushActual.toPush(),
         MessageId(dto.id),
         dto.uuid?.toMessageUUID(),
         chatId,

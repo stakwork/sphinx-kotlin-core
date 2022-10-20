@@ -11,10 +11,23 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
+import chat.sphinx.wrapper_chat.isOnlyMentions
+import chat.sphinx.wrapper_chat.isSeeAll
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun Chat.isMuted(): Boolean =
-    notifyActualValue().isMuteChat()
+inline fun Chat.isMuted(): Boolean {
+    return notify?.isMuteChat() == true
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Chat.isOnlyMentions(): Boolean {
+    return notify?.isOnlyMentions() == true
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Chat.isSeeAll(): Boolean {
+    return notify?.isSeeAll() == true
+}
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.notifyActualValue(): NotificationLevel =

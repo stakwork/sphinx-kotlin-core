@@ -1,5 +1,7 @@
 package chat.sphinx.features.coredb.adapters.message
 
+import chat.sphinx.wrapper.chat.Push
+import chat.sphinx.wrapper.chat.toPush
 import chat.sphinx.wrapper.message.*
 import com.squareup.sqldelight.ColumnAdapter
 
@@ -122,3 +124,15 @@ internal class RecipientAliasAdapter: ColumnAdapter<RecipientAlias, String> {
         return value.value
     }
 }
+
+internal class PushAdapter: ColumnAdapter<Push, Long> {
+
+    override fun decode(databaseValue: Long): Push {
+        return databaseValue.toInt().toPush()
+    }
+
+    override fun encode(value: Push): Long {
+        return value.value.toLong()
+    }
+}
+

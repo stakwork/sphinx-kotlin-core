@@ -12,6 +12,7 @@ import chat.sphinx.wrapper.chat.ChatStatus;
 import chat.sphinx.wrapper.chat.ChatType;
 import chat.sphinx.wrapper.chat.ChatUUID;
 import chat.sphinx.wrapper.chat.ChatUnlisted;
+import chat.sphinx.wrapper.chat.Push;
 import chat.sphinx.wrapper.contact.Blocked;
 import chat.sphinx.wrapper.contact.ContactAlias;
 import chat.sphinx.wrapper.contact.ContactStatus;
@@ -582,7 +583,8 @@ CREATE TABLE messageDbo(
     muid                        TEXT            AS MessageMUID,
     flagged                     INTEGER         AS Flagged NOT NULL DEFAULT 0,
     recipient_alias             TEXT            AS RecipientAlias,
-    recipient_pic               TEXT            AS PhotoUrl
+    recipient_pic               TEXT            AS PhotoUrl,
+    push                        INTEGER         AS Push DEFAULT 0
 );
 
 messageGetAllReactionsByUUID:
@@ -713,6 +715,14 @@ WHERE sender != :ownerId
 AND seen = 0
 AND chat_id = ?;
 
+messageGetUnseenIncomingMentionsCountByChatId:
+SELECT COUNT(*)
+FROM messageDbo
+WHERE sender != :ownerId
+AND seen = 0
+AND push = 1
+AND chat_id = ?;
+
 messageGetUnseenIncomingMessageCountByChatType:
 SELECT COUNT(*)
 FROM messageDbo
@@ -766,7 +776,8 @@ messageUpsert {
         reply_uuid = :reply_uuid,
         type = :type,
         recipient_alias = :recipient_alias,
-        recipient_pic = :recipient_pic
+        recipient_pic = :recipient_pic,
+        push = :push
     WHERE id = :id;
 
     INSERT OR IGNORE INTO messageDbo(
@@ -792,7 +803,8 @@ messageUpsert {
         muid,
         flagged,
         recipient_alias,
-        recipient_pic
+        recipient_pic,
+        push
     )
     VALUES (
         :id,
@@ -817,7 +829,8 @@ messageUpsert {
         :muid,
         :flagged,
         :recipient_alias,
-        :recipient_pic
+        :recipient_pic,
+        :push
     );
 }
 
