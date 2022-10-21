@@ -14,6 +14,7 @@ import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.podcast.Podcast
+import chat.sphinx.wrapper_chat.NotificationLevel
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -38,7 +39,7 @@ interface ChatRepository {
      *
      * Returns error if something went wrong (networking)
      * */
-    suspend fun toggleChatMuted(chat: Chat): Response<Boolean, ResponseError>
+    suspend fun setNotificationLevel(chat: Chat, level: NotificationLevel): Response<Boolean, ResponseError>
 
     suspend fun updateChatContentSeenAt(chatId: ChatId)
 

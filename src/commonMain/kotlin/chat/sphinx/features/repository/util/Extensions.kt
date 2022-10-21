@@ -25,6 +25,8 @@ import chat.sphinx.wrapper.subscription.Cron
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.SubscriptionCount
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper_chat.NotificationLevel
+import chat.sphinx.wrapper_chat.toNotificationLevel
 import com.squareup.sqldelight.TransactionCallbacks
 
 @Suppress("NOTHING_TO_INLINE")
@@ -96,6 +98,15 @@ inline fun TransactionCallbacks.updateChatMuted(
     queries.dashboardUpdateMuted(muted, chatId)
 }
 
+@Suppress("NOTHING_TO_INLINE")
+inline fun TransactionCallbacks.updateChatNotificationLevel(
+    chatId: ChatId,
+    notificationLevel: NotificationLevel?,
+    queries: SphinxDatabaseQueries
+) {
+    queries.chatUpdateNotificationLevel(notificationLevel, chatId)
+}
+
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun TransactionCallbacks.updateChatTribeData(
     tribe: TribeDto,
@@ -135,7 +146,7 @@ inline fun TransactionCallbacks.upsertChat(
     val chatType = dto.type.toChatType()
     val createdAt = dto.created_at.toDateTime()
     val contactIds = dto.contact_ids.map { ContactId(it) }
-    val muted = dto.isMutedActual.toChatMuted()
+    val muted = dto.isMutedActual().toChatMuted()
     val chatPhotoUrl = dto.photo_url?.toPhotoUrl()
     val pricePerMessage = dto.price_per_message?.toSat()
     val escrowAmount = dto.escrow_amount?.toSat()
@@ -158,6 +169,7 @@ inline fun TransactionCallbacks.upsertChat(
         dto.my_photo_url?.toPhotoUrl(),
         dto.my_alias?.toChatAlias(),
         dto.pending_contact_ids?.map { ContactId(it) },
+        dto.notify?.toNotificationLevel(),
         chatId,
         ChatUUID(dto.uuid),
         chatType,
@@ -355,6 +367,7 @@ fun TransactionCallbacks.upsertMessage(
         dto.type.toMessageType(),
         dto.recipient_alias?.toRecipientAlias(),
         dto.recipient_pic?.toPhotoUrl(),
+        dto.pushActual.toPush(),
         MessageId(dto.id),
         dto.uuid?.toMessageUUID(),
         chatId,

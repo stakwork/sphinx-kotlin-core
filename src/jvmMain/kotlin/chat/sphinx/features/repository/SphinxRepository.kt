@@ -103,6 +103,8 @@ import chat.sphinx.wrapper.rsa.RsaPublicKey
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper_chat.NotificationLevel
+import chat.sphinx.wrapper_chat.isMuteChat
 import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
@@ -327,22 +329,36 @@ abstract class SphinxRepository(
         chatId: ChatId,
         chatDto: ChatDto?,
         messageDto: MessageDto,
-        contactDto: ContactDto?
+        contactDto: ContactDto?,
     ) {
-        if (chatDto?.is_muted?.value == false) {
-            val sender = messageDto.sender_alias ?: contactDto?.alias
-            val chatName = chatDto?.name
+        applicationScope.launch(mainImmediate) {
+            if (chatDto?.isMutedActual() == true) {
+                return@launch
+            }
 
-            sender?.let { senderAlias ->
-                sphinxNotificationManager.notify(
-                    notificationId = chatId.value,
-                    title = if (chatName != null) {
-                        "$chatName: message from $senderAlias"
-                    } else {
-                        "Message from $senderAlias"
-                    },
-                    message = messageDto.getNotificationText() ?: ""
-                )
+            if (chatDto?.isOnlyMentions() == true) {
+                val alias = chatDto?.my_alias ?: getOwner()?.alias?.value ?: ""
+
+                if ((messageDto.messageContentDecrypted?.lowercase()?.contains("@${alias.lowercase()}") == false)) {
+                    return@launch
+                }
+            }
+
+            if (chatDto?.is_muted?.value == false) {
+                val sender = messageDto.sender_alias ?: contactDto?.alias
+                val chatName = chatDto?.name
+
+                sender?.let { senderAlias ->
+                    sphinxNotificationManager.notify(
+                        notificationId = chatId.value,
+                        title = if (chatName != null) {
+                            "$chatName: message from $senderAlias"
+                        } else {
+                            "Message from $senderAlias"
+                        },
+                        message = messageDto.getNotificationText() ?: ""
+                    )
+                }
             }
         }
     }
@@ -476,6 +492,33 @@ abstract class SphinxRepository(
         emitAll(
             coreDB.getSphinxDatabaseQueries()
                 .messageGetUnseenIncomingMessageCountByChatId(
+                    ownerId ?: ContactId(-1),
+                    chatId
+                )
+                .asFlow()
+                .mapToOneOrNull(io)
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getUnseenMentionsByChatId(chatId: ChatId): Flow<Long?> = flow {
+        var ownerId: ContactId? = accountOwner.value?.id
+
+        if (ownerId == null) {
+            try {
+                accountOwner.collect { contact ->
+                    if (contact != null) {
+                        ownerId = contact.id
+                        throw Exception()
+                    }
+                }
+            } catch (e: Exception) {}
+            delay(25L)
+        }
+
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetUnseenIncomingMentionsCountByChatId(
                     ownerId ?: ContactId(-1),
                     chatId
                 )
@@ -2464,6 +2507,7 @@ abstract class SphinxRepository(
                                 messageType,
                                 null,
                                 null,
+                                Push.False,
                                 provisionalId,
                                 null,
                                 chatDbo.id,
@@ -3496,28 +3540,41 @@ abstract class SphinxRepository(
         return response ?: Response.Error(ResponseError("Failed to pay for attachment"))
     }
 
-    override suspend fun toggleChatMuted(chat: Chat): Response<Boolean, ResponseError> {
-        var response: Response<Boolean, ResponseError> = Response.Success(!chat.isMuted())
+    override suspend fun setNotificationLevel(chat: Chat, level: NotificationLevel): Response<Boolean, ResponseError> {
+        var response: Response<Boolean, ResponseError> = Response.Success(level.isMuteChat())
 
         applicationScope.launch(mainImmediate) {
             val queries = coreDB.getSphinxDatabaseQueries()
-            val currentMutedValue = chat.isMuted
+            val currentNotificationLevel = chat.notifyActualValue()
 
             chatLock.withLock {
                 withContext(io) {
                     queries.transaction {
-                        updateChatMuted(
+                        updateChatNotificationLevel(
                             chat.id,
-                            if (currentMutedValue.isTrue()) ChatMuted.False else ChatMuted.True,
+                            level,
                             queries
                         )
                     }
                 }
             }
 
-            networkQueryChat.toggleMuteChat(chat.id, chat.isMuted).collect { loadResponse ->
+            networkQueryChat.setNotificationLevel(chat.id, level).collect { loadResponse ->
                 when (loadResponse) {
-                    is LoadResponse.Loading -> {
+                    is LoadResponse.Loading -> {}
+                    is Response.Success -> {
+                        chatLock.withLock {
+                            withContext(io) {
+                                queries.transaction {
+                                    upsertChat(
+                                        loadResponse.value,
+                                        chatSeenMap,
+                                        queries,
+                                        null
+                                    )
+                                }
+                            }
+                        }
                     }
                     is Response.Error -> {
                         response = loadResponse
@@ -3525,16 +3582,14 @@ abstract class SphinxRepository(
                         chatLock.withLock {
                             withContext(io) {
                                 queries.transaction {
-                                    updateChatMuted(
+                                    updateChatNotificationLevel(
                                         chat.id,
-                                        currentMutedValue,
+                                        currentNotificationLevel,
                                         queries
                                     )
                                 }
                             }
                         }
-                    }
-                    is Response.Success -> {
                     }
                 }
             }
@@ -5843,5 +5898,24 @@ abstract class SphinxRepository(
         }
 
         return response
+    }
+
+    suspend fun getOwner() : Contact? {
+        var owner: Contact? = accountOwner.value
+
+        if (owner == null) {
+            try {
+                accountOwner.collect {
+                    if (it != null) {
+                        owner = it
+                        throw Exception()
+                    }
+                }
+            } catch (e: Exception) {
+            }
+            delay(25L)
+        }
+
+        return owner
     }
 }

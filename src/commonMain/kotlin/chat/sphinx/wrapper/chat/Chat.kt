@@ -9,10 +9,29 @@ import chat.sphinx.wrapper.isTrue
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
+import chat.sphinx.wrapper_chat.NotificationLevel
+import chat.sphinx.wrapper_chat.isMuteChat
+import chat.sphinx.wrapper_chat.isOnlyMentions
+import chat.sphinx.wrapper_chat.isSeeAll
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun Chat.isMuted(): Boolean =
-    isMuted.isTrue()
+inline fun Chat.isMuted(): Boolean {
+    return notify?.isMuteChat() == true
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Chat.isOnlyMentions(): Boolean {
+    return notify?.isOnlyMentions() == true
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Chat.isSeeAll(): Boolean {
+    return notify?.isSeeAll() == true
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Chat.notifyActualValue(): NotificationLevel =
+    notify ?: (if (isMuted.isTrue()) NotificationLevel.MuteChat else NotificationLevel.SeeAll)
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isUnlisted(): Boolean =
@@ -75,4 +94,5 @@ data class Chat(
     val pendingContactIds: List<ContactId>?,
     val latestMessageId: MessageId?,
     val contentSeenAt: DateTime?,
+    val notify: NotificationLevel?,
 )

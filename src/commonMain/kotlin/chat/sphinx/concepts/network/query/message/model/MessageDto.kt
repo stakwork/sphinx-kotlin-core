@@ -50,9 +50,13 @@ data class MessageDto(
     val contact: ContactDto? = null,
     val recipient_alias: String? = null,
     val recipient_pic: String? = null,
+    val push: SphinxBoolean?,
 ) {
     @Transient
     val seenActual: Boolean = seen.value
+
+    @Transient
+    val pushActual: Boolean = push?.value ?: false
 
     @Transient
     @Volatile

@@ -12,6 +12,7 @@ import chat.sphinx.wrapper.chat.ChatStatus;
 import chat.sphinx.wrapper.chat.ChatType;
 import chat.sphinx.wrapper.chat.ChatUUID;
 import chat.sphinx.wrapper.chat.ChatUnlisted;
+import chat.sphinx.wrapper.chat.Push;
 import chat.sphinx.wrapper.contact.Blocked;
 import chat.sphinx.wrapper.contact.ContactAlias;
 import chat.sphinx.wrapper.contact.ContactStatus;
@@ -71,8 +72,9 @@ import chat.sphinx.wrapper.subscription.Cron;
 import chat.sphinx.wrapper.subscription.EndNumber;
 import chat.sphinx.wrapper.subscription.SubscriptionCount;
 import chat.sphinx.wrapper.subscription.SubscriptionId;
-import okio.Path;
+import chat.sphinx.wrapper_chat.NotificationLevel;
 import kotlin.collections.List;
+import okio.Path;
 
 CREATE TABLE chatDbo(
     id                          INTEGER         AS ChatId NOT NULL PRIMARY KEY,
@@ -97,7 +99,9 @@ CREATE TABLE chatDbo(
     my_alias                    TEXT            AS ChatAlias,
     pending_contact_ids         TEXT            AS List<ContactId>,
     latest_message_id           INTEGER         AS MessageId DEFAULT NULL,
-    content_seen_at             INTEGER         AS DateTime
+    content_seen_at             INTEGER         AS DateTime,
+    notify                      INTEGER         AS NotificationLevel
+
 );
 
 chatUpdateLatestMessage:
@@ -108,6 +112,11 @@ WHERE id = ?;
 chatUpdateMuted:
 UPDATE chatDbo
 SET is_muted = :muted
+WHERE id = ?;
+
+chatUpdateNotificationLevel:
+UPDATE chatDbo
+SET notify = :notify
 WHERE id = ?;
 
 chatUpdateContentSeenAt:
@@ -163,8 +172,6 @@ chatUpsert {
         is_muted = :is_muted,
         group_key = :group_key,
         host = :host,
---         price_per_message = :price_per_message,
---         escrow_amount = :escrow_amount,
         unlisted = :unlisted,
         private_tribe = :private_tribe,
         owner_pub_key = :owner_pub_key,
@@ -172,7 +179,8 @@ chatUpsert {
         meta_data = :meta_data,
         my_photo_url = :my_photo_url,
         my_alias = :my_alias,
-        pending_contact_ids = :pending_contact_ids
+        pending_contact_ids = :pending_contact_ids,
+        notify = :notify
     WHERE id = :id;
 
     INSERT OR IGNORE INTO chatDbo(
@@ -196,7 +204,8 @@ chatUpsert {
         meta_data,
         my_photo_url,
         my_alias,
-        pending_contact_ids
+        pending_contact_ids,
+        notify
     )
     VALUES (
         :id,
@@ -219,7 +228,8 @@ chatUpsert {
         :meta_data,
         :my_photo_url,
         :my_alias,
-        :pending_contact_ids
+        :pending_contact_ids,
+        :notify
     );
 }
 
@@ -573,7 +583,8 @@ CREATE TABLE messageDbo(
     muid                        TEXT            AS MessageMUID,
     flagged                     INTEGER         AS Flagged NOT NULL DEFAULT 0,
     recipient_alias             TEXT            AS RecipientAlias,
-    recipient_pic               TEXT            AS PhotoUrl
+    recipient_pic               TEXT            AS PhotoUrl,
+    push                        INTEGER         AS Push DEFAULT 0
 );
 
 messageGetAllReactionsByUUID:
@@ -704,6 +715,14 @@ WHERE sender != :ownerId
 AND seen = 0
 AND chat_id = ?;
 
+messageGetUnseenIncomingMentionsCountByChatId:
+SELECT COUNT(*)
+FROM messageDbo
+WHERE sender != :ownerId
+AND seen = 0
+AND push = 1
+AND chat_id = ?;
+
 messageGetUnseenIncomingMessageCountByChatType:
 SELECT COUNT(*)
 FROM messageDbo
@@ -757,7 +776,8 @@ messageUpsert {
         reply_uuid = :reply_uuid,
         type = :type,
         recipient_alias = :recipient_alias,
-        recipient_pic = :recipient_pic
+        recipient_pic = :recipient_pic,
+        push = :push
     WHERE id = :id;
 
     INSERT OR IGNORE INTO messageDbo(
@@ -783,7 +803,8 @@ messageUpsert {
         muid,
         flagged,
         recipient_alias,
-        recipient_pic
+        recipient_pic,
+        push
     )
     VALUES (
         :id,
@@ -808,7 +829,8 @@ messageUpsert {
         :muid,
         :flagged,
         :recipient_alias,
-        :recipient_pic
+        :recipient_pic,
+        :push
     );
 }
 

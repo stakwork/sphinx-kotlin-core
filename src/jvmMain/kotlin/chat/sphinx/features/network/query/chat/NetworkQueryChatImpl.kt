@@ -1,5 +1,7 @@
 package chat.sphinx.features.network.query.chat
 
+import chat.sphinx.concepts.network.query.chat.model.ChatDto
+import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.chat.model.*
 import chat.sphinx.concepts.network.query.chat.model.feed.FeedDto
@@ -18,6 +20,7 @@ import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
+import chat.sphinx.wrapper_chat.NotificationLevel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -34,6 +37,7 @@ class NetworkQueryChatImpl(
         private const val ENDPOINT_MUTE_CHAT = "/chats/%d/%s"
         private const val MUTE_CHAT = "mute"
         private const val UN_MUTE_CHAT = "unmute"
+        private const val ENDPOINT_NOTIFICATION_LEVEL = "/notify/%d/%d"
         private const val ENDPOINT_GROUP = "/group"
         private const val ENDPOINT_EDIT_GROUP = "/group/%d"
         private const val ENDPOINT_KICK = "/kick/%d/%d"
@@ -189,6 +193,21 @@ class NetworkQueryChatImpl(
         networkRelayCall.relayPost(
             responseJsonSerializer = UpdateChatRelayResponse.serializer(),
             relayEndpoint = endpoint,
+            requestBodyPair = Pair(
+                mapOf(Pair("", "")),
+                Json.serializersModule.serializer()
+            ),
+            relayData = relayData
+        )
+
+    override fun setNotificationLevel(
+        chatId: ChatId,
+        notificationLevel: NotificationLevel,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<ChatDto, ResponseError>> =
+        networkRelayCall.relayPut(
+            responseJsonSerializer = UpdateChatRelayResponse.serializer(),
+            relayEndpoint = String.format(ENDPOINT_NOTIFICATION_LEVEL, chatId.value, notificationLevel.value),
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
                 Json.serializersModule.serializer()
