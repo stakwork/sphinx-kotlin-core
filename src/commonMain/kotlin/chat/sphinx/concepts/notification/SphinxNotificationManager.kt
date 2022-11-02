@@ -35,6 +35,9 @@ interface SphinxNotificationManager {
         windowTitle: String,
         title: String,
         message: String,
-        confirm: () -> Unit
+        confirm: (() -> Unit)? = null,
+        cancel: (() -> Unit)? = null,
+        positiveButtonTitle: String? = null,
+        negativeButtonTitle: String? = null
     )
 }

@@ -7,7 +7,10 @@ abstract class NetworkClient {
     abstract suspend fun getClient(): OkHttpClient
 
     abstract fun addListener(listener: NetworkClientClearedListener): Boolean
+
     abstract fun removeListener(listener: NetworkClientClearedListener): Boolean
 
     abstract suspend fun setTorRequired(required: Boolean)
+
+    abstract suspend fun isTorRequired(): Boolean
 }
