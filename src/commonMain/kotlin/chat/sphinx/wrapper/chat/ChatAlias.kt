@@ -30,8 +30,7 @@ inline fun String.fixedAlias(): String {
         }
 
         if (!Character.isLetterOrDigit(character) &&
-            character.toString() != "_" &&
-            !character.isSurrogate()
+            character.toString() != "_"
         ) {
             continue
         }
