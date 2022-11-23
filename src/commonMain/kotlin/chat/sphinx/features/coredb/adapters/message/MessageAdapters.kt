@@ -136,3 +136,13 @@ internal class PushAdapter: ColumnAdapter<Push, Long> {
     }
 }
 
+internal class PersonAdapter: ColumnAdapter<MessagePerson, String> {
+
+    override fun decode(databaseValue: String): MessagePerson {
+        return MessagePerson(databaseValue)
+    }
+
+    override fun encode(value: MessagePerson): String {
+        return value.value
+    }
+}

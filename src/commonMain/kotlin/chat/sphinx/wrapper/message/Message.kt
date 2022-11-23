@@ -357,7 +357,7 @@ abstract class Message {
     abstract val flagged: Flagged
     abstract val recipientAlias: RecipientAlias?
     abstract val recipientPic: PhotoUrl?
-
+    abstract val person: MessagePerson?
     abstract val messageContentDecrypted: MessageContentDecrypted?
     abstract val messageDecryptionError: Boolean
     abstract val messageDecryptionException: Exception?
