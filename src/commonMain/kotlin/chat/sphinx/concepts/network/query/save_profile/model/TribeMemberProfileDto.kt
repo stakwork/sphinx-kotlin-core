@@ -21,7 +21,7 @@ data class TribeMemberProfileExtrasDto(
     val coding_languages: List<TribeMemberProfileCodingLanguageDto>?,
     val github: List<ProfileAttributeDto>?,
     val twitter: List<ProfileAttributeDto>?,
-    val post: List<TribeMemberProfilePostDto>?,
+    val post: List<TribeMemberProfilePostDto>? = null,
     val tribes: List<ProfileAttributeDto>?,
 ) {
     val codingLanguages: String
