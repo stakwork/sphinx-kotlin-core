@@ -18,11 +18,11 @@ data class TribeMemberProfileDto(
 
 @Serializable
 data class TribeMemberProfileExtrasDto(
-    val coding_languages: List<TribeMemberProfileCodingLanguageDto>?,
-    val github: List<ProfileAttributeDto>?,
-    val twitter: List<ProfileAttributeDto>?,
+    val coding_languages: List<TribeMemberProfileCodingLanguageDto>? = null,
+    val github: List<ProfileAttributeDto>? = null,
+    val twitter: List<ProfileAttributeDto>? = null,
     val post: List<TribeMemberProfilePostDto>? = null,
-    val tribes: List<ProfileAttributeDto>?,
+    val tribes: List<ProfileAttributeDto>? = null,
 ) {
     val codingLanguages: String
         get() {
