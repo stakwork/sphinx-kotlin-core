@@ -94,6 +94,7 @@ import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaHost
+import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
@@ -5467,9 +5468,11 @@ abstract class SphinxRepository(
                 val queries = coreDB.getSphinxDatabaseQueries()
 
                 //Getting media data from purchase accepted item if is paid content
-                val media = message?.retrieveUrlAndMessageMedia()?.second
+
+                val urlAndMedia = message?.retrieveUrlAndMessageMedia()
+                val media = urlAndMedia?.second
                 val host = media?.host
-                val url = media?.url
+                val url = urlAndMedia?.first?.toMediaUrlOrNull() ?: media?.url
 
                 val localFile = message?.messageMedia?.localFile
 
