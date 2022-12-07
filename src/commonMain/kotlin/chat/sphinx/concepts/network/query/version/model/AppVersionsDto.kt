@@ -10,4 +10,5 @@ data class AppVersionsDto(
     val linux: Long,
     val mac: Long,
     val kotlin: Long,
+    val kmm: Long
 )
