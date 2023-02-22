@@ -44,6 +44,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
+import java.net.URI
 import java.util.concurrent.TimeUnit
 import kotlin.jvm.Volatile
 
@@ -252,6 +253,7 @@ class SocketIOManagerImpl(
             .build()
 
         val options: IO.Options = IO.Options().apply {
+            path = URI(nnRelayData.third.value + "/socket.io").getRawPath()
             callFactory = client
             webSocketFactory = client
             reconnection = true
