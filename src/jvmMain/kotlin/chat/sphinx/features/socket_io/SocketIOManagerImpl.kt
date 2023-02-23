@@ -256,7 +256,7 @@ class SocketIOManagerImpl(
         val socketURL = socketURI.toURL()
 
         val options: IO.Options = IO.Options().apply {
-            path = socketURI.getRawPath()
+            path = socketURI.rawPath
             callFactory = client
             webSocketFactory = client
             reconnection = true
@@ -273,7 +273,7 @@ class SocketIOManagerImpl(
         val socket: Socket = try {
             // TODO: Need to add listener to relayData in case it is changed
             //  need to disconnect and open a new socket.
-            IO.socket(socketURL.getProtocol() + "://" + socketURL.getAuthority(), options)
+            IO.socket(socketURL.protocol + "://" + socketURL.authority, options)
         } catch (e: Exception) {
             val msg = "Failed to create socket-io instance"
             LOG.e(TAG, msg, e)
