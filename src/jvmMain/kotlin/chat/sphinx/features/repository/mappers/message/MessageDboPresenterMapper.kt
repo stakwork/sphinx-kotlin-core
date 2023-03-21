@@ -67,6 +67,13 @@ internal class MessageDboPresenterMapper(
                                 message._feedBoost = podBoost
                             }
                     }
+                } else if (message.type.isCallLink()) {
+                    withContext(default) {
+                        decrypted.value.toCallLinkMessageOrNull()
+                            ?.let { callLink ->
+                                message._callLinkMessage = callLink
+                            }
+                    }
                 }
 
                 message._messageContentDecrypted = decrypted

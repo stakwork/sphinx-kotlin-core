@@ -16,6 +16,7 @@ data class PostMessageDto(
     val muid: String? = null,
     val price: Long? = null,
     val boost: Boolean = false,
+    val call: Boolean = false,
     val pay: Boolean = false,
 ) {
     init {

@@ -2457,6 +2457,9 @@ abstract class SphinxRepository(
                 (sendMessage.isTribePayment) -> {
                     MessageType.DirectPayment
                 }
+                (sendMessage.isCall) -> {
+                    MessageType.CallLink
+                }
                 else -> {
                     MessageType.Message
                 }
@@ -2625,6 +2628,7 @@ abstract class SphinxRepository(
                     postMemeServerDto?.muid,
                     sendMessage.paidMessagePrice?.value,
                     sendMessage.isBoost,
+                    sendMessage.isCall,
                     sendMessage.isTribePayment
                 )
             } catch (e: IllegalArgumentException) {

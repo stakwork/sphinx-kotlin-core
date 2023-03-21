@@ -26,15 +26,37 @@ value class SphinxCallLink(val value: String) {
 
         const val AUDIO_ONLY_PARAM = "config.startAudioOnly"
 
-        fun newCallInvite(
+        fun newCallLink(
             customServerUrl: String?,
             startAudioOnly: Boolean
-        ): SphinxCallLink? {
+        ): String? {
             val currentTime = getCurrentTimeInMillis()
             val audioOnlyParam = if (startAudioOnly) "#$AUDIO_ONLY_PARAM=true" else ""
             val linkString = "${customServerUrl ?: DEFAULT_CALL_SERVER_URL}/$CALL_ROOM_NAME.$currentTime$audioOnlyParam"
 
-            return linkString.toSphinxCallLink()
+            return linkString.toSphinxCallLink()?.value
+        }
+
+        fun newCallLinkMessage(
+            customServerUrl: String?,
+            startAudioOnly: Boolean,
+        ): String? {
+            val currentTime = System.currentTimeMillis()
+            val audioOnlyParam = if (startAudioOnly) "#${AUDIO_ONLY_PARAM}=true" else ""
+            val linkString = "${customServerUrl ?: DEFAULT_CALL_SERVER_URL}/$CALL_ROOM_NAME.$currentTime$audioOnlyParam"
+
+            linkString.toSphinxCallLink()?.let { sphinxCallLink ->
+                val callLinkMessage = CallLinkMessage(
+                    sphinxCallLink,
+                    false,
+                    ""
+                )
+
+                callLinkMessage.toJson()?.let { jsonLink ->
+                    return "${CallLinkMessage.MESSAGE_PREFIX}$jsonLink"
+                }
+            }
+            return null
         }
     }
 

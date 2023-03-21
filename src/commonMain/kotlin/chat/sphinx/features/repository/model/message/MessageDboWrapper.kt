@@ -91,6 +91,12 @@ class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
 
     @Volatile
     @Suppress("PropertyName")
+    var _callLinkMessage: CallLinkMessage? = null
+    override val callLinkMessage: CallLinkMessage?
+        get() = _callLinkMessage
+
+    @Volatile
+    @Suppress("PropertyName")
     var _podcastClip: PodcastClip? = null
     override val podcastClip: PodcastClip?
         get() = _podcastClip
