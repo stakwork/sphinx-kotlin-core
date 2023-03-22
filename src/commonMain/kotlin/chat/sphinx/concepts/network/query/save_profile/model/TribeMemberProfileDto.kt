@@ -26,9 +26,11 @@ data class TribeMemberProfileExtrasDto(
 ) {
     val codingLanguages: String
         get() {
-            if (coding_languages?.isNotEmpty() == true) {
-                return coding_languages?.joinToString(",") {
-                    it.value
+            coding_languages?.let { nnCodingLanguages ->
+                if (nnCodingLanguages.isNotEmpty()) {
+                    return nnCodingLanguages.joinToString(",") {
+                        it.value
+                    }
                 }
             }
             return "-"

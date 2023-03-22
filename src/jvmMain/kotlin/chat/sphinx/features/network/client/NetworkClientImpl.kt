@@ -426,7 +426,7 @@ class NetworkClientImpl(
     }
 
     init {
-        startTor()
+//        startTor()
     }
 
     fun startTor() {
@@ -500,41 +500,20 @@ class NetworkClientImpl(
                 event.value.printStackTrace()
             }
             when (event) {
-                is TorManagerEvent.Log.Error -> {
-
-                }
-                TorManagerEvent.Action.Controller -> {
-
-                }
-                TorManagerEvent.Action.Restart -> {
-
-                }
-                TorManagerEvent.Action.Start -> {
-
-                }
-                TorManagerEvent.Action.Stop -> {
-
-                }
-                is TorManagerEvent.Log.Debug -> {
-
-                }
-                is TorManagerEvent.Log.Info -> {
-
-                }
-                is TorManagerEvent.Log.Warn -> {
-
-                }
-                is TorManagerEvent.Lifecycle<*> -> {
-
-                }
+                is TorManagerEvent.Log.Error -> {}
+                TorManagerEvent.Action.Controller -> {}
+                TorManagerEvent.Action.Restart -> {}
+                TorManagerEvent.Action.Start -> {}
+                TorManagerEvent.Action.Stop -> {}
+                is TorManagerEvent.Log.Debug -> {}
+                is TorManagerEvent.Log.Info -> {}
+                is TorManagerEvent.Log.Warn -> {}
+                is TorManagerEvent.Lifecycle<*> -> {}
                 is TorManagerEvent.AddressInfo -> {
                     event.splitSocks()
-
-
                 }
-                is TorManagerEvent.State -> {
-
-                }
+                is TorManagerEvent.State -> {}
+                else -> {}
             }
 
             super.onEvent(event)

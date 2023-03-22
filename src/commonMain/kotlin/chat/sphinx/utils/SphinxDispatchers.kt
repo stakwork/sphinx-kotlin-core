@@ -3,6 +3,7 @@ package chat.sphinx.utils
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 
 class SphinxDispatchers(
     override val default: CoroutineDispatcher,
@@ -13,7 +14,7 @@ class SphinxDispatchers(
 ): CoroutineDispatchers {
     constructor(): this(
         Dispatchers.Default,
-        Dispatchers.Default, // TODO: Get the IO Dispatcher...
+        Dispatchers.IO,
         Dispatchers.Main,
         Dispatchers.Main.immediate,
         Dispatchers.Unconfined

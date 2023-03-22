@@ -33,14 +33,12 @@ abstract class AuthenticationCoreStorage: AuthenticationStorage {
     }
 
     @JvmSynthetic
-    @Synchronized
     internal suspend fun saveCredentials(credentials: Credentials) {
         saveCredentialString(CredentialString(credentials.toString()))
         delay(25L)
     }
 
     @JvmSynthetic
-    @Synchronized
     internal suspend fun retrieveCredentials(): String? =
         retrieveCredentialString()?.value
 }

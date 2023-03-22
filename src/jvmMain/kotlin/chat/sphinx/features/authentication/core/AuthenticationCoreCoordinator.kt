@@ -60,14 +60,14 @@ abstract class AuthenticationCoreCoordinator(
                             return flowOf(
                                 AuthenticationResponse.Failure(request)
                             )
-                        }
+                        } else {}
                     }
                     else -> {
                         if (!request.navigateToAuthenticationViewOnFailure) {
                             return flowOf(
                                 AuthenticationResponse.Failure(request)
                             )
-                        }
+                        } else {}
                     }
                 }
             }
