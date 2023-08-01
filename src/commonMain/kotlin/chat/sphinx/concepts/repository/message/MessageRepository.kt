@@ -16,12 +16,13 @@ import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.payment.PaymentTemplate
+import chat.sphinx.wrapper_message.ThreadUUID
 import kotlinx.coroutines.flow.Flow
 import okio.Path
 
 interface MessageRepository {
     suspend fun getAllMessagesToShowByChatIdPaginated(chatId: ChatId): Flow<PagingData<Message>>
-    fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long): Flow<List<Message>>
+    fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long, chatThreadUUID: ThreadUUID? = null): Flow<List<Message>>
     fun getMessageById(messageId: MessageId): Flow<Message?>
     fun getTribeLastMemberRequestByContactId(contactId: ContactId, chatId: ChatId, ): Flow<Message?>
     fun getMessageByUUID(messageUUID: MessageUUID): Flow<Message?>

@@ -8,6 +8,7 @@ import chat.sphinx.wrapper.message.GiphyData
 import chat.sphinx.wrapper.message.PodcastClip
 import chat.sphinx.wrapper.message.ReplyUUID
 import chat.sphinx.wrapper.message.media.isSphinxText
+import chat.sphinx.wrapper_message.ThreadUUID
 import okio.Path
 import kotlin.jvm.Synchronized
 
@@ -24,7 +25,8 @@ class SendMessage private constructor(
     val isCall: Boolean,
     val isTribePayment: Boolean,
     val paidMessagePrice: Sat?,
-    val priceToMeet: Sat?
+    val priceToMeet: Sat?,
+    val threadUUID: ThreadUUID?
 ) {
 
     class Builder {
@@ -41,6 +43,7 @@ class SendMessage private constructor(
         private var isTribePayment: Boolean         = false
         private var paidMessagePrice: Sat?          = null
         private var priceToMeet: Sat?               = null
+        private var threadUUID: ThreadUUID?         = null
 
         enum class ValidationError {
             EMPTY_PRICE, EMPTY_DESTINATION, EMPTY_CONTENT
@@ -61,6 +64,7 @@ class SendMessage private constructor(
             isTribePayment = false
             paidMessagePrice = null
             priceToMeet = null
+            threadUUID = null
         }
 
         @Synchronized
@@ -188,6 +192,12 @@ class SendMessage private constructor(
         }
 
         @Synchronized
+        fun setThreadUUID(threadUUID: ThreadUUID?): Builder {
+            this.threadUUID = threadUUID
+            return this
+        }
+
+        @Synchronized
         fun build(): Pair<SendMessage?, ValidationError?> {
             val isValid = isValid()
 
@@ -208,7 +218,8 @@ class SendMessage private constructor(
                         isCall,
                         isTribePayment,
                         paidMessagePrice,
-                        priceToMeet
+                        priceToMeet,
+                        threadUUID
                     ), null
                 )
             }

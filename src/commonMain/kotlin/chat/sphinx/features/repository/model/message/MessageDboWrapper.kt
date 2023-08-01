@@ -11,6 +11,7 @@ import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.MessageMedia
+import chat.sphinx.wrapper_message.ThreadUUID
 import kotlin.jvm.Volatile
 
 class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
@@ -58,6 +59,8 @@ class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
         get() = messageDbo.recipient_pic
     override val person: MessagePerson?
         get() = messageDbo.person
+    override val threadUUID: ThreadUUID?
+        get() = messageDbo.thread_uuid
 
     @Volatile
     @Suppress("PropertyName")
@@ -124,4 +127,10 @@ class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
     var _replyMessage: Message? = null
     override val replyMessage: Message?
         get() = _replyMessage
+
+    @Volatile
+    @Suppress("PropertyName")
+    var _thread: List<Message>? = null
+    override val thread: List<Message>?
+        get() = _thread
 }
