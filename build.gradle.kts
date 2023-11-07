@@ -71,7 +71,7 @@ kotlin {
                 api("org.jetbrains.kotlinx:kotlinx-io:0.1.16")
                 api("org.jetbrains.kotlin:kotlin-stdlib:1.9.10")
                 api("com.squareup.sqldelight:coroutines-extensions:$sqlDelightVersion")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
                 implementation("io.ktor:ktor-client-core:1.6.7")
                 implementation("io.ktor:ktor-client-cio:1.6.7")
                 api("com.squareup.okio:okio:$okioVersion")
@@ -91,7 +91,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
 
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
                 implementation("com.squareup.okio:okio-fakefilesystem:$okioVersion")
             }
         }
