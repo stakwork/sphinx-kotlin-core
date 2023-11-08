@@ -52,7 +52,7 @@ data class MessageDto(
     val recipient_pic: String? = null,
     val push: SphinxBoolean? = null,
     val person: String? = null,
-    val thread_uuid: String?
+    val thread_uuid: String? = null
 
 ) {
     @Transient
