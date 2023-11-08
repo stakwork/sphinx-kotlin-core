@@ -3,6 +3,7 @@ package chat.sphinx.features.coredb.adapters.message
 import chat.sphinx.wrapper.chat.Push
 import chat.sphinx.wrapper.chat.toPush
 import chat.sphinx.wrapper.message.*
+import chat.sphinx.wrapper_message.ThreadUUID
 import com.squareup.sqldelight.ColumnAdapter
 
 internal class MessageUUIDAdapter: ColumnAdapter<MessageUUID, String> {
@@ -143,6 +144,16 @@ internal class PersonAdapter: ColumnAdapter<MessagePerson, String> {
     }
 
     override fun encode(value: MessagePerson): String {
+        return value.value
+    }
+}
+
+internal class ThreadUUIDAdapter: ColumnAdapter<ThreadUUID, String> {
+    override fun decode(databaseValue: String): ThreadUUID {
+        return ThreadUUID(databaseValue)
+    }
+
+    override fun encode(value: ThreadUUID): String {
         return value.value
     }
 }

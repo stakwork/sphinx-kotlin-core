@@ -1,6 +1,6 @@
 plugins {
     kotlin("multiplatform")
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("plugin.serialization") version "1.9.10"
     id("com.squareup.sqldelight")
 }
 
@@ -38,7 +38,7 @@ repositories {
 kotlin {
     jvm {
         compilations.all {
-            kotlinOptions.jvmTarget = JavaVersion.VERSION_11.toString()
+            kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
         }
         withJava()
         testRuns["test"].executionTask.configure {
@@ -56,7 +56,7 @@ kotlin {
 
     
     sourceSets {
-        val kotlinVersion = "1.5.1"
+        val kotlinVersion = "1.9.10"
         val okioVersion = "3.0.0"
         val klockVersion = "2.5.1"
         val sqlDelightVersion = "1.5.1"
@@ -65,13 +65,13 @@ kotlin {
 
         val commonMain by getting {
             dependencies {
-                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
                 api("com.benasher44:uuid:0.4.0")
-                api("com.soywiz.korlibs.krypto:krypto:2.4.12")
+                api("com.soywiz.korlibs.krypto:krypto:3.2.0")
                 api("org.jetbrains.kotlinx:kotlinx-io:0.1.16")
-                api("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
+                api("org.jetbrains.kotlin:kotlin-stdlib:1.9.10")
                 api("com.squareup.sqldelight:coroutines-extensions:$sqlDelightVersion")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
                 implementation("io.ktor:ktor-client-core:1.6.7")
                 implementation("io.ktor:ktor-client-cio:1.6.7")
                 api("com.squareup.okio:okio:$okioVersion")
@@ -84,14 +84,14 @@ kotlin {
                 implementation("io.matthewnelson.kotlin-components:encoding-base32:$encodingVersion")
                 implementation("io.matthewnelson.kotlin-components:encoding-base64:$encodingVersion")
 
-                api("com.squareup.sqldelight:android-paging3-extensions:1.5.3")
+                api("com.squareup.sqldelight:android-paging3-extensions:1.5.5")
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
 
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
                 implementation("com.squareup.okio:okio-fakefilesystem:$okioVersion")
             }
         }
@@ -101,7 +101,7 @@ kotlin {
 
             dependencies {
                 api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.1.16")
-                api("org.jetbrains.kotlin:kotlin-stdlib:1.6.10")
+                api("org.jetbrains.kotlin:kotlin-stdlib:1.9.10")
                 api("com.squareup.sqldelight:sqlite-driver:$sqlDelightVersion")
                 implementation("io.socket:socket.io-client:1.0.0")
                 implementation("com.squareup.okhttp3:okhttp:$okHttpVersion")

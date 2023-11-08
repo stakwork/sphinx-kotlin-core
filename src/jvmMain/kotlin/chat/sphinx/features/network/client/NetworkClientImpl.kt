@@ -535,6 +535,8 @@ class NetworkClientImpl(
                 is TorManagerEvent.State -> {
 
                 }
+
+                else -> {}
             }
 
             super.onEvent(event)

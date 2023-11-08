@@ -72,5 +72,5 @@ interface RepositoryDashboard {
     suspend fun didCancelRestore()
 
     fun getAndSaveTransportKey()
-    fun getOrCreateHMacKey()
+    fun getOrCreateHMacKey(forceGet: Boolean = false)
 }

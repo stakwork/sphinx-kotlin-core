@@ -51,7 +51,9 @@ data class MessageDto(
     val recipient_alias: String? = null,
     val recipient_pic: String? = null,
     val push: SphinxBoolean? = null,
-    val person: String? = null
+    val person: String? = null,
+    val thread_uuid: String? = null
+
 ) {
     @Transient
     val seenActual: Boolean = seen.value

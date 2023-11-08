@@ -77,7 +77,11 @@ class NetworkQueryContactImpl(
         networkRelayCall.relayGet(
             responseJsonSerializer = GetLatestContactsRelayResponse.serializer(),
             relayEndpoint = if (date != null) {
-                "$ENDPOINT_LATEST_CONTACTS?date=${MessagePagination.getFormatPaginationPercentEscaped().format(date?.value)}"
+                "$ENDPOINT_LATEST_CONTACTS?date=${date?.value?.let {
+                    MessagePagination.getFormatPaginationPercentEscaped().format(
+                        it
+                    )
+                }}"
             } else {
                 ENDPOINT_LATEST_CONTACTS
             },

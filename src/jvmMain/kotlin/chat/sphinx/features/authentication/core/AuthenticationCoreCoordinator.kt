@@ -60,7 +60,7 @@ abstract class AuthenticationCoreCoordinator(
                             return flowOf(
                                 AuthenticationResponse.Failure(request)
                             )
-                        }
+                        } else { }
                     }
                     else -> {
                         if (!request.navigateToAuthenticationViewOnFailure) {
