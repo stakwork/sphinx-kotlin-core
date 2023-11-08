@@ -27,6 +27,7 @@ import chat.sphinx.wrapper.subscription.SubscriptionCount
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.toNotificationLevel
+import chat.sphinx.wrapper_message.toThreadUUID
 import com.squareup.sqldelight.TransactionCallbacks
 
 @Suppress("NOTHING_TO_INLINE")
@@ -369,6 +370,7 @@ fun TransactionCallbacks.upsertMessage(
         dto.recipient_pic?.toPhotoUrl(),
         dto.pushActual.toPush(),
         dto.person?.toMessagePerson(),
+        dto.thread_uuid?.toThreadUUID(),
         MessageId(dto.id),
         dto.uuid?.toMessageUUID(),
         chatId,

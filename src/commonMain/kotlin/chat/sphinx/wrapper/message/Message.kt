@@ -14,6 +14,7 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaUrl
 import chat.sphinx.wrapper.time
+import chat.sphinx.wrapper_message.ThreadUUID
 
 
 @Suppress("NOTHING_TO_INLINE")
@@ -370,6 +371,7 @@ abstract class Message {
     abstract val recipientAlias: RecipientAlias?
     abstract val recipientPic: PhotoUrl?
     abstract val person: MessagePerson?
+    abstract val threadUUID: ThreadUUID?
     abstract val messageContentDecrypted: MessageContentDecrypted?
     abstract val messageDecryptionError: Boolean
     abstract val messageDecryptionException: Exception?
@@ -381,6 +383,8 @@ abstract class Message {
     abstract val reactions: List<Message>?
     abstract val purchaseItems: List<Message>?
     abstract val replyMessage: Message?
+    abstract val thread: List<Message>?
+
 
     override fun equals(other: Any?): Boolean {
         return  other                               is Message &&
@@ -425,7 +429,9 @@ abstract class Message {
                                 (a?.containsAll(b ?: emptyList()) == true && b?.containsAll(a) == true)
                     }
                 }                                                                   &&
-                other.replyMessage                  == replyMessage
+                other.replyMessage                  == replyMessage                 &&
+                other.threadUUID                    == threadUUID
+
     }
 
     companion object {
@@ -455,6 +461,7 @@ abstract class Message {
         result = _31 * result + senderPic.hashCode()
         result = _31 * result + originalMUID.hashCode()
         result = _31 * result + replyUUID.hashCode()
+        result = _31 * result + threadUUID.hashCode()
         result = _31 * result + flagged.hashCode()
         result = _31 * result + messageContentDecrypted.hashCode()
         result = _31 * result + messageDecryptionError.hashCode()
@@ -478,7 +485,7 @@ abstract class Message {
                 "paymentRequest=$paymentRequest,date=$date,expirationDate=$expirationDate,"     +
                 "messageContent=$messageContent,status=$status,seen=$seen,"                     +
                 "senderAlias=$senderAlias,senderPic=$senderPic,originalMUID=$originalMUID,"     +
-                "replyUUID=$replyUUID,flagged=$flagged,"                                        +
+                "replyUUID=$replyUUID,threadUUID=$threadUUID,flagged=$flagged,"                                        +
                 "messageContentDecrypted=$messageContentDecrypted,"                             +
                 "messageDecryptionError=$messageDecryptionError,"                               +
                 "messageDecryptionException=$messageDecryptionException,"                       +

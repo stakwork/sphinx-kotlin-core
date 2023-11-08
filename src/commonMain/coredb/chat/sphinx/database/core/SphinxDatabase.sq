@@ -56,10 +56,10 @@ import chat.sphinx.wrapper.message.MessageContent;
 import chat.sphinx.wrapper.message.MessageContentDecrypted;
 import chat.sphinx.wrapper.message.MessageId;
 import chat.sphinx.wrapper.message.MessageMUID;
+import chat.sphinx.wrapper.message.MessagePerson;
 import chat.sphinx.wrapper.message.MessageStatus;
 import chat.sphinx.wrapper.message.MessageType;
 import chat.sphinx.wrapper.message.MessageUUID;
-import chat.sphinx.wrapper.message.MessagePerson;
 import chat.sphinx.wrapper.message.RecipientAlias;
 import chat.sphinx.wrapper.message.ReplyUUID;
 import chat.sphinx.wrapper.message.SenderAlias;
@@ -74,6 +74,7 @@ import chat.sphinx.wrapper.subscription.EndNumber;
 import chat.sphinx.wrapper.subscription.SubscriptionCount;
 import chat.sphinx.wrapper.subscription.SubscriptionId;
 import chat.sphinx.wrapper_chat.NotificationLevel;
+import chat.sphinx.wrapper_message.ThreadUUID;
 import kotlin.collections.List;
 import okio.Path;
 
@@ -586,7 +587,8 @@ CREATE TABLE messageDbo(
     recipient_alias             TEXT            AS RecipientAlias,
     recipient_pic               TEXT            AS PhotoUrl,
     push                        INTEGER         AS Push DEFAULT 0,
-    person                      TEXT            AS MessagePerson
+    person                      TEXT            AS MessagePerson,
+    thread_uuid                 TEXT            AS ThreadUUID
 );
 
 messageGetAllReactionsByUUID:
@@ -596,6 +598,21 @@ WHERE chat_id = :chat_id
 AND (type = 29
     AND reply_uuid IN :reply_uuids
 );
+
+messageGetAllMessagesByThreadUUID:
+SELECT *
+FROM messageDbo
+WHERE chat_id = :chat_id
+AND type != 29
+AND thread_uuid IN :thread_uuid;
+
+messagesGetAllThreadUUIDByChatId:
+SELECT *
+FROM messageDbo
+WHERE chat_id = :chat_id
+AND type != 29
+AND thread_uuid IS NOT NULL
+ORDER BY date DESC;
 
 messageGetAllPurchaseItemsByMUID:
 SELECT *
@@ -783,7 +800,8 @@ messageUpsert {
         recipient_alias = :recipient_alias,
         recipient_pic = :recipient_pic,
         push = :push,
-        person = :person
+        person = :person,
+        thread_uuid = :thread_uuid
     WHERE id = :id;
 
     INSERT OR IGNORE INTO messageDbo(
@@ -811,7 +829,8 @@ messageUpsert {
         recipient_alias,
         recipient_pic,
         push,
-        person
+        person,
+        thread_uuid
     )
     VALUES (
         :id,
@@ -838,7 +857,8 @@ messageUpsert {
         :recipient_alias,
         :recipient_pic,
         :push,
-        :person
+        :person,
+        :thread_uuid
     );
 }
 

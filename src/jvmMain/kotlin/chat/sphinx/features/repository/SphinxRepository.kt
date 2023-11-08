@@ -106,6 +106,7 @@ import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
+import chat.sphinx.wrapper_message.ThreadUUID
 import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
@@ -1968,6 +1969,7 @@ abstract class SphinxRepository(
         queries: SphinxDatabaseQueries,
         messageDbo: MessageDbo,
         reactions: List<Message>? = null,
+        thread: List<Message>? = null,
         purchaseItems: List<Message>? = null,
         replyMessage: ReplyUUID? = null,
     ): Message {
@@ -2094,6 +2096,10 @@ abstract class SphinxRepository(
             } // else do nothing
         }
 
+        if ((thread?.size ?: 0) > 1) {
+            message._thread = thread
+        }
+
         message._reactions = reactions
         message._purchaseItems = purchaseItems
 
@@ -2106,15 +2112,26 @@ abstract class SphinxRepository(
         return message
     }
 
-    override fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long): Flow<List<Message>> = flow {
+    override fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long, chatThreadUUID: ThreadUUID?): Flow<List<Message>> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
+
         emitAll(
-            queries.messageGetAllToShowByChatId(chatId, limit)
+            (
+               if (chatThreadUUID != null) {
+                   queries.messageGetAllMessagesByThreadUUID(chatId, listOf(chatThreadUUID))
+            }
+               else {
+                   queries.messageGetAllToShowByChatId(chatId, limit)
+               }
+                    )
                 .asFlow()
                 .mapToList(io)
                 .map { listMessageDbo ->
                     withContext(default) {
                         val reactionsMap: MutableMap<MessageUUID, ArrayList<Message>> =
+                            LinkedHashMap(listMessageDbo.size)
+
+                        val threadMap: MutableMap<MessageUUID, ArrayList<Message>> =
                             LinkedHashMap(listMessageDbo.size)
 
                         val purchaseItemsMap: MutableMap<MessageMUID, ArrayList<Message>> =
@@ -2127,9 +2144,14 @@ abstract class SphinxRepository(
                             dbo.muid?.let { muid ->
                                 purchaseItemsMap[muid] = ArrayList(0)
                             }
+                            dbo.uuid?.let { uuid ->
+                                threadMap[uuid] = ArrayList(0)
+                            }
                         }
 
                         val replyUUIDs = reactionsMap.keys.map { ReplyUUID(it.value) }
+
+                        val threadUUID = threadMap.keys.map { ThreadUUID(it.value) }
 
                         val purchaseItemsMUIDs = purchaseItemsMap.keys.map { MessageMUID(it.value) }
 
@@ -2143,6 +2165,25 @@ abstract class SphinxRepository(
                                         dbo.reply_uuid?.let { uuid ->
                                             reactionsMap[MessageUUID(uuid.value)]?.add(
                                                 mapMessageDboAndDecryptContentIfNeeded(queries, dbo)
+                                            )
+                                        }
+                                    }
+                                }
+                        }
+
+                        threadUUID.chunked(500).forEach { chunkedThreadUUID ->
+                            queries.messageGetAllMessagesByThreadUUID(
+                                chatId,
+                                chunkedThreadUUID
+                            ).executeAsList()
+                                .let { response ->
+                                    response.forEach { dbo ->
+                                        dbo.thread_uuid?.let { uuid ->
+                                            threadMap[MessageUUID(uuid.value)]?.add(
+                                                mapMessageDboAndDecryptContentIfNeeded(
+                                                    queries,
+                                                    dbo
+                                                )
                                             )
                                         }
                                     }
@@ -2175,6 +2216,7 @@ abstract class SphinxRepository(
                                 queries,
                                 dbo,
                                 dbo.uuid?.let { reactionsMap[it] },
+                                dbo.uuid?.let { threadMap[it] },
                                 dbo.muid?.let { purchaseItemsMap[it] },
                                 dbo.reply_uuid,
                             )
@@ -2475,6 +2517,15 @@ abstract class SphinxRepository(
                 }
             }
 
+            val threadUUID = when {
+                (sendMessage.isTribePayment) -> {
+                    null
+                }
+                else -> {
+                    sendMessage.threadUUID
+                }
+            }
+
             val provisionalMessageId: MessageId? = chat?.let { chatDbo ->
                 // Build provisional message and insert
                 provisionalMessageLock.withLock {
@@ -2513,6 +2564,7 @@ abstract class SphinxRepository(
                                 null,
                                 Push.False,
                                 null,
+                                threadUUID,
                                 provisionalId,
                                 null,
                                 chatDbo.id,
@@ -2629,7 +2681,8 @@ abstract class SphinxRepository(
                     sendMessage.paidMessagePrice?.value,
                     sendMessage.isBoost,
                     sendMessage.isCall,
-                    sendMessage.isTribePayment
+                    sendMessage.isTribePayment,
+                    sendMessage.threadUUID?.value
                 )
             } catch (e: IllegalArgumentException) {
                 LOG.e(TAG, "Failed to create PostMessageDto", e)
@@ -2880,7 +2933,8 @@ abstract class SphinxRepository(
                     message.messageMedia?.mediaType?.value,
                     message.messageMedia?.muid?.value,
                     null,
-                    false
+                    false,
+                    thread_uuid = message.threadUUID?.value
                 )
             } catch (e: IllegalArgumentException) {
                 LOG.e(TAG, "Failed to create PostMessageDto", e)
@@ -5766,11 +5820,12 @@ abstract class SphinxRepository(
         }.flow.map { pagingData: PagingData<MessageDbo> ->
             pagingData.map { messageDbo: MessageDbo ->
                 mapMessageDboAndDecryptContentIfNeeded(
-                    queries,
-                    messageDbo,
-                    emptyList(), // TODO: load reactions messageDbo.uuid?.let { reactionsMap[it] },
-                    emptyList(), // TODO: load purchaseItems messageDbo.muid?.let { purchaseItemsMap[it] },
-                    messageDbo.reply_uuid,
+                    queries = queries,
+                    messageDbo = messageDbo,
+                    reactions = emptyList(), // TODO: load reactions messageDbo.uuid?.let { reactionsMap[it] },
+                    thread = null,
+                    purchaseItems = emptyList(), // TODO: load purchaseItems messageDbo.muid?.let { purchaseItemsMap[it] },
+                    replyMessage = messageDbo.reply_uuid,
                 )
             }
         }
