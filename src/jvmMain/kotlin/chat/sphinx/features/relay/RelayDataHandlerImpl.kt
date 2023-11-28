@@ -27,6 +27,7 @@ import chat.sphinx.wrapper.rsa.RsaPublicKey
 import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -160,7 +161,7 @@ class RelayDataHandlerImpl(
     override fun formatRelayUrl(relayUrl: RelayUrl): RelayUrl {
         return try {
             // TODO: Check what should be done when RelayUrl isn't a valid URL
-            relayUrl.value.toUrlOrNull()
+            relayUrl.value.toHttpUrl()
 
             // is valid url with scheme
             relayUrl
