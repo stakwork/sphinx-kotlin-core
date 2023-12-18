@@ -7,7 +7,7 @@ import kotlin.jvm.JvmInline
 inline fun String.toHtmlPreviewFavIconUrlOrNull(): HtmlPreviewFavIconUrl? =
     try {
         HtmlPreviewFavIconUrl(this)
-    } catch (e: URLParserException) {
+    } catch (e: Throwable) {
         null
     }
 

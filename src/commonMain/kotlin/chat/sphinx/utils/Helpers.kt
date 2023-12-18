@@ -33,7 +33,7 @@ fun checkFromToIndex(fromIndex: Int, toIndex: Int, length: Int): Int {
 inline fun String.toUrlOrNull(): Url? {
     return try {
         Url(this)
-    } catch (e: URLParserException) {
+    } catch (e: Throwable) {
         null
     }
 }
