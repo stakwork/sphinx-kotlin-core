@@ -57,7 +57,7 @@ kotlin {
     
     sourceSets {
         val kotlinVersion = "1.9.10"
-        val okioVersion = "3.0.0"
+        val okioVersion = "3.5.0"
         val klockVersion = "2.5.1"
         val sqlDelightVersion = "1.5.1"
         val kmpTorVersion = "0.4.6.10+0.1.0-beta1"

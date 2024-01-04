@@ -11,9 +11,9 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import com.squareup.sqldelight.ColumnAdapter
-import okio.internal.commonToPath
-import java.io.File
 import okio.Path
+import okio.Path.Companion.toPath
+import java.io.File
 
 internal class ChatIdAdapter private constructor(): ColumnAdapter<ChatId, Long> {
 
@@ -147,7 +147,7 @@ internal class PathAdapter private constructor(): ColumnAdapter<Path, String> {
     }
 
     override fun decode(databaseValue: String): Path {
-        return databaseValue.commonToPath(true)
+        return databaseValue.toPath(true)
     }
 
     override fun encode(value: Path): String {
