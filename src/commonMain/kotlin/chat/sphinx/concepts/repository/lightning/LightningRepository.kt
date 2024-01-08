@@ -1,5 +1,6 @@
 package chat.sphinx.concepts.repository.lightning
 
+import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.lightning.NodeBalance
@@ -16,4 +17,9 @@ interface LightningRepository {
     suspend fun getAccountBalanceAll(
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<NodeBalanceAll, ResponseError>>
+
+    suspend fun getActiveLSat(
+        issuer: String,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
+    ): Flow<LoadResponse<ActiveLsatDto, ResponseError>>
 }

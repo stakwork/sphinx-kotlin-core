@@ -5,6 +5,7 @@ import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceAllDto
 import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.channel.ChannelsDto
 import chat.sphinx.concepts.network.query.lightning.model.invoice.*
+import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
 import chat.sphinx.concepts.network.query.lightning.model.route.RouteSuccessProbabilityDto
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.features.network.query.lightning.model.*
@@ -32,6 +33,7 @@ class NetworkQueryLightningImpl(
         private const val ENDPOINT_ROUTE = "/route"
         private const val ENDPOINT_ROUTE_2 = "/route2"
         private const val ENDPOINT_GET_INFO = "/getinfo"
+        private const val ENDPOINT_GET_LSAT = "/active_lsat"
         private const val ENDPOINT_LOGS = "/logs"
         private const val ENDPOINT_INFO = "/info"
         private const val ENDPOINT_QUERY_ONCHAIN_ADDRESS = "/query/onchain_address"
@@ -198,6 +200,16 @@ class NetworkQueryLightningImpl(
                 PayRequestDto.serializer()
             ),
             relayData = relayData
+        )
+
+    override fun getActiveLSat(
+        issuer: String?,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<ActiveLsatDto, ResponseError>> =
+        networkRelayCall.relayGet(
+            responseJsonSerializer = GetActiveLSatRelayResponse.serializer(),
+            relayEndpoint = if (issuer != null) "$ENDPOINT_GET_LSAT?issuer=${issuer!!}" else ENDPOINT_GET_LSAT,
+            relayData = relayData,
         )
     
 //    app.get('/getinfo', details.getInfo)

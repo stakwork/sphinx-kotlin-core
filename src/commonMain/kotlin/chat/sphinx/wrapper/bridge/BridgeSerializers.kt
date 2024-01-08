@@ -68,6 +68,40 @@ fun BridgeSetBudgetMessage.toJson(): String =
     )
 
 @Serializable
+data class BridgeGetLSATMessage(
+    val type: String,
+    val application: String,
+    val issuer: String?
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgeGetLSATMessageOrNull(): BridgeGetLSATMessage? =
+    try {
+        this.toBridgeGetLSATMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgeGetLSATMessage(): BridgeGetLSATMessage =
+    SphinxJson.decodeFromString<BridgeGetLSATMessage>(this).let {
+        BridgeGetLSATMessage(
+            it.type,
+            it.application,
+            it.issuer
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgeGetLSATMessage.toJson(): String =
+    Json.encodeToString(
+        BridgeGetLSATMessage(
+            type,
+            application,
+            issuer
+        )
+    )
+
+@Serializable
 data class BridgeMessage(
     val pubkey: String,
     val type: String,
@@ -102,6 +136,58 @@ data class SetBudgetMessage(
     val password: String,
     val budget: Int?,
 )
+
+@Serializable
+data class LSatMessage(
+    val type: String,
+    val application: String,
+    val password: String,
+    val macaroon: String,
+    val paymentRequest: String,
+    val preimage: String,
+    val identifier: String,
+    val issuer: String,
+    val success: Boolean,
+    val status: Long,
+    val paths: String,
+)
+
+@Serializable
+data class LSatFailedMessage(
+    val type: String,
+    val application: String,
+    val password: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun LSatMessage.toJson(): String =
+    Json.encodeToString(
+        LSatMessage(
+            type,
+            application,
+            password,
+            macaroon,
+            paymentRequest,
+            preimage,
+            identifier,
+            issuer,
+            success,
+            status,
+            paths
+        )
+    )
+
+@Throws(AssertionError::class)
+fun LSatFailedMessage.toJson(): String =
+    Json.encodeToString(
+        LSatFailedMessage(
+            type,
+            application,
+            password,
+            success
+        )
+    )
 
 @Throws(AssertionError::class)
 fun BridgeMessage.toJson(): String {

@@ -23,6 +23,7 @@ import chat.sphinx.concepts.network.query.feed_search.model.toFeedSearchResult
 import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
 import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
 import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
@@ -62,6 +63,7 @@ import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
 import chat.sphinx.database.core.*
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
+import chat.sphinx.features.network.query.lightning.model.GetActiveLSatRelayResponse
 import chat.sphinx.features.repository.mappers.chat.ChatDboPresenterMapper
 import chat.sphinx.features.repository.mappers.contact.ContactDboPresenterMapper
 import chat.sphinx.features.repository.mappers.feed.FeedDboPresenterMapper
@@ -1919,6 +1921,29 @@ abstract class SphinxRepository(
                         Sat(loadResponse.value.remote_balance)
                     )
                     emit(Response.Success(nodeBalanceAll))
+                }
+            }
+        }
+    }
+
+    override suspend fun getActiveLSat(
+        issuer: String,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<ActiveLsatDto, ResponseError>> = flow {
+        networkQueryLightning.getActiveLSat(
+            issuer,
+            relayData
+        ).collect { loadResponse ->
+            Exhaustive@
+            when (loadResponse) {
+                is LoadResponse.Loading -> {
+//                    emit(loadResponse)
+                }
+                is Response.Error -> {
+                    emit(loadResponse)
+                }
+                is Response.Success -> {
+                    emit(loadResponse)
                 }
             }
         }
