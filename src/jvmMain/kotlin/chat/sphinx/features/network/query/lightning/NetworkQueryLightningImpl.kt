@@ -6,6 +6,7 @@ import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.channel.ChannelsDto
 import chat.sphinx.concepts.network.query.lightning.model.invoice.*
 import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.SignChallengeDto
 import chat.sphinx.concepts.network.query.lightning.model.route.RouteSuccessProbabilityDto
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.features.network.query.lightning.model.*
@@ -34,6 +35,7 @@ class NetworkQueryLightningImpl(
         private const val ENDPOINT_ROUTE_2 = "/route2"
         private const val ENDPOINT_GET_INFO = "/getinfo"
         private const val ENDPOINT_GET_LSAT = "/active_lsat"
+        private const val ENDPOINT_SIGN_CHALLENGE = "/signer"
         private const val ENDPOINT_LOGS = "/logs"
         private const val ENDPOINT_INFO = "/info"
         private const val ENDPOINT_QUERY_ONCHAIN_ADDRESS = "/query/onchain_address"
@@ -209,6 +211,16 @@ class NetworkQueryLightningImpl(
         networkRelayCall.relayGet(
             responseJsonSerializer = GetActiveLSatRelayResponse.serializer(),
             relayEndpoint = if (issuer != null) "$ENDPOINT_GET_LSAT?issuer=${issuer!!}" else ENDPOINT_GET_LSAT,
+            relayData = relayData,
+        )
+
+    override fun signChallenge(
+        challenge: String,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<SignChallengeDto, ResponseError>> =
+        networkRelayCall.relayGet(
+            responseJsonSerializer = SignChallengeRelayResponse.serializer(),
+            relayEndpoint = "$ENDPOINT_SIGN_CHALLENGE/$challenge",
             relayData = relayData,
         )
     

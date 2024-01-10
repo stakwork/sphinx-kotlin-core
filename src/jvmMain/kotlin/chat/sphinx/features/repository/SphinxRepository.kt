@@ -24,6 +24,7 @@ import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
 import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.SignChallengeDto
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
 import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
@@ -1932,6 +1933,29 @@ abstract class SphinxRepository(
     ): Flow<LoadResponse<ActiveLsatDto, ResponseError>> = flow {
         networkQueryLightning.getActiveLSat(
             issuer,
+            relayData
+        ).collect { loadResponse ->
+            Exhaustive@
+            when (loadResponse) {
+                is LoadResponse.Loading -> {
+//                    emit(loadResponse)
+                }
+                is Response.Error -> {
+                    emit(loadResponse)
+                }
+                is Response.Success -> {
+                    emit(loadResponse)
+                }
+            }
+        }
+    }
+
+    override suspend fun signChallenge(
+        challenge: String,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<SignChallengeDto, ResponseError>> = flow {
+        networkQueryLightning.signChallenge(
+            challenge,
             relayData
         ).collect { loadResponse ->
             Exhaustive@

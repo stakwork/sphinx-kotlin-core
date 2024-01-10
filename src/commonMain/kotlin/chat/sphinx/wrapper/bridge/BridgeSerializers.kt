@@ -102,6 +102,40 @@ fun BridgeGetLSATMessage.toJson(): String =
     )
 
 @Serializable
+data class BridgeSignMessage(
+    val type: String,
+    val application: String,
+    val message: String
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgeSignMessageOrNull(): BridgeSignMessage? =
+    try {
+        this.toBridgeSignMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgeSignMessage(): BridgeSignMessage =
+    SphinxJson.decodeFromString<BridgeSignMessage>(this).let {
+        BridgeSignMessage(
+            it.type,
+            it.application,
+            it.message
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgeSignMessage.toJson(): String =
+    Json.encodeToString(
+        BridgeSignMessage(
+            type,
+            application,
+            message
+        )
+    )
+
+@Serializable
 data class BridgeMessage(
     val pubkey: String,
     val type: String,
@@ -185,6 +219,42 @@ fun LSatFailedMessage.toJson(): String =
             type,
             application,
             password,
+            success
+        )
+    )
+
+@Serializable
+data class SendSignMessage(
+    val type: String,
+    val application: String,
+    val signature: String,
+    val success: Boolean
+)
+
+@Serializable
+data class SendFailedSignMessage(
+    val type: String,
+    val application: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendSignMessage.toJson(): String =
+    Json.encodeToString(
+        SendSignMessage(
+            type,
+            application,
+            signature,
+            success
+        )
+    )
+
+@Throws(AssertionError::class)
+fun SendFailedSignMessage.toJson(): String =
+    Json.encodeToString(
+        SendFailedSignMessage(
+            type,
+            application,
             success
         )
     )
