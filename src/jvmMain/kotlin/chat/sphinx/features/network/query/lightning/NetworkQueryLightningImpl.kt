@@ -6,6 +6,8 @@ import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.channel.ChannelsDto
 import chat.sphinx.concepts.network.query.lightning.model.invoice.*
 import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatResponseDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.SignChallengeDto
 import chat.sphinx.concepts.network.query.lightning.model.route.RouteSuccessProbabilityDto
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
@@ -35,6 +37,7 @@ class NetworkQueryLightningImpl(
         private const val ENDPOINT_ROUTE_2 = "/route2"
         private const val ENDPOINT_GET_INFO = "/getinfo"
         private const val ENDPOINT_GET_LSAT = "/active_lsat"
+        private const val ENDPOINT_LSAT = "/lsats"
         private const val ENDPOINT_SIGN_CHALLENGE = "/signer"
         private const val ENDPOINT_LOGS = "/logs"
         private const val ENDPOINT_INFO = "/info"
@@ -222,6 +225,20 @@ class NetworkQueryLightningImpl(
             responseJsonSerializer = SignChallengeRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_SIGN_CHALLENGE/$challenge",
             relayData = relayData,
+        )
+
+    override fun payLSat(
+        payLSatDto: PayLsatDto,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>> =
+        networkRelayCall.relayPost(
+            responseJsonSerializer = PostPayLSatRelayResponse.serializer(),
+            relayEndpoint = ENDPOINT_LSAT,
+            requestBodyPair = Pair(
+                payLSatDto,
+                PayLsatDto.serializer()
+            ),
+            relayData = relayData
         )
     
 //    app.get('/getinfo', details.getInfo)

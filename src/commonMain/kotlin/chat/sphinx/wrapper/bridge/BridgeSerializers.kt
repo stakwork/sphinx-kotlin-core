@@ -209,6 +209,44 @@ fun BridgeGetBudgetMessage.toJson(): String =
         )
     )
 
+///BRIDGE LSAT MESSAGE
+@Serializable
+data class BridgeLSatMessage(
+    val type: String,
+    val application: String,
+    val paymentRequest: String,
+    val macaroon: String,
+    val issuer: String
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgeLSatMessageOrNull(): BridgeLSatMessage? =
+    try {
+        this.toBridgeLSatMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgeLSatMessage(): BridgeLSatMessage =
+    SphinxJson.decodeFromString<BridgeLSatMessage>(this).let {
+        BridgeLSatMessage(
+            it.type,
+            it.application,
+            it.paymentRequest,
+            it.macaroon,
+            it.issuer
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgeLSatMessage.toJson(): String =
+    Json.encodeToString(
+        BridgeLSatMessage(
+            type,
+            application
+        )
+    )
+
 ///SEND MESSAGES
 @Serializable
 data class BridgeMessage(
@@ -283,7 +321,7 @@ fun BridgeMessage.toJson(): String {
 }
 
 @Serializable
-data class SendLSatMessage(
+data class SendActiveLSatMessage(
     val type: String,
     val application: String,
     val password: String,
@@ -298,7 +336,7 @@ data class SendLSatMessage(
 )
 
 @Serializable
-data class SendLSatFailedMessage(
+data class SendActiveLSatFailedMessage(
     val type: String,
     val application: String,
     val password: String,
@@ -306,9 +344,9 @@ data class SendLSatFailedMessage(
 )
 
 @Throws(AssertionError::class)
-fun SendLSatMessage.toJson(): String =
+fun SendActiveLSatMessage.toJson(): String =
     Json.encodeToString(
-        SendLSatMessage(
+        SendActiveLSatMessage(
             type,
             application,
             password,
@@ -324,9 +362,9 @@ fun SendLSatMessage.toJson(): String =
     )
 
 @Throws(AssertionError::class)
-fun SendLSatFailedMessage.toJson(): String =
+fun SendActiveLSatFailedMessage.toJson(): String =
     Json.encodeToString(
-        SendLSatFailedMessage(
+        SendActiveLSatFailedMessage(
             type,
             application,
             password,
@@ -402,6 +440,44 @@ fun SendGetBudgetMessage.toJson(): String =
             type,
             application,
             budget,
+            success
+        )
+    )
+
+@Serializable
+data class SendLSatMessage(
+    val type: String,
+    val application: String,
+    val lsat: String,
+    val budget: Int,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendLSatMessage.toJson(): String =
+    Json.encodeToString(
+        SendLSatMessage(
+            type,
+            application,
+            lsat,
+            budget,
+            success
+        )
+    )
+
+@Serializable
+data class SendLSatFailedMessage(
+    val type: String,
+    val application: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendLSatFailedMessage.toJson(): String =
+    Json.encodeToString(
+        SendLSatFailedMessage(
+            type,
+            application,
             success
         )
     )

@@ -24,6 +24,8 @@ import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
 import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatResponseDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.SignChallengeDto
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
@@ -64,7 +66,6 @@ import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
 import chat.sphinx.database.core.*
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
-import chat.sphinx.features.network.query.lightning.model.GetActiveLSatRelayResponse
 import chat.sphinx.features.repository.mappers.chat.ChatDboPresenterMapper
 import chat.sphinx.features.repository.mappers.contact.ContactDboPresenterMapper
 import chat.sphinx.features.repository.mappers.feed.FeedDboPresenterMapper
@@ -121,7 +122,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -1956,6 +1956,29 @@ abstract class SphinxRepository(
     ): Flow<LoadResponse<SignChallengeDto, ResponseError>> = flow {
         networkQueryLightning.signChallenge(
             challenge,
+            relayData
+        ).collect { loadResponse ->
+            Exhaustive@
+            when (loadResponse) {
+                is LoadResponse.Loading -> {
+//                    emit(loadResponse)
+                }
+                is Response.Error -> {
+                    emit(loadResponse)
+                }
+                is Response.Success -> {
+                    emit(loadResponse)
+                }
+            }
+        }
+    }
+
+    override suspend fun payLSat(
+        payLSatDto: PayLsatDto,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>> = flow {
+        networkQueryLightning.payLSat(
+            payLSatDto,
             relayData
         ).collect { loadResponse ->
             Exhaustive@

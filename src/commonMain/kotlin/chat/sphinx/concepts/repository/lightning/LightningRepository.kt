@@ -1,6 +1,8 @@
 package chat.sphinx.concepts.repository.lightning
 
 import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatResponseDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.SignChallengeDto
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
@@ -26,4 +28,9 @@ interface LightningRepository {
         challenge: String,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<SignChallengeDto, ResponseError>>
+
+    suspend fun payLSat(
+        payLSatDto: PayLsatDto,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>>
 }

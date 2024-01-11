@@ -5,6 +5,8 @@ import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.channel.ChannelsDto
 import chat.sphinx.concepts.network.query.lightning.model.invoice.*
 import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatResponseDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.SignChallengeDto
 import chat.sphinx.concepts.network.query.lightning.model.route.RouteSuccessProbabilityDto
 import chat.sphinx.response.LoadResponse
@@ -73,6 +75,11 @@ abstract class NetworkQueryLightning {
         challenge: String,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null,
     ): Flow<LoadResponse<SignChallengeDto, ResponseError>>
+
+    abstract fun payLSat(
+        payLSatDto: PayLsatDto,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null,
+    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>>
 
     /**
      * Makes request to pay provided [LightningPaymentInvoiceDto]
