@@ -95,6 +95,10 @@ abstract class NetworkQueryContact {
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<ContactDto, ResponseError>>
 
+    abstract fun getPersonData(
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
+    ): Flow<LoadResponse<PersonDataDto, ResponseError>>
+
     //    app.post('/contacts/:id/keys', contacts.exchangeKeys)
     //    app.post('/contacts', contacts.createContact)
 }

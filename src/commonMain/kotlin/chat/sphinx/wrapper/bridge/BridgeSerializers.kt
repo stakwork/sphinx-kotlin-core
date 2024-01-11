@@ -288,6 +288,7 @@ fun BridgeUpdateLSatMessage.toJson(): String =
         )
     )
 
+///BRIDGE PAYMENT
 @Serializable
 data class BridgePaymentMessage(
     val type: String,
@@ -322,11 +323,11 @@ fun BridgePaymentMessage.toJson(): String =
         )
     )
 
+///BRIDGE UPDATED
 @Serializable
 data class BridgeUpdatedMessage(
     val type: String,
-    val application: String,
-    val password: String
+    val application: String
 )
 
 @Suppress("NOTHING_TO_INLINE")
@@ -341,8 +342,7 @@ fun String.toBridgeUpdatedMessage(): BridgeUpdatedMessage =
     SphinxJson.decodeFromString<BridgeUpdatedMessage>(this).let {
         BridgeUpdatedMessage(
             it.type,
-            it.application,
-            it.password
+            it.application
         )
     }
 
@@ -351,8 +351,39 @@ fun BridgeUpdatedMessage.toJson(): String =
     Json.encodeToString(
         BridgeUpdatedMessage(
             type,
-            application,
-            password
+            application
+        )
+    )
+
+///BRIDGE GET PERSON DATA
+@Serializable
+data class BridgeGetPersonDataMessage(
+    val type: String,
+    val application: String
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgeGetPersonDataMessageOrNull(): BridgeGetPersonDataMessage? =
+    try {
+        this.toBridgeGetPersonDataMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgeGetPersonDataMessage(): BridgeGetPersonDataMessage =
+    SphinxJson.decodeFromString<BridgeGetPersonDataMessage>(this).let {
+        BridgeGetPersonDataMessage(
+            it.type,
+            it.application
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgeGetPersonDataMessage.toJson(): String =
+    Json.encodeToString(
+        BridgeUpdatedMessage(
+            type,
+            application
         )
     )
 
@@ -698,5 +729,49 @@ fun SendUpdatedMessage.toJson(): String =
             type,
             application,
             password
+        )
+    )
+
+@Serializable
+data class SendPersonDataMessage(
+    val type: String,
+    val application: String,
+    val password: String,
+    val publicKey: String,
+    val alias: String,
+    val photoUrl: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendPersonDataMessage.toJson(): String =
+    Json.encodeToString(
+        SendPersonDataMessage(
+            type,
+            application,
+            password,
+            publicKey,
+            alias,
+            photoUrl,
+            success
+        )
+    )
+
+@Serializable
+data class SendPersonDataFailedMessage(
+    val type: String,
+    val application: String,
+    val password: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendPersonDataFailedMessage.toJson(): String =
+    Json.encodeToString(
+        SendPersonDataFailedMessage(
+            type,
+            application,
+            password,
+            success
         )
     )

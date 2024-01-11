@@ -18,8 +18,6 @@ import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
@@ -36,6 +34,7 @@ class NetworkQueryContactImpl(
         private const val ENDPOINT_GENERATE_TOKEN = "/contacts/tokens"
         private const val ENDPOINT_KEYS_EXCHANGE = "/contacts/%d/keys"
         private const val ENDPOINT_GENERATE_GITHUB_PAT = "/bot/git"
+        private const val ENDPOINT_GET_PERSON_DATA = "/person_data"
 
         private const val ENDPOINT_CREATE_INVITE = "/invites"
 
@@ -269,6 +268,15 @@ class NetworkQueryContactImpl(
                 mapOf(Pair("", "")),
                 Json.serializersModule.serializer()
             ),
+            relayData = relayData
+        )
+
+    override fun getPersonData(
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<PersonDataDto, ResponseError>> =
+        networkRelayCall.relayGet(
+            responseJsonSerializer = GetPersonDataRelayResponse.serializer(),
+            relayEndpoint = ENDPOINT_GET_PERSON_DATA,
             relayData = relayData
         )
 }

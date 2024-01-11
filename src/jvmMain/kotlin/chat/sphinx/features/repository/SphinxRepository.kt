@@ -14,10 +14,7 @@ import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.chat.model.*
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
-import chat.sphinx.concepts.network.query.contact.model.ContactDto
-import chat.sphinx.concepts.network.query.contact.model.GithubPATDto
-import chat.sphinx.concepts.network.query.contact.model.PostContactDto
-import chat.sphinx.concepts.network.query.contact.model.PutContactDto
+import chat.sphinx.concepts.network.query.contact.model.*
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
 import chat.sphinx.concepts.network.query.feed_search.model.toFeedSearchResult
 import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
@@ -2001,6 +1998,27 @@ abstract class SphinxRepository(
         networkQueryLightning.updateLSat(
             identifier,
             updateLSatDto,
+            relayData
+        ).collect { loadResponse ->
+            Exhaustive@
+            when (loadResponse) {
+                is LoadResponse.Loading -> {
+//                    emit(loadResponse)
+                }
+                is Response.Error -> {
+                    emit(loadResponse)
+                }
+                is Response.Success -> {
+                    emit(loadResponse)
+                }
+            }
+        }
+    }
+
+    override suspend fun getPersonData(
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<PersonDataDto, ResponseError>> = flow {
+        networkQueryContact.getPersonData(
             relayData
         ).collect { loadResponse ->
             Exhaustive@

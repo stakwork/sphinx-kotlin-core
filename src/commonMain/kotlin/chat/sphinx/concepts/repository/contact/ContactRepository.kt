@@ -1,5 +1,6 @@
 package chat.sphinx.concepts.repository.contact
 
+import chat.sphinx.concepts.network.query.contact.model.PersonDataDto
 import chat.sphinx.crypto.common.clazzes.Password
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
@@ -13,6 +14,10 @@ import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.LightningRouteHint
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.media.MediaType
+import chat.sphinx.wrapper.relay.AuthorizationToken
+import chat.sphinx.wrapper.relay.RelayUrl
+import chat.sphinx.wrapper.relay.RequestSignature
+import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import okio.Path
@@ -82,4 +87,8 @@ interface ContactRepository {
     suspend fun toggleContactBlocked(contact: Contact): Response<Boolean, ResponseError>
 
     suspend fun setGithubPat(pat: String): Response<Boolean, ResponseError>
+
+    suspend fun getPersonData(
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
+    ): Flow<LoadResponse<PersonDataDto, ResponseError>>
 }
