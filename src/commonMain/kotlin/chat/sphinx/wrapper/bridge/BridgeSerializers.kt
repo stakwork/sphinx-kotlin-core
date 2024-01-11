@@ -177,6 +177,38 @@ fun BridgeKeysendMessage.toJson(): String =
         )
     )
 
+///BRIDGE GETBUDGET MESSAGE
+@Serializable
+data class BridgeGetBudgetMessage(
+    val type: String,
+    val application: String
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgeGetBudgetMessageOrNull(): BridgeGetBudgetMessage? =
+    try {
+        this.toBridgeGetBudgetMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgeGetBudgetMessage(): BridgeGetBudgetMessage =
+    SphinxJson.decodeFromString<BridgeGetBudgetMessage>(this).let {
+        BridgeGetBudgetMessage(
+            it.type,
+            it.application
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgeGetBudgetMessage.toJson(): String =
+    Json.encodeToString(
+        BridgeGetBudgetMessage(
+            type,
+            application
+        )
+    )
+
 ///SEND MESSAGES
 @Serializable
 data class BridgeMessage(
@@ -351,6 +383,25 @@ fun SendKeysendMessage.toJson(): String =
         SendKeysendMessage(
             type,
             application,
+            success
+        )
+    )
+
+@Serializable
+data class SendGetBudgetMessage(
+    val type: String,
+    val application: String,
+    val budget: Int,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendGetBudgetMessage.toJson(): String =
+    Json.encodeToString(
+        SendGetBudgetMessage(
+            type,
+            application,
+            budget,
             success
         )
     )
