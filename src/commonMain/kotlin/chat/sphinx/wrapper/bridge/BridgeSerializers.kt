@@ -288,6 +288,40 @@ fun BridgeUpdateLSatMessage.toJson(): String =
         )
     )
 
+@Serializable
+data class BridgePaymentMessage(
+    val type: String,
+    val application: String,
+    val paymentRequest: String
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgePaymentMessageOrNull(): BridgePaymentMessage? =
+    try {
+        this.toBridgePaymentMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgePaymentMessage(): BridgePaymentMessage =
+    SphinxJson.decodeFromString<BridgePaymentMessage>(this).let {
+        BridgePaymentMessage(
+            it.type,
+            it.application,
+            it.paymentRequest
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgePaymentMessage.toJson(): String =
+    Json.encodeToString(
+        BridgePaymentMessage(
+            type,
+            application,
+            paymentRequest
+        )
+    )
+
 ///SEND MESSAGES
 @Serializable
 data class BridgeMessage(
@@ -570,11 +604,30 @@ data class SendUpdateLSatFailedMessage(
 @Throws(AssertionError::class)
 fun SendUpdateLSatFailedMessage.toJson(): String =
     Json.encodeToString(
-        SendUpdateLSatMessage(
+        SendUpdateLSatFailedMessage(
             type,
             application,
             identifier,
             status,
+            success
+        )
+    )
+
+@Serializable
+data class SendPaymentMessage(
+    val type: String,
+    val application: String,
+    val paymentRequest: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendPaymentMessage.toJson(): String =
+    Json.encodeToString(
+        SendPaymentMessage(
+            type,
+            application,
+            paymentRequest,
             success
         )
     )

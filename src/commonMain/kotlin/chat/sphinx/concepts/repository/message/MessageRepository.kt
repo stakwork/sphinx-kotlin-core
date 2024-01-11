@@ -3,6 +3,7 @@ package chat.sphinx.concepts.repository.message
 //import androidx.paging.PagingData
 //import androidx.paging.PagingSource
 import androidx.paging.PagingData
+import chat.sphinx.concepts.network.query.message.model.PutPaymentRequestDto
 import chat.sphinx.concepts.repository.message.model.SendMessage
 import chat.sphinx.concepts.repository.message.model.SendPayment
 import chat.sphinx.concepts.repository.message.model.SendPaymentRequest
@@ -64,6 +65,8 @@ interface MessageRepository {
     suspend fun sendPaymentRequest(
         requestPayment: SendPaymentRequest
     ): Response<Any, ResponseError>
+
+    suspend fun payPaymentRequest(putPaymentRequestDto: PutPaymentRequestDto) : Flow<LoadResponse<Any, ResponseError>>
 
     suspend fun payPaymentRequest(message: Message) : Response<Any, ResponseError>
 

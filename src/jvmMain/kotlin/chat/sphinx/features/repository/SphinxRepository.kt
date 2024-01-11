@@ -3648,6 +3648,51 @@ abstract class SphinxRepository(
         return response ?: Response.Error(ResponseError("Failed to pay invoice"))
     }
 
+    override suspend fun payPaymentRequest(
+        putPaymentRequestDto: PutPaymentRequestDto
+    ): Flow<LoadResponse<Any, ResponseError>>  = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        networkQueryMessage.payPaymentRequest(
+            putPaymentRequestDto,
+        ).collect { loadResponse ->
+            Exhaustive@
+            when (loadResponse) {
+                is LoadResponse.Loading -> {
+                }
+
+                is Response.Error -> {
+                    emit(loadResponse)
+                }
+
+                is Response.Success -> {
+                    emit(loadResponse)
+
+                    val message = loadResponse.value
+
+                    messageLock.withLock {
+                        withContext(io) {
+                            queries.transaction {
+                                upsertMessage(message, queries)
+
+                                if (message.updateChatDboLatestMessage) {
+                                    message.chat_id?.toChatId()?.let { chatId ->
+                                        updateChatDboLatestMessage(
+                                            message,
+                                            chatId,
+                                            latestMessageUpdatedTimeMap,
+                                            queries
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     override suspend fun payAttachment(message: Message): Response<Any, ResponseError> {
         var response: Response<Any, ResponseError>? = null
 
