@@ -243,7 +243,48 @@ fun BridgeLSatMessage.toJson(): String =
     Json.encodeToString(
         BridgeLSatMessage(
             type,
-            application
+            application,
+            paymentRequest,
+            macaroon,
+            issuer
+        )
+    )
+
+///BRIDGE UPDATE LSAT MESSAGE
+@Serializable
+data class BridgeUpdateLSatMessage(
+    val type: String,
+    val application: String,
+    val identifier: String,
+    val status: String,
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgeUpdateLSatMessageOrNull(): BridgeUpdateLSatMessage? =
+    try {
+        this.toBridgeUpdateLSatMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgeUpdateLSatMessage(): BridgeUpdateLSatMessage =
+    SphinxJson.decodeFromString<BridgeUpdateLSatMessage>(this).let {
+        BridgeUpdateLSatMessage(
+            it.type,
+            it.application,
+            it.identifier,
+            it.status
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgeUpdateLSatMessage.toJson(): String =
+    Json.encodeToString(
+        BridgeUpdateLSatMessage(
+            type,
+            application,
+            identifier,
+            status
         )
     )
 
@@ -448,8 +489,11 @@ fun SendGetBudgetMessage.toJson(): String =
 data class SendLSatMessage(
     val type: String,
     val application: String,
+    val paymentRequest: String,
+    val macaroon: String,
+    val issuer: String,
     val lsat: String,
-    val budget: Int,
+    val budget: Int?,
     val success: Boolean
 )
 
@@ -460,6 +504,9 @@ fun SendLSatMessage.toJson(): String =
             type,
             application,
             lsat,
+            paymentRequest,
+            macaroon,
+            issuer,
             budget,
             success
         )
@@ -469,6 +516,9 @@ fun SendLSatMessage.toJson(): String =
 data class SendLSatFailedMessage(
     val type: String,
     val application: String,
+    val paymentRequest: String,
+    val macaroon: String,
+    val issuer: String,
     val success: Boolean
 )
 
@@ -478,6 +528,53 @@ fun SendLSatFailedMessage.toJson(): String =
         SendLSatFailedMessage(
             type,
             application,
+            paymentRequest,
+            macaroon,
+            issuer,
+            success
+        )
+    )
+
+@Serializable
+data class SendUpdateLSatMessage(
+    val type: String,
+    val application: String,
+    val identifier: String,
+    val status: String,
+    val lsat: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendUpdateLSatMessage.toJson(): String =
+    Json.encodeToString(
+        SendUpdateLSatMessage(
+            type,
+            application,
+            identifier,
+            status,
+            lsat,
+            success
+        )
+    )
+
+@Serializable
+data class SendUpdateLSatFailedMessage(
+    val type: String,
+    val application: String,
+    val identifier: String,
+    val status: String,
+    val success: Boolean
+)
+
+@Throws(AssertionError::class)
+fun SendUpdateLSatFailedMessage.toJson(): String =
+    Json.encodeToString(
+        SendUpdateLSatMessage(
+            type,
+            application,
+            identifier,
+            status,
             success
         )
     )

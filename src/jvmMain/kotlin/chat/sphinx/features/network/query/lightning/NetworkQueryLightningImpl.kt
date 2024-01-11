@@ -5,10 +5,7 @@ import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceAllDto
 import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.channel.ChannelsDto
 import chat.sphinx.concepts.network.query.lightning.model.invoice.*
-import chat.sphinx.concepts.network.query.lightning.model.lightning.ActiveLsatDto
-import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatDto
-import chat.sphinx.concepts.network.query.lightning.model.lightning.PayLsatResponseDto
-import chat.sphinx.concepts.network.query.lightning.model.lightning.SignChallengeDto
+import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.concepts.network.query.lightning.model.route.RouteSuccessProbabilityDto
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.features.network.query.lightning.model.*
@@ -240,6 +237,22 @@ class NetworkQueryLightningImpl(
             ),
             relayData = relayData
         )
+
+    override fun updateLSat(
+        identifier: String,
+        updateLSatDto: UpdateLsatDto,
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>> =
+        networkRelayCall.relayPut(
+            responseJsonSerializer = PostPayLSatRelayResponse.serializer(),
+            relayEndpoint = "$ENDPOINT_LSAT/$identifier",
+            requestBodyPair = Pair(
+                updateLSatDto,
+                UpdateLsatDto.serializer()
+            ),
+            relayData = relayData
+        )
+
     
 //    app.get('/getinfo', details.getInfo)
 //    app.get('/info', details.getNodeInfo)
