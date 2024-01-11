@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
+///BRIDGE AUTHORIZE MESSAGE
 @Serializable
 data class BridgeAuthorizeMessage(
     val type: String,
@@ -36,6 +37,7 @@ fun BridgeAuthorizeMessage.toJson(): String =
         )
     )
 
+///BRIDGE SET BUDGET MESSAGE
 @Serializable
 data class BridgeSetBudgetMessage(
     val type: String,
@@ -67,6 +69,7 @@ fun BridgeSetBudgetMessage.toJson(): String =
         )
     )
 
+///BRIDGE GET LSAT MESSAGE
 @Serializable
 data class BridgeGetLSATMessage(
     val type: String,
@@ -101,6 +104,7 @@ fun BridgeGetLSATMessage.toJson(): String =
         )
     )
 
+///BRIDGE SIGN MESSAGE
 @Serializable
 data class BridgeSignMessage(
     val type: String,
@@ -135,6 +139,45 @@ fun BridgeSignMessage.toJson(): String =
         )
     )
 
+///BRIDGE KEYSEND MESSAGE
+@Serializable
+data class BridgeKeysendMessage(
+    val type: String,
+    val application: String,
+    val dest: String,
+    val amt: Int
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toBridgeKeysendMessageOrNull(): BridgeKeysendMessage? =
+    try {
+        this.toBridgeKeysendMessage()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toBridgeKeysendMessage(): BridgeKeysendMessage =
+    SphinxJson.decodeFromString<BridgeKeysendMessage>(this).let {
+        BridgeKeysendMessage(
+            it.type,
+            it.application,
+            it.dest,
+            it.amt
+        )
+    }
+
+@Throws(AssertionError::class)
+fun BridgeKeysendMessage.toJson(): String =
+    Json.encodeToString(
+        BridgeKeysendMessage(
+            type,
+            application,
+            dest,
+            amt
+        )
+    )
+
+///SEND MESSAGES
 @Serializable
 data class BridgeMessage(
     val pubkey: String,
@@ -163,7 +206,7 @@ data class SendAuthMessageWithSignature(
 )
 
 @Serializable
-data class SetBudgetMessage(
+data class SendSetBudgetMessage(
     val pubkey: String,
     val type: String,
     val application: String,
@@ -171,8 +214,44 @@ data class SetBudgetMessage(
     val budget: Int?,
 )
 
+@Throws(AssertionError::class)
+fun BridgeMessage.toJson(): String {
+    signature?.let {
+        return Json.encodeToString(
+            SendAuthMessageWithSignature(
+                pubkey,
+                type,
+                application,
+                password,
+                it
+            )
+        )
+    }
+
+    budget?.let {
+        return Json.encodeToString(
+            SendSetBudgetMessage(
+                pubkey,
+                type,
+                application,
+                password,
+                it
+            )
+        )
+    }
+
+    return Json.encodeToString(
+        SendAuthMessage(
+            pubkey,
+            type,
+            application,
+            password
+        )
+    )
+}
+
 @Serializable
-data class LSatMessage(
+data class SendLSatMessage(
     val type: String,
     val application: String,
     val password: String,
@@ -187,7 +266,7 @@ data class LSatMessage(
 )
 
 @Serializable
-data class LSatFailedMessage(
+data class SendLSatFailedMessage(
     val type: String,
     val application: String,
     val password: String,
@@ -195,9 +274,9 @@ data class LSatFailedMessage(
 )
 
 @Throws(AssertionError::class)
-fun LSatMessage.toJson(): String =
+fun SendLSatMessage.toJson(): String =
     Json.encodeToString(
-        LSatMessage(
+        SendLSatMessage(
             type,
             application,
             password,
@@ -213,9 +292,9 @@ fun LSatMessage.toJson(): String =
     )
 
 @Throws(AssertionError::class)
-fun LSatFailedMessage.toJson(): String =
+fun SendLSatFailedMessage.toJson(): String =
     Json.encodeToString(
-        LSatFailedMessage(
+        SendLSatFailedMessage(
             type,
             application,
             password,
@@ -259,38 +338,19 @@ fun SendFailedSignMessage.toJson(): String =
         )
     )
 
+@Serializable
+data class SendKeysendMessage(
+    val type: String,
+    val application: String,
+    val success: Boolean
+)
+
 @Throws(AssertionError::class)
-fun BridgeMessage.toJson(): String {
-    signature?.let {
-        return Json.encodeToString(
-            SendAuthMessageWithSignature(
-                pubkey,
-                type,
-                application,
-                password,
-                it
-            )
-        )
-    }
-
-    budget?.let {
-        return Json.encodeToString(
-            SetBudgetMessage(
-                pubkey,
-                type,
-                application,
-                password,
-                it
-            )
-        )
-    }
-
-    return Json.encodeToString(
-        SendAuthMessage(
-            pubkey,
+fun SendKeysendMessage.toJson(): String =
+    Json.encodeToString(
+        SendKeysendMessage(
             type,
             application,
-            password
+            success
         )
     )
-}
