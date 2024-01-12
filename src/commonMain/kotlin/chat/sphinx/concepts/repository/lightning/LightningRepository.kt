@@ -28,12 +28,12 @@ interface LightningRepository {
 
     suspend fun payLSat(
         payLSatDto: PayLsatDto,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>>
 
     suspend fun updateLSat(
         identifier: String,
         updateLSatDto: UpdateLsatDto,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
+        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>>
 }
