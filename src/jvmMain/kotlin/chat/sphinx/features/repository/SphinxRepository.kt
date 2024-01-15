@@ -1994,7 +1994,7 @@ abstract class SphinxRepository(
         identifier: String,
         updateLSatDto: UpdateLsatDto,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>> = flow {
+    ): Flow<LoadResponse<String, ResponseError>> = flow {
         networkQueryLightning.updateLSat(
             identifier,
             updateLSatDto,

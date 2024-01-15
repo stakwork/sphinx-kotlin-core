@@ -242,9 +242,9 @@ class NetworkQueryLightningImpl(
         identifier: String,
         updateLSatDto: UpdateLsatDto,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>> =
+    ): Flow<LoadResponse<String, ResponseError>> =
         networkRelayCall.relayPut(
-            responseJsonSerializer = PostPayLSatRelayResponse.serializer(),
+            responseJsonSerializer = PutPayLSatRelayResponse.serializer(),
             relayEndpoint = "$ENDPOINT_LSAT/$identifier",
             requestBodyPair = Pair(
                 updateLSatDto,

@@ -612,10 +612,10 @@ fun SendLSatMessage.toJson(): String =
             type,
             application,
             password,
-            lsat,
             paymentRequest,
             macaroon,
             issuer,
+            lsat,
             budget,
             success
         )

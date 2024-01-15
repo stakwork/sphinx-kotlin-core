@@ -35,5 +35,5 @@ interface LightningRepository {
         identifier: String,
         updateLSatDto: UpdateLsatDto,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
-    ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>>
+    ): Flow<LoadResponse<String, ResponseError>>
 }
