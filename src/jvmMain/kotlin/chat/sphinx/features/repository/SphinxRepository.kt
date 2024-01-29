@@ -307,12 +307,14 @@ abstract class SphinxRepository(
                                                 queries
                                             )
 
-                                            showNotification(
-                                                nnChatId,
-                                                chatDto,
-                                                nnMessageDto,
-                                                contactDto
-                                            )
+                                            if (msg !is SphinxSocketIOMessage.Type.MessageType.Confirmation) {
+                                                showNotification(
+                                                    nnChatId,
+                                                    chatDto,
+                                                    nnMessageDto,
+                                                    contactDto
+                                                )
+                                            }
                                         }
                                     }
                                 }

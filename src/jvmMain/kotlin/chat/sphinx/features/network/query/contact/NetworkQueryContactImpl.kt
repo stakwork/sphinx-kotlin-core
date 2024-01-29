@@ -156,13 +156,22 @@ class NetworkQueryContactImpl(
         return networkRelayCall.relayPost(
             responseJsonSerializer = GenerateTokenRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_GENERATE_TOKEN,
-            Pair(
-                mapOf(
-                    Pair("password", password),
-                    Pair("pubkey", publicKey),
-                ),
-                Json.serializersModule.serializer()
-            ),
+            if (password.isNullOrEmpty()) {
+                Pair(
+                    mapOf(
+                        Pair("pubkey", publicKey),
+                    ),
+                    Json.serializersModule.serializer()
+                )
+            } else {
+                Pair(
+                    mapOf(
+                        Pair("password", password),
+                        Pair("pubkey", publicKey),
+                    ),
+                    Json.serializersModule.serializer()
+                )
+            },
             relayData = relayData
         )
     }
@@ -176,14 +185,24 @@ class NetworkQueryContactImpl(
         return networkRelayCall.relayUnauthenticatedPost(
             responseJsonSerializer = GenerateTokenRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_GENERATE_TOKEN,
-            Pair(
-                mapOf(
-                    Pair("token", token.value),
-                    Pair("password", password),
-                    Pair("pubkey", publicKey),
-                ),
-                Json.serializersModule.serializer()
-            ),
+            if (password.isNullOrEmpty()) {
+                Pair(
+                    mapOf(
+                        Pair("token", token.value),
+                        Pair("pubkey", publicKey),
+                    ),
+                    Json.serializersModule.serializer()
+                )
+            } else {
+                Pair(
+                    mapOf(
+                        Pair("token", token.value),
+                        Pair("password", password),
+                        Pair("pubkey", publicKey),
+                    ),
+                    Json.serializersModule.serializer()
+                )
+            },
             relayUrl = relayUrl
         )
     }
