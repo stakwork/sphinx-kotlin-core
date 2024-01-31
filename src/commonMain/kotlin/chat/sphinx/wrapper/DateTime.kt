@@ -15,6 +15,12 @@ import kotlin.jvm.Volatile
  *  - [Locale] = [Locale.ENGLISH]
  *  - [TimeZone] UTC
  * */
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.replaceAmPm(): String =
+    replace("am", "AM").replace("pm", "PM")
+
+
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.toDateTime(): DateTime =
     DateTime(DateTime.getFormatRelay().parse(this))
@@ -64,7 +70,7 @@ inline fun DateTime.chatTimeFormat(
     val offset: Int = TimeZone.getDefault().rawOffset
     val dateWithOffset = value.addOffset(TimeSpan(offset.toDouble()))
 
-    return when {
+    val formattedString = when {
         today00.before(this) -> {
             DateTime.getFormathmma().format(dateWithOffset)
         }
@@ -75,21 +81,26 @@ inline fun DateTime.chatTimeFormat(
             DateTime.getFormatddmmmhhmm().format(dateWithOffset)
         }
     }
-}
+    return formattedString.replaceAmPm()}
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun DateTime.localDateTimeString(format: DateFormat): String {
     val offset: Int = TimeZone.getDefault().rawOffset
     val dateWithOffset = value.addOffset(TimeSpan(offset.toDouble()))
-    return format.format(dateWithOffset)
-}
+
+    var formattedString = format.format(dateWithOffset)
+
+    formattedString = formattedString.replace("am", "AM").replace("pm", "PM")
+
+    return formattedString.replaceAmPm()}
+
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun DateTime.separatorTimeFormat(): String {
     val offset: Int = TimeZone.getDefault().rawOffset
     val dateWithOffset = value.addOffset(TimeSpan(offset.toDouble()))
 
-    return when {
+    val formattedString =  when {
         DateTime.getToday00().before(this) -> {
             "Today"
         }
@@ -97,6 +108,7 @@ inline fun DateTime.separatorTimeFormat(): String {
             DateTime.getFormatMMMEEEdd().format(dateWithOffset)
         }
     }
+    return formattedString.replaceAmPm()
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
@@ -160,10 +172,10 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         private const val FORMAT_EEE_H_MM_A = "EEE h:mm a"
         private const val FORMAT_MMM = "MMM"
         private const val FORMAT_EEE_DD = "EEE dd"
-        private const val FORMAT_MMM_EEE_DD = "EEE, MMM dd"
-        private const val FORMAT_EEE_MM_DD_H_MM_A = "EEE MMM dd, h:mm a"
-        private const val FORMAT_DD_MMM_HH_MM = "dd MMM, HH:mm"
-        private const val FORMAT_MMM_DD_YYYY = "MMM dd, yyyy"
+        private const val FORMAT_MMM_EEE_DD = "EEE • MMM dd"
+        private const val FORMAT_EEE_MM_DD_H_MM_A = "EEE • MMM dd • h:mm a"
+        private const val FORMAT_DD_MMM_HH_MM = "dd MMM • HH:mm"
+        private const val FORMAT_MMM_DD_YYYY = "MMM dd • yyyy"
 
         private const val SIX_DAYS_IN_MILLISECONDS = 518_400_000L
 
@@ -244,6 +256,7 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
                     }
             }
 
+
         @Volatile
         private var formateeehmma: DateFormat? = null
         @Suppress("SpellCheckingInspection")
@@ -300,3 +313,5 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         return getFormatRelay().format(value)
     }
 }
+
+
