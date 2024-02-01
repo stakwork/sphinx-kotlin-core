@@ -55,12 +55,16 @@ class NetworkQueryMessageImpl(
         offset: Int,
         limit: Int,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<List<TransactionDto>, ResponseError>> =
-        networkRelayCall.relayGet(
+    ): Flow<LoadResponse<List<TransactionDto>, ResponseError>> {
+        val includeFailuresParam = "include_failures=true"
+        val endpointWithParams = "$ENDPOINT_PAYMENTS?offset=$offset&limit=$limit&$includeFailuresParam"
+
+        return networkRelayCall.relayGet(
             responseJsonSerializer = GetPaymentsRelayResponse.serializer(),
-            relayEndpoint = "$ENDPOINT_PAYMENTS?offset=$offset&limit=$limit",
+            relayEndpoint = endpointWithParams,
             relayData = relayData
         )
+    }
 
     override fun sendMessage(
         postMessageDto: PostMessageDto,
