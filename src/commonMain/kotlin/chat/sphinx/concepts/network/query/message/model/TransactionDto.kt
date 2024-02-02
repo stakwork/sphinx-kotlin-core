@@ -22,6 +22,7 @@ data class TransactionDto(
     val payment_request: String? = null,
     val date: String,
     val reply_uuid: String? = null,
+    val error_message: String? = null
 ) {
 
     fun isIncomingWithSender(ownerId: ContactId): Boolean {
