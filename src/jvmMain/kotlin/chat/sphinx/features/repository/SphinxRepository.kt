@@ -224,9 +224,33 @@ abstract class SphinxRepository(
                     }
                 }
                 is SphinxSocketIOMessage.Type.InvoicePayment -> {
-                    // TODO: Implement
+                    msg.dto.invoice.toLightningPaymentRequestOrNull()?.let {
+                        val decodedPaymentRequest = Bolt11.decode(it)
+
+                        decodedPaymentRequest.getSatsAmount()?.value?.toInt()?.let { amount ->
+                            var message = "Amount: $amount sats"
+
+                            decodedPaymentRequest.getMemo()?.let { memo ->
+                                message = "$message\nMemo: $memo"
+                            }
+
+                            sphinxNotificationManager.notify(
+                                notificationId = -1,
+                                title = "Invoice Payment received",
+                                message = message
+                            )
+                        }
+                    }
                 }
                 is SphinxSocketIOMessage.Type.MessageType, is SphinxSocketIOMessage.Type.Group -> {
+
+                    if (msg is SphinxSocketIOMessage.Type.MessageType.KeySend) {
+                        sphinxNotificationManager.notify(
+                            notificationId = -1,
+                            title = "Keysend received",
+                            message = "Amount: ${msg.dto.amount} sats"
+                        )
+                    }
 
                     // TODO: Message refresh
                     val messageDto: MessageDto? = when (msg) {
