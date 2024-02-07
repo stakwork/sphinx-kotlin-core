@@ -257,6 +257,9 @@ SET price_per_message = :price_per_message,
     photo_url = :photo_url
 WHERE id = ?;
 
+chatDeleteAll:
+DELETE FROM chatDbo;
+
 CREATE TABLE contactDbo(
     id                          INTEGER         AS ContactId NOT NULL PRIMARY KEY,
     route_hint                  TEXT            AS LightningRouteHint,
@@ -400,6 +403,9 @@ contactDeleteById:
 DELETE FROM contactDbo
 WHERE id = ?;
 
+contactDeleteAll:
+DELETE FROM contactDbo;
+
 CREATE TABLE inviteDbo(
     id                          INTEGER         AS InviteId NOT NULL PRIMARY KEY,
     invite_string               TEXT            AS InviteString NOT NULL,
@@ -465,6 +471,9 @@ WHERE id = ?;
 inviteDeleteByContactId:
 DELETE FROM inviteDbo
 WHERE contact_id = ?;
+
+inviteDeleteAll:
+DELETE FROM inviteDbo;
 
 CREATE TABLE dashboardDbo(
     id                          TEXT            AS DashboardItemId NOT NULL PRIMARY KEY,
@@ -555,6 +564,9 @@ dashboardUpsert {
 dashboardDeleteById:
 DELETE FROM dashboardDbo
 WHERE id = ?;
+
+dashboardDeleteAll:
+DELETE FROM dashboardDbo;
 
 -- Cannot use inline classes if there are 23 or more columns
 -- https://youtrack.jetbrains.com/issue/KT-45084
@@ -870,6 +882,9 @@ messageDeleteByChatId:
 DELETE FROM messageDbo
 WHERE chat_id = ?;
 
+messageDeleteAll:
+DELETE FROM messageDbo;
+
 CREATE TABLE messageMediaDbo(
     id                          INTEGER         AS MessageId NOT NULL PRIMARY KEY,
     chat_id                     INTEGER         AS ChatId NOT NULL,
@@ -933,6 +948,9 @@ WHERE id = ?;
 messageMediaDeleteByChatId:
 DELETE FROM messageMediaDbo
 WHERE chat_id = ?;
+
+messageMediaDeleteAll:
+DELETE FROM messageMediaDbo;
 
 CREATE TABLE subscriptionDbo(
     id                          INTEGER         AS SubscriptionId NOT NULL PRIMARY KEY,
@@ -1032,6 +1050,9 @@ WHERE id = ?;
 subscriptionDeleteByContactId:
 DELETE FROM subscriptionDbo
 WHERE contact_id = ?;
+
+subscriptionDeleteAll:
+DELETE FROM subscriptionDbo;
 
 CREATE TABLE feedDbo(
     id                          TEXT               AS FeedId NOT NULL PRIMARY KEY,
@@ -1199,6 +1220,9 @@ DELETE
 FROM feedDbo
 WHERE id = ?;
 
+feedDeleteAll:
+DELETE FROM feedDbo;
+
 CREATE TABLE feedItemDbo(
     id                          TEXT               AS FeedId NOT NULL PRIMARY KEY,
     title                       TEXT               AS FeedTitle NOT NULL,
@@ -1310,6 +1334,9 @@ UPDATE feedItemDbo
 SET local_file = :local_file
 WHERE id = ?;
 
+feedItemDeleteAll:
+DELETE FROM feedItemDbo;
+
 CREATE TABLE feedModelDbo(
     id                          TEXT               AS FeedId NOT NULL PRIMARY KEY,
     type                        TEXT               AS FeedModelType NOT NULL,
@@ -1343,6 +1370,9 @@ feedModelDeleteById:
 DELETE
 FROM feedModelDbo
 WHERE id = ?;
+
+feedModelDeleteAll:
+DELETE FROM feedModelDbo;
 
 CREATE TABLE feedDestinationDbo(
     address                     TEXT            AS FeedDestinationAddress NOT NULL,
@@ -1382,3 +1412,6 @@ feedDestinationsGetByFeedId:
 SELECT *
 FROM feedDestinationDbo
 WHERE feed_id = ?;
+
+feedDestinationDeleteAll:
+DELETE FROM feedDestinationDbo;

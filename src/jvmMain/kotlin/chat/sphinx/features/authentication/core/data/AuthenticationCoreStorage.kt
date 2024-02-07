@@ -18,8 +18,6 @@ package chat.sphinx.features.authentication.core.data
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.features.authentication.core.model.Credentials
 import kotlinx.coroutines.delay
-import kotlin.jvm.JvmSynthetic
-import kotlin.jvm.Synchronized
 
 abstract class AuthenticationCoreStorage: AuthenticationStorage {
 
@@ -27,6 +25,8 @@ abstract class AuthenticationCoreStorage: AuthenticationStorage {
 
     protected abstract suspend fun saveCredentialString(credentialString: CredentialString)
     protected abstract suspend fun retrieveCredentialString(): CredentialString?
+
+    abstract suspend fun removeCredentials()
 
     suspend fun hasCredential(): Boolean {
         return retrieveCredentialString() != null

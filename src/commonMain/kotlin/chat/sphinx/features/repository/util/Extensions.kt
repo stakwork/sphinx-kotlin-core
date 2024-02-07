@@ -1,6 +1,5 @@
 package chat.sphinx.features.repository.util
 
-import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.concepts.network.query.chat.model.feed.FeedDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
@@ -601,4 +600,21 @@ fun TransactionCallbacks.deleteFeedById(
         queries.feedDestinationDeleteByFeedId(feedDbo.id)
         queries.feedDeleteById(feedDbo.id)
     }
+}
+
+fun TransactionCallbacks.deleteAll(
+    queries: SphinxDatabaseQueries
+) {
+    queries.chatDeleteAll()
+    queries.contactDeleteAll()
+    queries.inviteDeleteAll()
+    queries.dashboardDeleteAll()
+    queries.messageDeleteAll()
+    queries.messageMediaDeleteAll()
+    queries.subscriptionDeleteAll()
+    queries.feedDeleteAll()
+    queries.feedDeleteAll()
+    queries.feedItemDeleteAll()
+    queries.feedModelDeleteAll()
+    queries.feedDestinationDeleteAll()
 }
