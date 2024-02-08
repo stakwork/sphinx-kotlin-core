@@ -25,9 +25,7 @@ abstract class AuthenticationCoreStorage: AuthenticationStorage {
 
     protected abstract suspend fun saveCredentialString(credentialString: CredentialString)
     protected abstract suspend fun retrieveCredentialString(): CredentialString?
-
-    abstract suspend fun removeCredentials()
-
+    
     suspend fun hasCredential(): Boolean {
         return retrieveCredentialString() != null
     }

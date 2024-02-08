@@ -27,10 +27,6 @@ open class SphinxAuthenticationCoreStorage(
         }
     }
 
-    override suspend fun removeCredentials() {
-        removeString(CREDENTIALS)
-    }
-
     override suspend fun getString(key: String, defaultValue: String?): String? {
         return settings.getStringOrNull(key = key) ?: defaultValue
     }
@@ -49,6 +45,11 @@ open class SphinxAuthenticationCoreStorage(
     }
 
     override suspend fun removeString(key: String) {
+        if (key == CREDENTIALS) {
+            throw IllegalArgumentException(
+                "The value for key $CREDENTIALS cannot be removed from this method"
+            )
+        }
         withContext(dispatchers.io) {
             settings.remove(key)
         }
