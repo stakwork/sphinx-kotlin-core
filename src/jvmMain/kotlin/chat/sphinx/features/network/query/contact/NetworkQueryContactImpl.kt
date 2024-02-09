@@ -156,22 +156,13 @@ class NetworkQueryContactImpl(
         return networkRelayCall.relayPost(
             responseJsonSerializer = GenerateTokenRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_GENERATE_TOKEN,
-            if (password.isNullOrEmpty()) {
-                Pair(
-                    mapOf(
-                        Pair("pubkey", publicKey),
-                    ),
-                    Json.serializersModule.serializer()
-                )
-            } else {
-                Pair(
-                    mapOf(
-                        Pair("password", password),
-                        Pair("pubkey", publicKey),
-                    ),
-                    Json.serializersModule.serializer()
-                )
-            },
+            requestBodyPair = Pair(
+                GenerateTokenAuthenticatedDto(
+                    publicKey,
+                    password
+                ),
+                GenerateTokenAuthenticatedDto.serializer()
+            ),
             relayData = relayData
         )
     }
@@ -185,24 +176,14 @@ class NetworkQueryContactImpl(
         return networkRelayCall.relayUnauthenticatedPost(
             responseJsonSerializer = GenerateTokenRelayResponse.serializer(),
             relayEndpoint = ENDPOINT_GENERATE_TOKEN,
-            if (password.isNullOrEmpty()) {
-                Pair(
-                    mapOf(
-                        Pair("token", token.value),
-                        Pair("pubkey", publicKey),
-                    ),
-                    Json.serializersModule.serializer()
-                )
-            } else {
-                Pair(
-                    mapOf(
-                        Pair("token", token.value),
-                        Pair("password", password),
-                        Pair("pubkey", publicKey),
-                    ),
-                    Json.serializersModule.serializer()
-                )
-            },
+            requestBodyPair = Pair(
+                GenerateTokenDto(
+                    token.value,
+                    publicKey,
+                    password
+                ),
+                GenerateTokenDto.serializer()
+            ),
             relayUrl = relayUrl
         )
     }
