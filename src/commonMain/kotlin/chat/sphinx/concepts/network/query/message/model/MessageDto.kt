@@ -10,7 +10,6 @@ import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.FileName
 import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.toMediaType
-import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import okio.Path
