@@ -1,7 +1,6 @@
-package chat.sphinx.features.connect.manager
+package chat.sphinx.features.connect_manager
 
-import chat.sphinx.concepts.connect.manager.ConnectManager
-import uniffi.sphinxrs.mnemonicToSeed
+import chat.sphinx.concepts.connect_manager.ConnectManager
 
 class ConnectManagerImpl: ConnectManager()
 {

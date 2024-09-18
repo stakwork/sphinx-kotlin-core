@@ -5,7 +5,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
-import chat.sphinx.concepts.connect.manager.ConnectManager
+import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA

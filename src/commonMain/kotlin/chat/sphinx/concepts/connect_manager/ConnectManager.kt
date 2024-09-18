@@ -1,8 +1,4 @@
-package chat.sphinx.concepts.connect.manager
-
-import chat.sphinx.example.concept_connect_manager.model.OwnerInfo
-import chat.sphinx.example.concept_connect_manager.model.RestoreState
-import kotlinx.coroutines.flow.StateFlow
+package chat.sphinx.concepts.connect_manager
 
 /**
  * The ConnectManager abstract class defines the structure for managing the account,
