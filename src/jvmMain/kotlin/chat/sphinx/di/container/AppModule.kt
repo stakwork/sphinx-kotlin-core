@@ -3,6 +3,7 @@ package chat.sphinx.di.container
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
 import chat.sphinx.database.SqlDriverUtility
 import chat.sphinx.database.SphinxCoreDBImpl
+import chat.sphinx.features.connect.manager.ConnectManagerImpl
 import chat.sphinx.features.coredb.CoreDBImpl
 import chat.sphinx.features.media_cache.MediaCacheHandlerImpl
 import chat.sphinx.logger.SphinxLogger
@@ -34,4 +35,5 @@ class AppModule {
         getSphinxDirectory().resolve("cache"),
         dispatchers,
     )
+    val connectManager = ConnectManagerImpl()
 }

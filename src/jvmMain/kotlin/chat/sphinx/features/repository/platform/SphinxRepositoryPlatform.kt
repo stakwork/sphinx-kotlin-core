@@ -1,6 +1,7 @@
 package chat.sphinx.features.repository.platform
 
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
+import chat.sphinx.concepts.connect.manager.ConnectManager
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
@@ -52,6 +53,7 @@ class SphinxRepositoryPlatform(
     networkQuerySubscription: NetworkQuerySubscription,
     networkQueryFeedSearch: NetworkQueryFeedSearch,
     networkQueryRelayKeys: NetworkQueryRelayKeys,
+    connectManager: ConnectManager,
     rsa: RSA,
     socketIOManager: SocketIOManager,
     sphinxNotificationManager: SphinxNotificationManager,
@@ -79,6 +81,7 @@ class SphinxRepositoryPlatform(
     networkQuerySubscription,
     networkQueryFeedSearch,
     networkQueryRelayKeys,
+    connectManager,
     rsa,
     socketIOManager,
     sphinxNotificationManager,

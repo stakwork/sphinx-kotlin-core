@@ -96,8 +96,11 @@ kotlin {
             }
         }
         val jvmMain by getting {
+            resources.srcDir("src/jvmMain/resources")
+
             val okHttpVersion = "4.9.3"
             val netlayerVersion = "0.7.2"
+
 
             dependencies {
                 api("org.jetbrains.kotlinx:kotlinx-io-jvm:0.1.16")
@@ -109,6 +112,7 @@ kotlin {
                 implementation("org.jsoup:jsoup:1.14.3")
                 implementation("io.socket:engine.io-client:1.0.0")
                 implementation("org.cryptonode.jncryptor:jncryptor:1.2.0")
+                implementation("net.java.dev.jna:jna:5.13.0")
             }
         }
         val jvmTest by getting

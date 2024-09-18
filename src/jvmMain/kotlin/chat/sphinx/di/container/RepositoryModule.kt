@@ -73,6 +73,7 @@ class RepositoryModule(
         networkModule.networkQuerySubscription,
         networkModule.networkQueryFeedSearch,
         networkModule.networkQueryRelayKeys,
+        appModule.connectManager,
         authenticationModule.rsa,
         networkModule.socketIOManager,
         sphinxNotificationManager,
