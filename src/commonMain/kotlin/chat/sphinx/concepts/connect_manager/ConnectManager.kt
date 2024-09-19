@@ -11,6 +11,8 @@ package chat.sphinx.concepts.connect_manager
 
 abstract class ConnectManager {
 
+    abstract fun testLibrary()
+
 //    abstract val ownerInfoStateFlow: StateFlow<OwnerInfo?>
 //    abstract val restoreStateFlow: StateFlow<RestoreState?>
 //    abstract val msgsCountsState: MutableStateFlow<MsgsCounts?>

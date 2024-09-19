@@ -1,11 +1,20 @@
 package chat.sphinx.features.connect_manager
 
 import chat.sphinx.concepts.connect_manager.ConnectManager
+import uniffi.sphinxrs.mnemonicToSeed
 
 class ConnectManagerImpl: ConnectManager()
 {
+    override fun testLibrary() {
+        try {
+            val testSeed = mnemonicToSeed("write-test-mnemonic")
+            println(testSeed)
+        } catch (e: Exception) {
+            val error = e
+        }
+    }
 
-//    private var _mixerIp: String? = null
+    //    private var _mixerIp: String? = null
 //    private var walletMnemonic: WalletMnemonic? = null
 //    private var mqttClient: MqttAsyncClient? = null
 //    private var network = ""

@@ -122,6 +122,8 @@ import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import kotlin.math.absoluteValue
 
 abstract class SphinxRepository(
@@ -188,6 +190,7 @@ abstract class SphinxRepository(
     ////////////////
     init {
         socketIOManager.addListener(this)
+        connectManager.testLibrary()
     }
 
     override var updatedContactIds: MutableList<ContactId> = mutableListOf()
