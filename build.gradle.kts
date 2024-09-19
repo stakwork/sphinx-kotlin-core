@@ -80,6 +80,7 @@ kotlin {
                 implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
 
                 implementation("com.russhwolf:multiplatform-settings:0.8.1")
+                implementation("com.ensarsarajcic.kotlinx:serialization-msgpack:0.5.0")
 
                 implementation("io.matthewnelson.kotlin-components:encoding-base16:$encodingVersion")
                 implementation("io.matthewnelson.kotlin-components:encoding-base32:$encodingVersion")

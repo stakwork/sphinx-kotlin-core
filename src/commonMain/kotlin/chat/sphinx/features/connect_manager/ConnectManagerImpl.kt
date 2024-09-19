@@ -14,6 +14,8 @@ import chat.sphinx.wrapper.lightning.toLightningRouteHint
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
 import chat.sphinx.wrapper.mqtt.NewInvite
+import com.ensarsarajcic.kotlinx.serialization.msgpack.MsgPack
+import com.ensarsarajcic.kotlinx.serialization.msgpack.MsgPackDynamicSerializer
 import io.ktor.util.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -2036,10 +2038,10 @@ class ConnectManagerImpl(
 
     private fun storeUserState(state: ByteArray) {
         try {
-//            val decoded = MsgPack.decodeFromByteArray(MsgPackDynamicSerializer, state)
-//            (decoded as? MutableMap<String, ByteArray>)?.let {
-//                storeUserStateOnSharedPreferences(it)
-//            }
+            val decoded = MsgPack.decodeFromByteArray(MsgPackDynamicSerializer, state)
+            (decoded as? MutableMap<String, ByteArray>)?.let {
+                storeUserStateOnSharedPreferences(it)
+            }
 
         } catch (e: Exception) {
         }
@@ -2094,19 +2096,14 @@ class ConnectManagerImpl(
         val userStateMap = retrieveUserStateMap(ownerInfoStateFlow.value.userState)
         LOG.d("MQTT_MESSAGES", "getCurrentUserState $userStateMap")
 
-        // Needs to return result
-//        val result = MsgPack.encodeToByteArray(MsgPackDynamicSerializer, userStateMap)
-        return byteArrayOf()
+        return MsgPack.encodeToByteArray(MsgPackDynamicSerializer, userStateMap)
     }
 
     private fun encodeMapToBase64(map: MutableMap<String, ByteArray>): String {
         val encodedMap = mutableMapOf<String, String>()
 
-        // Possible way to encode string
-//        val encodeString = Base64.getEncoder().withoutPadding().encodeToString(value)
-
         for ((key, value) in map) {
-//            encodedMap[key] = Base64.encodeToString(value, Base64.NO_WRAP)
+            encodedMap[key] = Base64.getEncoder().withoutPadding().encodeToString(value)
         }
 
         val result = (encodedMap as Map<*, *>?)?.let { JSONObject(it).toString() } ?: ""
@@ -2141,12 +2138,12 @@ class ConnectManagerImpl(
             val jsonObject = JSONObject(encodedString)
             val keys = jsonObject.keys()
 
-//            while (keys.hasNext()) {
-//                val key = keys.next()
-//                val encodedValue = jsonObject.getString(key)
-//                val decodedValue = Base64.decode(encodedValue, Base64.NO_WRAP)
-//                decodedMap[key] = decodedValue
-//            }
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val encodedValue = jsonObject.getString(key.toString())
+                val decodedValue = Base64.getDecoder().decode(encodedValue)
+                decodedMap[key.toString()] = decodedValue
+            }
         } catch (e: JSONException) {
         }
 
