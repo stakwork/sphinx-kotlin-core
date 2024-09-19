@@ -34,5 +34,5 @@ class AppModule {
         getSphinxDirectory().resolve("cache"),
         dispatchers,
     )
-    val connectManager = ConnectManagerImpl()
+    val connectManager = ConnectManagerImpl(sphinxLogger)
 }

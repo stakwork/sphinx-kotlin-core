@@ -190,7 +190,6 @@ abstract class SphinxRepository(
     ////////////////
     init {
         socketIOManager.addListener(this)
-        connectManager.testLibrary()
     }
 
     override var updatedContactIds: MutableList<ContactId> = mutableListOf()

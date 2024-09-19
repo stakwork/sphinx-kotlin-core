@@ -75,8 +75,9 @@ kotlin {
                 implementation("io.ktor:ktor-client-core:2.3.7")
                 implementation("io.ktor:ktor-client-cio:2.3.7")
                 api("com.squareup.okio:okio:$okioVersion")
-                implementation("com.soywiz.korlibs.klock:klock:$klockVersion")
                 api("io.matthewnelson.kotlin-components:kmp-tor:$kmpTorVersion")
+                implementation("com.soywiz.korlibs.klock:klock:$klockVersion")
+                implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
 
                 implementation("com.russhwolf:multiplatform-settings:0.8.1")
 
