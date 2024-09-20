@@ -15,7 +15,6 @@ import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
-import chat.sphinx.concepts.network.query.relay_keys.NetworkQueryRelayKeys
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
@@ -33,7 +32,6 @@ import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
 import chat.sphinx.features.network.query.redeem_badge_token.NetworkQueryRedeemBadgeTokenImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
 import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
-import chat.sphinx.features.network.query.transport_key.NetworkQueryRelayKeysImpl
 import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeExternalImpl
 import chat.sphinx.features.network.query.version.NetworkQueryVersionImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
@@ -149,7 +147,4 @@ class NetworkModule(
 
     private val networkQueryRedeemBadgeTokenImpl = NetworkQueryRedeemBadgeTokenImpl(networkRelayCall)
     val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken = networkQueryRedeemBadgeTokenImpl
-
-    private val networkQueryRelayKeysImpl = NetworkQueryRelayKeysImpl(networkRelayCall)
-    val networkQueryRelayKeys: NetworkQueryRelayKeys = networkQueryRelayKeysImpl
 }

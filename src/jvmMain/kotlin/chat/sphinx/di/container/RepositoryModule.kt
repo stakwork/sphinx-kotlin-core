@@ -72,7 +72,6 @@ class RepositoryModule(
         networkModule.networkQueryRedeemBadgeToken,
         networkModule.networkQuerySubscription,
         networkModule.networkQueryFeedSearch,
-        networkModule.networkQueryRelayKeys,
         appModule.connectManager,
         authenticationModule.rsa,
         sphinxNotificationManager,
