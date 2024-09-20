@@ -4,7 +4,6 @@ package chat.sphinx.features.link_preview
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.link_preview.model.*
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
-import chat.sphinx.concepts.socket_io.SphinxSocketIOMessage
 import chat.sphinx.features.link_preview.util.getDescription
 import chat.sphinx.features.link_preview.util.getFavIconUrl
 import chat.sphinx.features.link_preview.util.getImageUrl

@@ -20,7 +20,6 @@ import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeE
 import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.socket_io.SocketIOManager
 import chat.sphinx.features.link_preview.LinkPreviewHandlerImpl
 import chat.sphinx.features.meme_input_stream.MemeInputStreamHandlerImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
@@ -39,7 +38,6 @@ import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeE
 import chat.sphinx.features.network.query.version.NetworkQueryVersionImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
 import chat.sphinx.features.relay.RelayDataHandlerImpl
-import chat.sphinx.features.socket_io.SocketIOManagerImpl
 import chat.sphinx.utils.createTorManager
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
 import chat.sphinx.wrapper.relay.AuthorizationToken
@@ -97,13 +95,6 @@ class NetworkModule(
     )
     val networkClient: NetworkClient = networkClientImpl
     private val networkClientCache: NetworkClientCache = networkClientImpl
-    private val socketIOManagerImpl = SocketIOManagerImpl(
-        appModule.dispatchers,
-        networkClient,
-        relayDataHandler,
-        appModule.sphinxLogger,
-    )
-    val socketIOManager: SocketIOManager = socketIOManagerImpl
     private val networkRelayCallImpl = NetworkRelayCallImpl(
         appModule.dispatchers,
         networkClient,

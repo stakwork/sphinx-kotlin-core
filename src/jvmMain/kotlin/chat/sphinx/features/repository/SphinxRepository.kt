@@ -53,9 +53,6 @@ import chat.sphinx.concepts.repository.message.model.SendMessage
 import chat.sphinx.concepts.repository.message.model.SendPayment
 import chat.sphinx.concepts.repository.message.model.SendPaymentRequest
 import chat.sphinx.concepts.repository.subscription.SubscriptionRepository
-import chat.sphinx.concepts.socket_io.SocketIOManager
-import chat.sphinx.concepts.socket_io.SphinxSocketIOMessage
-import chat.sphinx.concepts.socket_io.SphinxSocketIOMessageListener
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
@@ -122,6 +119,7 @@ import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
+import uniffi.sphinxrs.addNode
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import kotlin.math.absoluteValue
@@ -151,7 +149,6 @@ abstract class SphinxRepository(
     private val networkQueryRelayKeys: NetworkQueryRelayKeys,
     private val connectManager: ConnectManager,
     private val rsa: RSA,
-    private val socketIOManager: SocketIOManager,
     private val sphinxNotificationManager: SphinxNotificationManager,
     protected val LOG: SphinxLogger,
 ) : ChatRepository,
@@ -162,8 +159,8 @@ abstract class SphinxRepository(
     RepositoryDashboard,
     RepositoryMedia,
     FeedRepository,
-    CoroutineDispatchers by dispatchers,
-    SphinxSocketIOMessageListener {
+    CoroutineDispatchers by dispatchers
+{
 
     companion object {
         const val TAG: String = "SphinxRepository"
@@ -185,150 +182,14 @@ abstract class SphinxRepository(
         const val AUTHORIZE_EXTERNAL_BASE_64 = "U3BoaW54IFZlcmlmaWNhdGlvbg=="
     }
 
-    ////////////////
-    /// SocketIO ///
-    ////////////////
+
     init {
-        socketIOManager.addListener(this)
+//        connectManager.addListener(this)
+//        memeServerTokenHandler.addListener(this)
     }
 
     override var updatedContactIds: MutableList<ContactId> = mutableListOf()
 
-    /**
-     * Call is made on [Dispatchers.IO]
-     * */
-    @Suppress("BlockingMethodInNonBlockingContext")
-    override suspend fun onSocketIOMessageReceived(msg: SphinxSocketIOMessage) {
-        coreDB.getSphinxDatabaseQueriesOrNull()?.let { queries ->
-            Exhaustive@
-            when (msg) {
-                is SphinxSocketIOMessage.Type.Contact -> {
-                    // TODO: Contact Refresh...
-                    contactLock.withLock {
-                        queries.transaction {
-                            updatedContactIds.add(ContactId(msg.dto.id))
-                            upsertContact(msg.dto, queries)
-                        }
-                    }
-                }
-                is SphinxSocketIOMessage.Type.ChatSeen -> {
-                    readMessagesImpl(
-                        chatId = ChatId(msg.dto.id),
-                        queries = queries,
-                        executeNetworkRequest = false
-                    )
-                }
-                is SphinxSocketIOMessage.Type.Invite -> {
-                    // TODO: Contact Refresh
-                    contactLock.withLock {
-                        queries.transaction {
-                            updatedContactIds.add(ContactId(msg.dto.contact_id))
-                            upsertInvite(msg.dto, queries)
-                        }
-                    }
-                }
-                is SphinxSocketIOMessage.Type.InvoicePayment -> {
-                    // TODO: Implement
-                }
-                is SphinxSocketIOMessage.Type.MessageType, is SphinxSocketIOMessage.Type.Group -> {
-
-                    // TODO: Message refresh
-                    val messageDto: MessageDto? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto
-                        is SphinxSocketIOMessage.Type.Group -> msg.dto.message
-                        else -> null
-                    }
-
-                    val contactDto: ContactDto? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto.contact
-                        is SphinxSocketIOMessage.Type.Group -> msg.dto.contact
-                        else -> null
-                    }
-
-                    val chatDto: ChatDto? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto.chat
-                        is SphinxSocketIOMessage.Type.Group -> msg.dto.chat
-                        else -> null
-                    }
-
-                    val chatDtoId: ChatId? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto.chat_id?.toChatId()
-                        else -> null
-                    }
-
-                    messageDto?.let { nnMessageDto ->
-                        val supervisor = SupervisorJob(currentCoroutineContext().job)
-                        val scope = CoroutineScope(supervisor)
-
-                        decryptMessageDtoContentIfAvailable(
-                            nnMessageDto,
-                            scope,
-                            io
-                        )?.join()
-
-                        decryptMessageDtoMediaKeyIfAvailable(
-                            nnMessageDto,
-                            scope,
-                            io
-                        )?.join()
-
-                        val isAttachmentMessage = nnMessageDto.type.toMessageType().isAttachment()
-                        delay(if (isAttachmentMessage) 500L else 0L)
-
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                contactLock.withLock {
-                                    queries.transaction {
-
-                                        upsertMessage(nnMessageDto, queries)
-
-                                        var chatId: ChatId? = null
-
-                                        contactDto?.let { nnContactDto ->
-                                            upsertContact(nnContactDto, queries)
-                                        }
-
-                                        chatDto?.let { nnChatDto ->
-                                            upsertChat(
-                                                nnChatDto,
-                                                chatSeenMap,
-                                                queries,
-                                                contactDto
-                                            )
-
-                                            chatId = ChatId(nnChatDto.id)
-                                        }
-
-                                        chatDtoId?.let { nnChatDtoId ->
-                                            chatId = nnChatDtoId
-                                        }
-
-                                        chatId?.let { nnChatId ->
-                                            updateChatDboLatestMessage(
-                                                nnMessageDto,
-                                                nnChatId,
-                                                latestMessageUpdatedTimeMap,
-                                                queries
-                                            )
-
-                                            if (msg !is SphinxSocketIOMessage.Type.MessageType.Confirmation) {
-                                                showNotification(
-                                                    nnChatId,
-                                                    chatDto,
-                                                    nnMessageDto,
-                                                    contactDto
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     private fun showNotification(
         chatId: ChatId,

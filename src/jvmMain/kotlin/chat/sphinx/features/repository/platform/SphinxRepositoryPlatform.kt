@@ -22,7 +22,6 @@ import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.socket_io.SocketIOManager
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.features.repository.SphinxRepository
 import chat.sphinx.logger.SphinxLogger
@@ -55,7 +54,6 @@ class SphinxRepositoryPlatform(
     networkQueryRelayKeys: NetworkQueryRelayKeys,
     connectManager: ConnectManager,
     rsa: RSA,
-    socketIOManager: SocketIOManager,
     sphinxNotificationManager: SphinxNotificationManager,
     LOG: SphinxLogger,
 ): SphinxRepository(
@@ -83,7 +81,6 @@ class SphinxRepositoryPlatform(
     networkQueryRelayKeys,
     connectManager,
     rsa,
-    socketIOManager,
     sphinxNotificationManager,
     LOG,
 )
