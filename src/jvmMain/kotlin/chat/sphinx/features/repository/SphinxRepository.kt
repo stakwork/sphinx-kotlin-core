@@ -6,6 +6,7 @@ import androidx.paging.PagingData
 import androidx.paging.map
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.connect_manager.ConnectManager
+import chat.sphinx.concepts.connect_manager.ConnectManagerListener
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
@@ -18,7 +19,6 @@ import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.contact.model.*
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
 import chat.sphinx.concepts.network.query.feed_search.model.toFeedSearchResult
-import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
 import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.*
@@ -40,6 +40,7 @@ import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.concepts.repository.chat.ChatRepository
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
+import chat.sphinx.concepts.repository.connect_manager.ConnectManagerRepository
 import chat.sphinx.concepts.repository.contact.ContactRepository
 import chat.sphinx.concepts.repository.dashboard.RepositoryDashboard
 import chat.sphinx.concepts.repository.feed.FeedRepository
@@ -138,7 +139,6 @@ abstract class SphinxRepository(
     private val networkQueryContact: NetworkQueryContact,
     private val networkQueryLightning: NetworkQueryLightning,
     private val networkQueryMessage: NetworkQueryMessage,
-    private val networkQueryInvite: NetworkQueryInvite,
     private val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal,
     private val networkQuerySaveProfile: NetworkQuerySaveProfile,
     private val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken,
@@ -156,8 +156,13 @@ abstract class SphinxRepository(
     RepositoryDashboard,
     RepositoryMedia,
     FeedRepository,
+    ConnectManagerRepository,
     CoroutineDispatchers by dispatchers
 {
+
+    override fun setMnemonicWords(words: List<String>?) {
+        connectManager.setMnemonicWords(words)
+    }
 
     companion object {
         const val TAG: String = "SphinxRepository"
@@ -4751,31 +4756,34 @@ abstract class SphinxRepository(
         }
 
         delay(25L)
-        networkQueryInvite.payInvite(invite.inviteString).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
-                }
 
-                is Response.Error -> {
-                    contactLock.withLock {
-                        withContext(io) {
-                            queries.transaction {
-                                updatedContactIds.add(invite.contactId)
-                                updateInviteStatus(
-                                    invite.id,
-                                    InviteStatus.PaymentPending,
-                                    queries
-                                )
-                            }
-                        }
-                    }
-                }
+        // TODO V2 pay invite
 
-                is Response.Success -> {
-                }
-            }
-        }
+//        networkQueryInvite.payInvite(invite.inviteString).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+//                }
+//
+//                is Response.Error -> {
+//                    contactLock.withLock {
+//                        withContext(io) {
+//                            queries.transaction {
+//                                updatedContactIds.add(invite.contactId)
+//                                updateInviteStatus(
+//                                    invite.id,
+//                                    InviteStatus.PaymentPending,
+//                                    queries
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                is Response.Success -> {
+//                }
+//            }
+//        }
     }
 
     override suspend fun deleteInvite(invite: Invite): Response<Any, ResponseError> {

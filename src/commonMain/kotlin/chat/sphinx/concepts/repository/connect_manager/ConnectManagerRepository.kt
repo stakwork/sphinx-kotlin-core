@@ -34,7 +34,7 @@ interface ConnectManagerRepository {
 //    fun startRestoreProcess()
 //    fun createContact(contact: NewContact)
 //    fun setInviteCode(inviteString: String)
-//    fun setMnemonicWords(words: List<String>?)
+    fun setMnemonicWords(words: List<String>?)
 //    fun setNetworkType(isTestEnvironment: Boolean)
 //    fun setOwnerDeviceId(deviceId: String)
 //    fun signChallenge(challenge: String): String?

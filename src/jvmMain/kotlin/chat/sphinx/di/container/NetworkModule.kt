@@ -8,7 +8,6 @@ import chat.sphinx.concepts.network.client.cache.NetworkClientCache
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
-import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
 import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
@@ -25,7 +24,6 @@ import chat.sphinx.features.network.client.NetworkClientImpl
 import chat.sphinx.features.network.query.chat.NetworkQueryChatImpl
 import chat.sphinx.features.network.query.contact.NetworkQueryContactImpl
 import chat.sphinx.features.network.query.feed_search.NetworkQueryFeedSearchImpl
-import chat.sphinx.features.network.query.invite.NetworkQueryInviteImpl
 import chat.sphinx.features.network.query.lightning.NetworkQueryLightningImpl
 import chat.sphinx.features.network.query.meme_server.NetworkQueryMemeServerImpl
 import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
@@ -114,9 +112,6 @@ class NetworkModule(
     )
     private val networkQueryContactImpl = NetworkQueryContactImpl(networkRelayCall)
     val networkQueryContact: NetworkQueryContact = networkQueryContactImpl
-
-    private val networkQueryInviteImpl = NetworkQueryInviteImpl(networkRelayCall)
-    val networkQueryInvite: NetworkQueryInvite = networkQueryInviteImpl
 
     private val networkQueryLightningImpl = NetworkQueryLightningImpl(networkRelayCall)
     val networkQueryLightning: NetworkQueryLightning = networkQueryLightningImpl
