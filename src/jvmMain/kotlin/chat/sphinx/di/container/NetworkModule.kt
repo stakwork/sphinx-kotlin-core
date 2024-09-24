@@ -13,7 +13,6 @@ import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemB
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
-import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.features.link_preview.LinkPreviewHandlerImpl
@@ -27,7 +26,6 @@ import chat.sphinx.features.network.query.redeem_badge_token.NetworkQueryRedeemB
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
 import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
 import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeExternalImpl
-import chat.sphinx.features.network.query.version.NetworkQueryVersionImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
 import chat.sphinx.features.relay.RelayDataHandlerImpl
 import chat.sphinx.utils.createTorManager
@@ -117,9 +115,6 @@ class NetworkModule(
         networkRelayCall
     )
     val networkQueryMemeServer: NetworkQueryMemeServer = networkQueryMemeServerImpl
-
-    private val networkQueryVersionImpl = NetworkQueryVersionImpl(networkRelayCall)
-    val networkQueryVersion: NetworkQueryVersion = networkQueryVersionImpl
 
     private val networkQueryAuthorizeExternalImpl = NetworkQueryAuthorizeExternalImpl(networkRelayCall)
     val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal = networkQueryAuthorizeExternalImpl
