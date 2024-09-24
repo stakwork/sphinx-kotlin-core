@@ -8,6 +8,7 @@ import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.contact.Blocked
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
+import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.RequestSignature
@@ -101,4 +102,23 @@ abstract class NetworkQueryContact {
 
     //    app.post('/contacts/:id/keys', contacts.exchangeKeys)
     //    app.post('/contacts', contacts.createContact)
+
+    // V2 methods
+
+    abstract fun hasAdmin(
+        url: RelayUrl
+    ): Flow<LoadResponse<Any, ResponseError>>
+
+    abstract fun getAccountConfig(isProductionEnvironment: Boolean): Flow<LoadResponse<AccountConfigV2Response, ResponseError>>
+
+    abstract fun getNodes(
+        routerUrl: String
+    ): Flow<LoadResponse<String, ResponseError>>
+
+    abstract fun getRoutingNodes(
+        routerUrl: String,
+        lightningNodePubKey: LightningNodePubKey,
+        milliSats: Long
+    ): Flow<LoadResponse<String, ResponseError>>
+
 }

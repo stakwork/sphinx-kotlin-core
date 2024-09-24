@@ -175,4 +175,10 @@ abstract class NetworkRelayCall: NetworkCall() {
         relayData
     )
 
+    abstract fun getRawJson(
+        url: String,
+        headers: Map<String, String>? = null,
+        useExtendedNetworkCallClient: Boolean = false
+    ): Flow<LoadResponse<String, ResponseError>>
+
 }
