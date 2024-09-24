@@ -69,7 +69,6 @@ class RepositoryModule(
         networkModule.networkQueryAuthorizeExternal,
         networkModule.networkQuerySaveProfile,
         networkModule.networkQueryRedeemBadgeToken,
-        networkModule.networkQuerySubscription,
         networkModule.networkQueryFeedSearch,
         appModule.connectManager,
         authenticationModule.rsa,

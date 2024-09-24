@@ -29,7 +29,6 @@ import chat.sphinx.concepts.network.query.redeem_badge_token.model.RedeemBadgeTo
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.save_profile.model.DeletePeopleProfileDto
 import chat.sphinx.concepts.network.query.save_profile.model.PeopleProfileDto
-import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
 import chat.sphinx.concepts.network.query.subscription.model.PostSubscriptionDto
 import chat.sphinx.concepts.network.query.subscription.model.PutSubscriptionDto
 import chat.sphinx.concepts.network.query.subscription.model.SubscriptionDto
@@ -138,7 +137,6 @@ abstract class SphinxRepository(
     private val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal,
     private val networkQuerySaveProfile: NetworkQuerySaveProfile,
     private val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken,
-    private val networkQuerySubscription: NetworkQuerySubscription,
     private val networkQueryFeedSearch: NetworkQueryFeedSearch,
     private val connectManager: ConnectManager,
     private val rsa: RSA,
@@ -5401,42 +5399,7 @@ abstract class SphinxRepository(
     ): Response<Any, ResponseError> {
         var response: Response<SubscriptionDto, ResponseError>? = null
 
-        applicationScope.launch(mainImmediate) {
-            networkQuerySubscription.postSubscription(
-                PostSubscriptionDto(
-                    amount = amount.value,
-                    contact_id = contactId.value,
-                    chat_id = chatId?.value,
-                    interval = interval,
-                    end_number = endNumber?.value,
-                    end_date = endDate
-                )
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }.join()
+        // TODO V2 postSubscription
 
         return response ?: Response.Error(ResponseError(("Failed to create subscription")))
     }
@@ -5454,41 +5417,43 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
 
-            networkQuerySubscription.putSubscription(
-                id,
-                PutSubscriptionDto(
-                    amount = amount.value,
-                    contact_id = contactId.value,
-                    chat_id = chatId?.value,
-                    interval = interval,
-                    end_number = endNumber?.value,
-                    end_date = endDate
-                )
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
+            // TODO V2 putSubscription
 
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQuerySubscription.putSubscription(
+//                id,
+//                PutSubscriptionDto(
+//                    amount = amount.value,
+//                    contact_id = contactId.value,
+//                    chat_id = chatId?.value,
+//                    interval = interval,
+//                    end_number = endNumber?.value,
+//                    end_date = endDate
+//                )
+//            ).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = loadResponse
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        subscriptionLock.withLock {
+//                            withContext(io) {
+//                                queries.transaction {
+//                                    upsertSubscription(
+//                                        loadResponse.value,
+//                                        queries
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError(("Failed to update subscription")))
@@ -5501,33 +5466,35 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
 
-            networkQuerySubscription.putRestartSubscription(
-                subscriptionId
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
+            // TODO V2 putRestartSubscription
 
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQuerySubscription.putRestartSubscription(
+//                subscriptionId
+//            ).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = loadResponse
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        subscriptionLock.withLock {
+//                            withContext(io) {
+//                                queries.transaction {
+//                                    upsertSubscription(
+//                                        loadResponse.value,
+//                                        queries
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError(("Failed to restart subscription")))
@@ -5540,33 +5507,35 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
 
-            networkQuerySubscription.putPauseSubscription(
-                subscriptionId
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
+            // TODO V2 putPauseSubscription
 
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQuerySubscription.putPauseSubscription(
+//                subscriptionId
+//            ).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = loadResponse
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        subscriptionLock.withLock {
+//                            withContext(io) {
+//                                queries.transaction {
+//                                    upsertSubscription(
+//                                        loadResponse.value,
+//                                        queries
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError(("Failed to pause subscription")))
@@ -5577,32 +5546,7 @@ abstract class SphinxRepository(
     ): Response<Any, ResponseError> {
         var response: Response<Any, ResponseError>? = null
 
-        applicationScope.launch(mainImmediate) {
-            networkQuerySubscription.deleteSubscription(
-                subscriptionId
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    deleteSubscriptionById(subscriptionId, queries)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }.join()
+        // TODO V2 deleteSubscription
 
         return response ?: Response.Error(ResponseError(("Failed to delete subscription")))
     }

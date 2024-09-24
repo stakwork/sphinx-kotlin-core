@@ -5,7 +5,6 @@ import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
-import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
@@ -19,7 +18,6 @@ import chat.sphinx.features.network.client.NetworkClientImpl
 import chat.sphinx.features.network.query.chat.NetworkQueryChatImpl
 import chat.sphinx.features.network.query.contact.NetworkQueryContactImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
-import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
 import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeExternalImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
 import chat.sphinx.features.relay.RelayDataHandlerImpl
@@ -216,10 +214,6 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
 
     protected open val nqContact: NetworkQueryContact by lazy {
         NetworkQueryContactImpl(networkRelayCall)
-    }
-
-    protected open val nqSubscription: NetworkQuerySubscription by lazy {
-        NetworkQuerySubscriptionImpl(networkRelayCall)
     }
 
     protected open val nqAuthorizeExternal: NetworkQueryAuthorizeExternal by lazy {
