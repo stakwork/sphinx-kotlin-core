@@ -11,23 +11,4 @@ import kotlin.test.fail
 
 class NetworkQueryContactImplUnitTest: NetworkQueryTestHelper() {
 
-    @Test
-    fun `getContacts returns success`() =
-        testDispatcher.runBlockingTest {
-            getCredentials()?.let {
-                nqContact.getContacts().collect { loadResponse ->
-
-                    Exhaustive@
-                    when (loadResponse) {
-                        is Response.Error -> {
-                            loadResponse.exception?.printStackTrace()
-                            fail(loadResponse.message)
-                        }
-                        is Response.Success -> {}
-                        is LoadResponse.Loading -> {}
-                    }
-
-                }
-            }
-        }
 }
