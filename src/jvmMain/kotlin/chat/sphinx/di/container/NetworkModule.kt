@@ -9,7 +9,6 @@ import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
-import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
@@ -24,7 +23,6 @@ import chat.sphinx.features.network.query.chat.NetworkQueryChatImpl
 import chat.sphinx.features.network.query.contact.NetworkQueryContactImpl
 import chat.sphinx.features.network.query.feed_search.NetworkQueryFeedSearchImpl
 import chat.sphinx.features.network.query.meme_server.NetworkQueryMemeServerImpl
-import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
 import chat.sphinx.features.network.query.redeem_badge_token.NetworkQueryRedeemBadgeTokenImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
 import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
@@ -110,9 +108,6 @@ class NetworkModule(
     )
     private val networkQueryContactImpl = NetworkQueryContactImpl(networkRelayCall)
     val networkQueryContact: NetworkQueryContact = networkQueryContactImpl
-
-    private val networkQueryMessageImpl = NetworkQueryMessageImpl(networkRelayCall)
-    val networkQueryMessage: NetworkQueryMessage = networkQueryMessageImpl
 
     private val networkQuerySubscriptionImpl = NetworkQuerySubscriptionImpl(networkRelayCall)
     val networkQuerySubscription: NetworkQuerySubscription = networkQuerySubscriptionImpl

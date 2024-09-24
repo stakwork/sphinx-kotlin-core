@@ -23,7 +23,6 @@ import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
-import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.message.model.*
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.redeem_badge_token.model.RedeemBadgeTokenDto
@@ -136,7 +135,6 @@ abstract class SphinxRepository(
     private val networkQueryMemeServer: NetworkQueryMemeServer,
     private val networkQueryChat: NetworkQueryChat,
     private val networkQueryContact: NetworkQueryContact,
-    private val networkQueryMessage: NetworkQueryMessage,
     private val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal,
     private val networkQuerySaveProfile: NetworkQuerySaveProfile,
     private val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken,
@@ -2367,7 +2365,7 @@ abstract class SphinxRepository(
             }
 
         if (executeNetworkRequest && wasMarkedSeen) {
-            networkQueryMessage.readMessages(chatId).collect { _ -> }
+            // TODO V2 readMessages
         }
     }
 
@@ -2845,74 +2843,75 @@ abstract class SphinxRepository(
         media: Triple<Password, MediaKey, AttachmentInfo>?,
     ) {
         val queries = coreDB.getSphinxDatabaseQueries()
+        // TODO V2 sendMessage
 
-        networkQueryMessage.sendMessage(postMessageDto).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
-                }
-                is Response.Error -> {
-                    LOG.e(TAG, loadResponse.message, loadResponse.exception)
-
-                    messageLock.withLock {
-                        provisionalMessageId?.let { provId ->
-                            withContext(io) {
-                                queries.messageUpdateStatus(MessageStatus.Failed, provId)
-                            }
-                        }
-                    }
-
-                }
-                is Response.Success -> {
-
-                    loadResponse.value.apply {
-                        if (media != null) {
-                            setMediaKeyDecrypted(media.first.value.joinToString(""))
-                            setMediaLocalFile(media.third.filePath)
-                        }
-
-                        if (messageContentDecrypted != null) {
-                            setMessageContentDecrypted(messageContentDecrypted.value)
-                        }
-                    }
-
-                    chatLock.withLock {
-                        messageLock.withLock {
-                            contactLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        // chat is returned only if this is the
-                                        // first message sent to a new contact
-                                        loadResponse.value.chat?.let { chatDto ->
-                                            upsertChat(
-                                                chatDto,
-                                                chatSeenMap,
-                                                queries,
-                                                loadResponse.value.contact,
-                                            )
-                                        }
-
-                                        loadResponse.value.contact?.let { contactDto ->
-                                            upsertContact(contactDto, queries)
-                                        }
-
-                                        upsertMessage(
-                                            loadResponse.value,
-                                            queries,
-                                            media?.third?.fileName
-                                        )
-
-                                        provisionalMessageId?.let { provId ->
-                                            deleteMessageById(provId, queries)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//        networkQueryMessage.sendMessage(postMessageDto).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+//                }
+//                is Response.Error -> {
+//                    LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//
+//                    messageLock.withLock {
+//                        provisionalMessageId?.let { provId ->
+//                            withContext(io) {
+//                                queries.messageUpdateStatus(MessageStatus.Failed, provId)
+//                            }
+//                        }
+//                    }
+//
+//                }
+//                is Response.Success -> {
+//
+//                    loadResponse.value.apply {
+//                        if (media != null) {
+//                            setMediaKeyDecrypted(media.first.value.joinToString(""))
+//                            setMediaLocalFile(media.third.filePath)
+//                        }
+//
+//                        if (messageContentDecrypted != null) {
+//                            setMessageContentDecrypted(messageContentDecrypted.value)
+//                        }
+//                    }
+//
+//                    chatLock.withLock {
+//                        messageLock.withLock {
+//                            contactLock.withLock {
+//                                withContext(io) {
+//                                    queries.transaction {
+//                                        // chat is returned only if this is the
+//                                        // first message sent to a new contact
+//                                        loadResponse.value.chat?.let { chatDto ->
+//                                            upsertChat(
+//                                                chatDto,
+//                                                chatSeenMap,
+//                                                queries,
+//                                                loadResponse.value.contact,
+//                                            )
+//                                        }
+//
+//                                        loadResponse.value.contact?.let { contactDto ->
+//                                            upsertContact(contactDto, queries)
+//                                        }
+//
+//                                        upsertMessage(
+//                                            loadResponse.value,
+//                                            queries,
+//                                            media?.third?.fileName
+//                                        )
+//
+//                                        provisionalMessageId?.let { provId ->
+//                                            deleteMessageById(provId, queries)
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     override fun resendMessage(message: Message, chat: Chat) {
@@ -3030,27 +3029,29 @@ abstract class SphinxRepository(
                     }
                 }
             } else {
-                networkQueryMessage.deleteMessage(message.id).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                            response = Response.Error(
-                                ResponseError(loadResponse.message, loadResponse.exception)
-                            )
-                        }
-                        is Response.Success -> {
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        upsertMessage(loadResponse.value, queries)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // TODO V2 deleteMessage
+
+//                networkQueryMessage.deleteMessage(message.id).collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//                        is Response.Error -> {
+//                            response = Response.Error(
+//                                ResponseError(loadResponse.message, loadResponse.exception)
+//                            )
+//                        }
+//                        is Response.Success -> {
+//                            messageLock.withLock {
+//                                withContext(io) {
+//                                    queries.transaction {
+//                                        upsertMessage(loadResponse.value, queries)
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             }
         }.join()
 
@@ -3174,67 +3175,69 @@ abstract class SphinxRepository(
             }
 
             if (postPaymentDto.isKeySendPayment) {
-                networkQueryMessage.sendKeySendPayment(
-                    postPaymentDto,
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                            LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                            response = loadResponse
-                        }
-                        is Response.Success -> {
-                            response = loadResponse
-                        }
-                    }
-                }
+                // TODO V2 sendKeySendPayment
+//                networkQueryMessage.sendKeySendPayment(
+//                    postPaymentDto,
+//                ).collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//                        is Response.Error -> {
+//                            LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//                            response = loadResponse
+//                        }
+//                        is Response.Success -> {
+//                            response = loadResponse
+//                        }
+//                    }
+//                }
             } else {
-                networkQueryMessage.sendPayment(
-                    postPaymentDto,
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                            LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                            response = loadResponse
-                        }
-                        is Response.Success -> {
-                            val message = loadResponse.value
-
-                            decryptMessageDtoContentIfAvailable(
-                                message,
-                                coroutineScope { this },
-                            )
-
-                            chatLock.withLock {
-                                messageLock.withLock {
-                                    withContext(io) {
-
-                                        queries.transaction {
-                                            upsertMessage(message, queries)
-
-                                            if (message.updateChatDboLatestMessage) {
-                                                message.chat_id?.toChatId()?.let { chatId ->
-                                                    updateChatDboLatestMessage(
-                                                        message,
-                                                        chatId,
-                                                        latestMessageUpdatedTimeMap,
-                                                        queries
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // TODO V2 sendPayment
+//                networkQueryMessage.sendPayment(
+//                    postPaymentDto,
+//                ).collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//                        is Response.Error -> {
+//                            LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//                            response = loadResponse
+//                        }
+//                        is Response.Success -> {
+//                            val message = loadResponse.value
+//
+//                            decryptMessageDtoContentIfAvailable(
+//                                message,
+//                                coroutineScope { this },
+//                            )
+//
+//                            chatLock.withLock {
+//                                messageLock.withLock {
+//                                    withContext(io) {
+//
+//                                        queries.transaction {
+//                                            upsertMessage(message, queries)
+//
+//                                            if (message.updateChatDboLatestMessage) {
+//                                                message.chat_id?.toChatId()?.let { chatId ->
+//                                                    updateChatDboLatestMessage(
+//                                                        message,
+//                                                        chatId,
+//                                                        latestMessageUpdatedTimeMap,
+//                                                        queries
+//                                                    )
+//                                                }
+//                                            }
+//                                        }
+//
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             }
 
         }.join()
@@ -3282,52 +3285,54 @@ abstract class SphinxRepository(
                 }
             }
 
-            networkQueryMessage.boostMessage(
-                boostMessageDto = PostBoostMessageDto(
-                    boost = true,
-                    chat_id = chatId.value,
-                    amount = pricePerMessage.value + escrowAmount.value + (owner.tipAmount ?: Sat(20L)).value,
-                    message_price = pricePerMessage.value + escrowAmount.value,
-                    reply_uuid = messageUUID.value
-                )
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        decryptMessageDtoContentIfAvailable(
-                            loadResponse.value,
-                            coroutineScope { this },
-                        )
-                        val queries = coreDB.getSphinxDatabaseQueries()
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
+            // TODO V2 boostMessage
 
-                                    queries.transaction {
-                                        upsertMessage(loadResponse.value, queries)
-
-                                        if (loadResponse.value.updateChatDboLatestMessage) {
-                                            updateChatDboLatestMessage(
-                                                loadResponse.value,
-                                                chatId,
-                                                latestMessageUpdatedTimeMap,
-                                                queries
-                                            )
-                                        }
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQueryMessage.boostMessage(
+//                boostMessageDto = PostBoostMessageDto(
+//                    boost = true,
+//                    chat_id = chatId.value,
+//                    amount = pricePerMessage.value + escrowAmount.value + (owner.tipAmount ?: Sat(20L)).value,
+//                    message_price = pricePerMessage.value + escrowAmount.value,
+//                    reply_uuid = messageUUID.value
+//                )
+//            ).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        decryptMessageDtoContentIfAvailable(
+//                            loadResponse.value,
+//                            coroutineScope { this },
+//                        )
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//                        chatLock.withLock {
+//                            messageLock.withLock {
+//                                withContext(io) {
+//
+//                                    queries.transaction {
+//                                        upsertMessage(loadResponse.value, queries)
+//
+//                                        if (loadResponse.value.updateChatDboLatestMessage) {
+//                                            updateChatDboLatestMessage(
+//                                                loadResponse.value,
+//                                                chatId,
+//                                                latestMessageUpdatedTimeMap,
+//                                                queries
+//                                            )
+//                                        }
+//                                    }
+//
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response
@@ -3467,50 +3472,52 @@ abstract class SphinxRepository(
                 encryptedRemoteMemo?.value
             )
 
-            networkQueryMessage.sendPaymentRequest(postRequestPaymentDto).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = Response.Success(true)
+            // TODO V2 sendPaymentRequest
 
-                        val message = loadResponse.value
-
-                        decryptMessageDtoContentIfAvailable(
-                            message,
-                            coroutineScope { this },
-                        )
-
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
-
-                                    queries.transaction {
-                                        upsertMessage(message, queries)
-
-                                        if (message.updateChatDboLatestMessage) {
-                                            message.chat_id?.toChatId()?.let { chatId ->
-                                                updateChatDboLatestMessage(
-                                                    message,
-                                                    chatId,
-                                                    latestMessageUpdatedTimeMap,
-                                                    queries
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQueryMessage.sendPaymentRequest(postRequestPaymentDto).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = Response.Success(true)
+//
+//                        val message = loadResponse.value
+//
+//                        decryptMessageDtoContentIfAvailable(
+//                            message,
+//                            coroutineScope { this },
+//                        )
+//
+//                        chatLock.withLock {
+//                            messageLock.withLock {
+//                                withContext(io) {
+//
+//                                    queries.transaction {
+//                                        upsertMessage(message, queries)
+//
+//                                        if (message.updateChatDboLatestMessage) {
+//                                            message.chat_id?.toChatId()?.let { chatId ->
+//                                                updateChatDboLatestMessage(
+//                                                    message,
+//                                                    chatId,
+//                                                    latestMessageUpdatedTimeMap,
+//                                                    queries
+//                                                )
+//                                            }
+//                                        }
+//                                    }
+//
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError("Failed to send payment request"))
@@ -3527,45 +3534,47 @@ abstract class SphinxRepository(
                     lightningPaymentRequest.value,
                 )
 
-                networkQueryMessage.payPaymentRequest(
-                    putPaymentRequestDto,
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
+                // TODO V2 payPaymentRequest
 
-                        is Response.Error -> {
-                            response = Response.Error(
-                                ResponseError(loadResponse.message, loadResponse.exception)
-                            )
-                        }
-                        is Response.Success -> {
-                            response = loadResponse
-
-                            val message = loadResponse.value
-
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        upsertMessage(message, queries)
-
-                                        if (message.updateChatDboLatestMessage) {
-                                            message.chat_id?.toChatId()?.let { chatId ->
-                                                updateChatDboLatestMessage(
-                                                    message,
-                                                    chatId,
-                                                    latestMessageUpdatedTimeMap,
-                                                    queries
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+//                networkQueryMessage.payPaymentRequest(
+//                    putPaymentRequestDto,
+//                ).collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = Response.Error(
+//                                ResponseError(loadResponse.message, loadResponse.exception)
+//                            )
+//                        }
+//                        is Response.Success -> {
+//                            response = loadResponse
+//
+//                            val message = loadResponse.value
+//
+//                            messageLock.withLock {
+//                                withContext(io) {
+//                                    queries.transaction {
+//                                        upsertMessage(message, queries)
+//
+//                                        if (message.updateChatDboLatestMessage) {
+//                                            message.chat_id?.toChatId()?.let { chatId ->
+//                                                updateChatDboLatestMessage(
+//                                                    message,
+//                                                    chatId,
+//                                                    latestMessageUpdatedTimeMap,
+//                                                    queries
+//                                                )
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             }.join()
         }
 
@@ -3577,44 +3586,46 @@ abstract class SphinxRepository(
     ): Flow<LoadResponse<Any, ResponseError>>  = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
 
-        networkQueryMessage.payPaymentRequest(
-            putPaymentRequestDto,
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
-                }
+        // TODO V2 payPaymentRequest
 
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-
-                is Response.Success -> {
-                    emit(loadResponse)
-
-                    val message = loadResponse.value
-
-                    messageLock.withLock {
-                        withContext(io) {
-                            queries.transaction {
-                                upsertMessage(message, queries)
-
-                                if (message.updateChatDboLatestMessage) {
-                                    message.chat_id?.toChatId()?.let { chatId ->
-                                        updateChatDboLatestMessage(
-                                            message,
-                                            chatId,
-                                            latestMessageUpdatedTimeMap,
-                                            queries
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//        networkQueryMessage.payPaymentRequest(
+//            putPaymentRequestDto,
+//        ).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+//                }
+//
+//                is Response.Error -> {
+//                    emit(loadResponse)
+//                }
+//
+//                is Response.Success -> {
+//                    emit(loadResponse)
+//
+//                    val message = loadResponse.value
+//
+//                    messageLock.withLock {
+//                        withContext(io) {
+//                            queries.transaction {
+//                                upsertMessage(message, queries)
+//
+//                                if (message.updateChatDboLatestMessage) {
+//                                    message.chat_id?.toChatId()?.let { chatId ->
+//                                        updateChatDboLatestMessage(
+//                                            message,
+//                                            chatId,
+//                                            latestMessageUpdatedTimeMap,
+//                                            queries
+//                                        )
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     override suspend fun payAttachment(message: Message): Response<Any, ResponseError> {
@@ -3626,35 +3637,37 @@ abstract class SphinxRepository(
             message.messageMedia?.mediaToken?.let { mediaToken ->
                 mediaToken.getPriceFromMediaToken().let { price ->
 
-                    networkQueryMessage.payAttachment(
-                        message.chatId,
-                        message.sender,
-                        price,
-                        mediaToken
-                    ).collect { loadResponse ->
-                        Exhaustive@
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {
-                            }
+                    // TODO V2 payAttachment
 
-                            is Response.Error -> {
-                                response = Response.Error(
-                                    ResponseError(loadResponse.message, loadResponse.exception)
-                                )
-                            }
-                            is Response.Success -> {
-                                response = loadResponse
-
-                                messageLock.withLock {
-                                    withContext(io) {
-                                        queries.transaction {
-                                            upsertMessage(loadResponse.value, queries)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+//                    networkQueryMessage.payAttachment(
+//                        message.chatId,
+//                        message.sender,
+//                        price,
+//                        mediaToken
+//                    ).collect { loadResponse ->
+//                        Exhaustive@
+//                        when (loadResponse) {
+//                            is LoadResponse.Loading -> {
+//                            }
+//
+//                            is Response.Error -> {
+//                                response = Response.Error(
+//                                    ResponseError(loadResponse.message, loadResponse.exception)
+//                                )
+//                            }
+//                            is Response.Success -> {
+//                                response = loadResponse
+//
+//                                messageLock.withLock {
+//                                    withContext(io) {
+//                                        queries.transaction {
+//                                            upsertMessage(loadResponse.value, queries)
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
 
                 }
             }
@@ -4446,150 +4459,152 @@ abstract class SphinxRepository(
             var offset: Int = page * MESSAGE_PAGINATION_LIMIT
             while (currentCoroutineContext().isActive && offset >= 0) {
 
-                networkQueryMessage.getMessages(
-                    MessagePagination.instantiate(
-                        limit = MESSAGE_PAGINATION_LIMIT,
-                        offset = offset,
-                        date = lastSeenMessageDateResolved
-                    )
-                ).collect { response ->
+                // TODO V2 getMessages
 
-                    Exhaustive@
-                    when (response) {
-                        is LoadResponse.Loading -> {
-                        }
-
-                        is Response.Error -> {
-
-                            offset = -1
-                            networkResponseError = response
-
-                        }
-
-                        is Response.Success -> {
-                            val newMessages = response.value.new_messages
-                            val messagesTotal = response.value.new_messages_total ?: 0
-
-                            if (restoring && messagesTotal > 0) {
-
-                                val restoreProgress = getMessagesRestoreProgress(
-                                    messagesTotal,
-                                    offset
-                                )
-
-                                emit(
-                                    Response.Success(restoreProgress)
-                                )
-                            }
-
-                            if (newMessages.isNotEmpty()) {
-
-                                for (message in newMessages) {
-
-                                    decryptMessageDtoContentIfAvailable(message, scope)
-                                        ?.let { jobList.add(it) }
-
-                                    decryptMessageDtoMediaKeyIfAvailable(message, scope)
-                                        ?.let { jobList.add(it) }
-
-                                }
-
-                                var count = 0
-                                while (currentCoroutineContext().isActive) {
-                                    jobList.elementAtOrNull(count)?.join() ?: break
-                                    count++
-                                }
-
-                                applicationScope.launch(io) {
-
-                                    chatLock.withLock {
-                                        messageLock.withLock {
-
-                                            queries.transaction {
-                                                val chatIds =
-                                                    queries.chatGetAllIds().executeAsList()
-                                                LOG.d(
-                                                    TAG,
-                                                    "Inserting Messages -" +
-                                                            " ${newMessages.firstOrNull()?.id}" +
-                                                            " - ${newMessages.lastOrNull()?.id}"
-                                                )
-
-                                                for (dto in newMessages) {
-
-                                                    val id: Long? = dto.chat_id
-
-                                                    if (id != null &&
-                                                        chatIds.contains(ChatId(id))) {
-
-                                                        if (dto.updateChatDboLatestMessage) {
-                                                            if (!latestMessageMap.containsKey(ChatId(id))) {
-                                                                latestMessageMap[ChatId(id)] = dto
-                                                            } else {
-                                                                val lastMessage = latestMessageMap[ChatId(id)]
-                                                                if (lastMessage == null ||
-                                                                    dto.created_at.toDateTime().time > lastMessage.created_at.toDateTime().time) {
-
-                                                                    latestMessageMap[ChatId(id)] = dto
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-
-                                                    upsertMessage(dto, queries)
-                                                }
-
-                                                latestMessageUpdatedTimeMap.withLock { map ->
-
-                                                    for (entry in latestMessageMap.entries) {
-
-                                                        updateChatDboLatestMessage(
-                                                            entry.value,
-                                                            entry.key,
-                                                            map,
-                                                            queries
-                                                        )
-
-                                                    }
-
-                                                }
-                                            }
-
-                                        }
-                                    }
-                                }.join()
-
-                            }
-
-                            when {
-                                offset == -1 -> {
-                                }
-                                newMessages.size >= MESSAGE_PAGINATION_LIMIT -> {
-                                    offset += MESSAGE_PAGINATION_LIMIT
-
-                                    if (lastSeenMessagesDate == null) {
-                                        val resumePageNumber =
-                                            (offset / MESSAGE_PAGINATION_LIMIT)
-                                        authenticationStorage.putString(
-                                            REPOSITORY_LAST_SEEN_MESSAGE_RESTORE_PAGE,
-                                            resumePageNumber.toString()
-                                        )
-                                        LOG.d(
-                                            TAG,
-                                            "Persisting message restore page number: $resumePageNumber"
-                                        )
-                                    }
-
-                                    jobList.clear()
-
-                                }
-                                else -> {
-                                    offset = -1
-                                }
-                            }
-                        }
-                    }
-                }
+//                networkQueryMessage.getMessages(
+//                    MessagePagination.instantiate(
+//                        limit = MESSAGE_PAGINATION_LIMIT,
+//                        offset = offset,
+//                        date = lastSeenMessageDateResolved
+//                    )
+//                ).collect { response ->
+//
+//                    Exhaustive@
+//                    when (response) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//
+//                            offset = -1
+//                            networkResponseError = response
+//
+//                        }
+//
+//                        is Response.Success -> {
+//                            val newMessages = response.value.new_messages
+//                            val messagesTotal = response.value.new_messages_total ?: 0
+//
+//                            if (restoring && messagesTotal > 0) {
+//
+//                                val restoreProgress = getMessagesRestoreProgress(
+//                                    messagesTotal,
+//                                    offset
+//                                )
+//
+//                                emit(
+//                                    Response.Success(restoreProgress)
+//                                )
+//                            }
+//
+//                            if (newMessages.isNotEmpty()) {
+//
+//                                for (message in newMessages) {
+//
+//                                    decryptMessageDtoContentIfAvailable(message, scope)
+//                                        ?.let { jobList.add(it) }
+//
+//                                    decryptMessageDtoMediaKeyIfAvailable(message, scope)
+//                                        ?.let { jobList.add(it) }
+//
+//                                }
+//
+//                                var count = 0
+//                                while (currentCoroutineContext().isActive) {
+//                                    jobList.elementAtOrNull(count)?.join() ?: break
+//                                    count++
+//                                }
+//
+//                                applicationScope.launch(io) {
+//
+//                                    chatLock.withLock {
+//                                        messageLock.withLock {
+//
+//                                            queries.transaction {
+//                                                val chatIds =
+//                                                    queries.chatGetAllIds().executeAsList()
+//                                                LOG.d(
+//                                                    TAG,
+//                                                    "Inserting Messages -" +
+//                                                            " ${newMessages.firstOrNull()?.id}" +
+//                                                            " - ${newMessages.lastOrNull()?.id}"
+//                                                )
+//
+//                                                for (dto in newMessages) {
+//
+//                                                    val id: Long? = dto.chat_id
+//
+//                                                    if (id != null &&
+//                                                        chatIds.contains(ChatId(id))) {
+//
+//                                                        if (dto.updateChatDboLatestMessage) {
+//                                                            if (!latestMessageMap.containsKey(ChatId(id))) {
+//                                                                latestMessageMap[ChatId(id)] = dto
+//                                                            } else {
+//                                                                val lastMessage = latestMessageMap[ChatId(id)]
+//                                                                if (lastMessage == null ||
+//                                                                    dto.created_at.toDateTime().time > lastMessage.created_at.toDateTime().time) {
+//
+//                                                                    latestMessageMap[ChatId(id)] = dto
+//                                                                }
+//                                                            }
+//                                                        }
+//                                                    }
+//
+//                                                    upsertMessage(dto, queries)
+//                                                }
+//
+//                                                latestMessageUpdatedTimeMap.withLock { map ->
+//
+//                                                    for (entry in latestMessageMap.entries) {
+//
+//                                                        updateChatDboLatestMessage(
+//                                                            entry.value,
+//                                                            entry.key,
+//                                                            map,
+//                                                            queries
+//                                                        )
+//
+//                                                    }
+//
+//                                                }
+//                                            }
+//
+//                                        }
+//                                    }
+//                                }.join()
+//
+//                            }
+//
+//                            when {
+//                                offset == -1 -> {
+//                                }
+//                                newMessages.size >= MESSAGE_PAGINATION_LIMIT -> {
+//                                    offset += MESSAGE_PAGINATION_LIMIT
+//
+//                                    if (lastSeenMessagesDate == null) {
+//                                        val resumePageNumber =
+//                                            (offset / MESSAGE_PAGINATION_LIMIT)
+//                                        authenticationStorage.putString(
+//                                            REPOSITORY_LAST_SEEN_MESSAGE_RESTORE_PAGE,
+//                                            resumePageNumber.toString()
+//                                        )
+//                                        LOG.d(
+//                                            TAG,
+//                                            "Persisting message restore page number: $resumePageNumber"
+//                                        )
+//                                    }
+//
+//                                    jobList.clear()
+//
+//                                }
+//                                else -> {
+//                                    offset = -1
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             }
 
             supervisor.cancelAndJoin()
@@ -4877,45 +4892,47 @@ abstract class SphinxRepository(
                         val token = loadResponse.value.token
                         val info = loadResponse.value.info
 
-                        networkQueryAuthorizeExternal.signBase64(
-                            AUTHORIZE_EXTERNAL_BASE_64
-                        ).collect { sigResponse ->
+                        // TODO V2 signBase64
 
-                            when (sigResponse) {
-                                is LoadResponse.Loading -> {
-                                }
-
-                                is Response.Error -> {
-                                    response = sigResponse
-                                }
-
-                                is Response.Success -> {
-
-                                    info.verificationSignature = sigResponse.value.sig
-                                    info.url = relayUrl
-
-                                    networkQueryAuthorizeExternal.authorizeExternal(
-                                        host,
-                                        challenge,
-                                        token,
-                                        info,
-                                    ).collect { authorizeResponse ->
-                                        when (authorizeResponse) {
-                                            is LoadResponse.Loading -> {
-                                            }
-
-                                            is Response.Error -> {
-                                                response = authorizeResponse
-                                            }
-
-                                            is Response.Success -> {
-                                                response = Response.Success(true)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+//                        networkQueryAuthorizeExternal.signBase64(
+//                            AUTHORIZE_EXTERNAL_BASE_64
+//                        ).collect { sigResponse ->
+//
+//                            when (sigResponse) {
+//                                is LoadResponse.Loading -> {
+//                                }
+//
+//                                is Response.Error -> {
+//                                    response = sigResponse
+//                                }
+//
+//                                is Response.Success -> {
+//
+//                                    info.verificationSignature = sigResponse.value.sig
+//                                    info.url = relayUrl
+//
+//                                    networkQueryAuthorizeExternal.authorizeExternal(
+//                                        host,
+//                                        challenge,
+//                                        token,
+//                                        info,
+//                                    ).collect { authorizeResponse ->
+//                                        when (authorizeResponse) {
+//                                            is LoadResponse.Loading -> {
+//                                            }
+//
+//                                            is Response.Error -> {
+//                                                response = authorizeResponse
+//                                            }
+//
+//                                            is Response.Success -> {
+//                                                response = Response.Success(true)
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
                     }
                 }
             }
@@ -5256,49 +5273,50 @@ abstract class SphinxRepository(
         var response: Response<Any, ResponseError> = Response.Error(ResponseError(("")))
 
         applicationScope.launch(mainImmediate) {
-            networkQueryMessage.processMemberRequest(
-                contactId,
-                messageId,
-                type
-            ).collect { loadResponse ->
-
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        upsertChat(
-                                            loadResponse.value.chat,
-                                            chatSeenMap,
-                                            queries,
-                                            null
-                                        )
-
-                                        upsertMessage(loadResponse.value.message, queries)
-
-                                        updateChatDboLatestMessage(
-                                            loadResponse.value.message,
-                                            ChatId(loadResponse.value.chat.id),
-                                            latestMessageUpdatedTimeMap,
-                                            queries,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            // TODO V2 processMemberRequest
+//            networkQueryMessage.processMemberRequest(
+//                contactId,
+//                messageId,
+//                type
+//            ).collect { loadResponse ->
+//
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = loadResponse
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        chatLock.withLock {
+//                            messageLock.withLock {
+//                                withContext(io) {
+//                                    queries.transaction {
+//                                        upsertChat(
+//                                            loadResponse.value.chat,
+//                                            chatSeenMap,
+//                                            queries,
+//                                            null
+//                                        )
+//
+//                                        upsertMessage(loadResponse.value.message, queries)
+//
+//                                        updateChatDboLatestMessage(
+//                                            loadResponse.value.message,
+//                                            ChatId(loadResponse.value.chat.id),
+//                                            latestMessageUpdatedTimeMap,
+//                                            queries,
+//                                        )
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response

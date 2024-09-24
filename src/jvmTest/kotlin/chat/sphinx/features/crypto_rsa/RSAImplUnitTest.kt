@@ -251,44 +251,6 @@ class RSAImplUnitTest: NetworkQueryTestHelper() {
         testDispatcher.runBlockingTest {
             getCredentials()?.let { creds ->
                 val privateKey = RsaPrivateKey(creds.privKey.toCharArray())
-
-                nqMessage.getMessages(MessagePagination.instantiate(100, 500, null)).collect { response ->
-                    Exhaustive@
-                    when (response) {
-                        is Response.Error -> {
-                            println(response.message)
-                            response.exception?.printStackTrace()
-                            fail()
-                        }
-                        is Response.Success -> {
-                            var breakPlease = 0
-
-                            for (message in response.value.new_messages) {
-                                if (!message.message_content.isNullOrEmpty()) {
-                                    val decrypted = decrypt(
-                                        privateKey,
-                                        EncryptedString(message.message_content!!)
-                                    )
-//                                    println(decrypted.toUnencryptedString().value)
-                                    breakPlease++
-                                }
-
-                                if (breakPlease > 4) {
-                                    break
-                                }
-                            }
-
-                            if (breakPlease <= 4) {
-                                println("\n\n***********************************************")
-                                println("                 WARNING\n")
-                                println("    Test Account's new_messages list was empty\n")
-                                println("     and message decryption was not tested!!!")
-                                println("***********************************************\n\n")
-                            }
-                        }
-                        is LoadResponse.Loading -> {}
-                    }
-                }
             }
         }
 

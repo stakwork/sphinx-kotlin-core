@@ -207,18 +207,20 @@ class MemeServerTokenHandlerImpl(
 
                     var sig: AuthenticationSig? = null
 
-                    networkQueryMemeServer.signChallenge(nnChallenge).collect { loadResponse ->
-                        Exhaustive@
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {}
-                            is Response.Error -> {
-                                LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                            }
-                            is Response.Success -> {
-                                sig = loadResponse.value.sig.toAuthenticationSig()
-                            }
-                        }
-                    }
+                    // TODO V2 signChallenge
+
+//                    networkQueryMemeServer.signChallenge(nnChallenge).collect { loadResponse ->
+//                        Exhaustive@
+//                        when (loadResponse) {
+//                            is LoadResponse.Loading -> {}
+//                            is Response.Error -> {
+//                                LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//                            }
+//                            is Response.Success -> {
+//                                sig = loadResponse.value.sig.toAuthenticationSig()
+//                            }
+//                        }
+//                    }
 
                     sig?.let { nnSig ->
 

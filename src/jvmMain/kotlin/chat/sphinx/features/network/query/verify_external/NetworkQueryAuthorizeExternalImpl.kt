@@ -40,16 +40,6 @@ class NetworkQueryAuthorizeExternalImpl(
             relayData = relayData
         )
 
-    override fun signBase64(
-        base64: String,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<SignBase64Dto, ResponseError>> =
-        networkRelayCall.relayGet(
-            responseJsonSerializer = SignBase64RelayResponse.serializer(),
-            relayEndpoint = "/signer/$base64" ,
-            relayData = relayData
-        )
-
     override fun authorizeExternal(
         host: String,
         challenge: String,
