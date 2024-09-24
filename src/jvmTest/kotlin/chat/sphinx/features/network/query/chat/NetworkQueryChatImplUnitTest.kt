@@ -10,25 +10,4 @@ import kotlin.test.Test
 import kotlin.test.fail
 
 class NetworkQueryChatImplUnitTest: NetworkQueryTestHelper() {
-
-    @Test
-    fun `getChats returns success`() =
-        testDispatcher.runBlockingTest {
-            getCredentials()?.let {
-                nqChat.getChats().collect { loadResponse ->
-
-                    Exhaustive@
-                    when (loadResponse) {
-                        is Response.Error -> {
-                            loadResponse.exception?.printStackTrace()
-                            fail(loadResponse.message)
-                        }
-                        is Response.Success -> {}
-                        is LoadResponse.Loading -> {}
-                    }
-
-                }
-
-            }
-        }
 }

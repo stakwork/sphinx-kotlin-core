@@ -124,23 +124,25 @@ internal class TribePreviewDataRetriever(val tribeJoinLink: TribeJoinLink): Link
 
         var data: TribePreviewData? = null
 
-        networkQueryChat.getTribeInfo(
-            ChatHost(tribeJoinLink.tribeHost),
-            ChatUUID(tribeJoinLink.tribeUUID)
-        ).collect { response ->
-            Exhaustive@
-            when (response) {
-                is LoadResponse.Loading -> {}
-                is chat.sphinx.response.Response.Error -> {}
-                is chat.sphinx.response.Response.Success -> {
-                    data = TribePreviewData(
-                        TribePreviewName(response.value.name),
-                        response.value.description.toPreviewDescriptionOrNull(),
-                        response.value.img?.toPreviewImageUrlOrNull(),
-                    )
-                }
-            }
-        }
+        // TODO V2 getTribeInfo
+
+//        networkQueryChat.getTribeInfo(
+//            ChatHost(tribeJoinLink.tribeHost),
+//            ChatUUID(tribeJoinLink.tribeUUID)
+//        ).collect { response ->
+//            Exhaustive@
+//            when (response) {
+//                is LoadResponse.Loading -> {}
+//                is chat.sphinx.response.Response.Error -> {}
+//                is chat.sphinx.response.Response.Success -> {
+//                    data = TribePreviewData(
+//                        TribePreviewName(response.value.name),
+//                        response.value.description.toPreviewDescriptionOrNull(),
+//                        response.value.img?.toPreviewImageUrlOrNull(),
+//                    )
+//                }
+//            }
+//        }
 
         return data
     }
