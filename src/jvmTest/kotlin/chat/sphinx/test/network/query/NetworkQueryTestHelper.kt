@@ -4,7 +4,6 @@ import chat.sphinx.concepts.crypto_rsa.RSA
 import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
-import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
@@ -21,7 +20,6 @@ import chat.sphinx.features.crypto_rsa.RSAImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
 import chat.sphinx.features.network.query.chat.NetworkQueryChatImpl
 import chat.sphinx.features.network.query.contact.NetworkQueryContactImpl
-import chat.sphinx.features.network.query.lightning.NetworkQueryLightningImpl
 import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
 import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
@@ -234,10 +232,6 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
 
     protected open val nqVersion: NetworkQueryVersion by lazy {
         NetworkQueryVersionImpl(networkRelayCall)
-    }
-
-    protected open val nqLightning: NetworkQueryLightning by lazy {
-        NetworkQueryLightningImpl(networkRelayCall)
     }
 
     protected open val nqAuthorizeExternal: NetworkQueryAuthorizeExternal by lazy {

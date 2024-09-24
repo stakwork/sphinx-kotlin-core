@@ -66,7 +66,6 @@ class RepositoryModule(
         networkModule.networkQueryMemeServer,
         networkModule.networkQueryChat,
         networkModule.networkQueryContact,
-        networkModule.networkQueryLightning,
         networkModule.networkQueryMessage,
         networkModule.networkQueryAuthorizeExternal,
         networkModule.networkQuerySaveProfile,
