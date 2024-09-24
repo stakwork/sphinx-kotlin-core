@@ -42,35 +42,6 @@ class NetworkQuerySaveProfileImpl(
         )
 
 
-    override fun savePeopleProfile(
-        profile: PeopleProfileDto,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<Any, ResponseError>> =
-        networkRelayCall.relayPost(
-            relayEndpoint = ENDPOINT_PROFILE,
-            requestBodyPair = Pair(
-                profile,
-                PeopleProfileDto.serializer()
-            ),
-            responseJsonSerializer = SaveProfileResponse.serializer(),
-            relayData = relayData
-        )
-
-    override fun deletePeopleProfile(
-        deletePeopleProfileDto: DeletePeopleProfileDto,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<Any, ResponseError>> =
-        networkRelayCall.relayDelete(
-            relayEndpoint = ENDPOINT_PROFILE,
-            requestBodyPair = Pair(
-                deletePeopleProfileDto,
-                DeletePeopleProfileDto.serializer()
-            ),
-            responseJsonSerializer = SaveProfileResponse.serializer(),
-            relayData = relayData,
-            additionalHeaders = mapOf("Content-Type" to "application/json;charset=utf-8")
-        )
-
     override fun getTribeMemberProfile(person: MessagePerson
     ): Flow<LoadResponse<TribeMemberProfileDto, ResponseError>> =
         networkRelayCall.get(

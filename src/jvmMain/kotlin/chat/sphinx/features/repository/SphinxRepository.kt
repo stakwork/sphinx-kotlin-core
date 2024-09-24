@@ -4876,19 +4876,21 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            networkQueryAuthorizeExternal.verifyExternal().collect { loadResponse ->
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
+            // TODO V2 verifyExternal
 
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-
-                    is Response.Success -> {
-
-                        val token = loadResponse.value.token
-                        val info = loadResponse.value.info
+//            networkQueryAuthorizeExternal.verifyExternal().collect { loadResponse ->
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//
+//                    is Response.Success -> {
+//
+//                        val token = loadResponse.value.token
+//                        val info = loadResponse.value.info
 
                         // TODO V2 signBase64
 
@@ -4931,9 +4933,9 @@ abstract class SphinxRepository(
 //                                }
 //                            }
 //                        }
-                    }
-                }
-            }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError("Returned before completing"))
@@ -4948,19 +4950,20 @@ abstract class SphinxRepository(
             SphinxJson.decodeFromString<DeletePeopleProfileDto>(
                 body
             ).let { deletePeopleProfileDto ->
-                networkQuerySaveProfile.deletePeopleProfile(
-                    deletePeopleProfileDto
-                ).collect { loadResponse ->
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                        }
-                        is Response.Success -> {
-                            response = Response.Success(true)
-                        }
-                    }
-                }
+                // TODO V2 deletePeopleProfile
+//                networkQuerySaveProfile.deletePeopleProfile(
+//                    deletePeopleProfileDto
+//                ).collect { loadResponse ->
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//                        is Response.Error -> {
+//                        }
+//                        is Response.Success -> {
+//                            response = Response.Success(true)
+//                        }
+//                    }
+//                }
             }
         }.join()
 
@@ -4974,22 +4977,23 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             SphinxJson.decodeFromString<PeopleProfileDto>(body)?.let { profile ->
-                networkQuerySaveProfile.savePeopleProfile(
-                    profile
-                ).collect { saveProfileResponse ->
-                    when (saveProfileResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-
-                        is Response.Error -> {
-                            response = saveProfileResponse
-                        }
-
-                        is Response.Success -> {
-                            response = Response.Success(true)
-                        }
-                    }
-                }
+                // TODO V2 savePeopleProfile
+//                networkQuerySaveProfile.savePeopleProfile(
+//                    profile
+//                ).collect { saveProfileResponse ->
+//                    when (saveProfileResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = saveProfileResponse
+//                        }
+//
+//                        is Response.Success -> {
+//                            response = Response.Success(true)
+//                        }
+//                    }
+//                }
             }
         }.join()
 
@@ -5003,22 +5007,23 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             SphinxJson.decodeFromString<RedeemBadgeTokenDto>(body)?.let { profile ->
-                networkQueryRedeemBadgeToken.redeemBadgeToken(
-                    profile
-                ).collect { redeemBadgeTokenResponse ->
-                    when (redeemBadgeTokenResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-
-                        is Response.Error -> {
-                            response = redeemBadgeTokenResponse
-                        }
-
-                        is Response.Success -> {
-                            response = Response.Success(true)
-                        }
-                    }
-                }
+                // TODO V2 redeemBadgeToken
+//                networkQueryRedeemBadgeToken.redeemBadgeToken(
+//                    profile
+//                ).collect { redeemBadgeTokenResponse ->
+//                    when (redeemBadgeTokenResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = redeemBadgeTokenResponse
+//                        }
+//
+//                        is Response.Success -> {
+//                            response = Response.Success(true)
+//                        }
+//                    }
+//                }
             }
         }.join()
 

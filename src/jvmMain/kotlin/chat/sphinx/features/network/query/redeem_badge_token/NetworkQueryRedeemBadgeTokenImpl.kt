@@ -20,15 +20,4 @@ class NetworkQueryRedeemBadgeTokenImpl(
         private const val ENDPOINT_CLAIM_ON_LIQUID = "/claim_on_liquid"
     }
 
-    override fun redeemBadgeToken(
-        data: RedeemBadgeTokenDto,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<Any, ResponseError>> =
-        networkRelayCall.relayPost(
-            responseJsonSerializer = RedeemBadgeTokenResponse.serializer(),
-            relayEndpoint = ENDPOINT_CLAIM_ON_LIQUID,
-            requestBodyPair = Pair(data, RedeemBadgeTokenDto.serializer()),
-            relayData = relayData
-        )
-
 }

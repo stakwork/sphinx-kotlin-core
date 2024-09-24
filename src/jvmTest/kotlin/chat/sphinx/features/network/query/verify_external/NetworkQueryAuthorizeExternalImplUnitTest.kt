@@ -18,24 +18,4 @@ import kotlin.test.fail
 
 class NetworkQueryAuthorizeExternalImplUnitTest: NetworkQueryTestHelper() {
 
-    @Test
-    fun `verifyExternal returns success`() =
-        testDispatcher.runBlockingTest {
-            getCredentials()?.let {
-                nqAuthorizeExternal.verifyExternal().collect { loadResponse ->
-
-                    Exhaustive@
-                    when (loadResponse) {
-                        is Response.Error -> {
-                            loadResponse.exception?.printStackTrace()
-                            fail(loadResponse.message)
-                        }
-                        is Response.Success -> {}
-                        is LoadResponse.Loading -> {}
-                    }
-
-                }
-
-            }
-        }
 }
