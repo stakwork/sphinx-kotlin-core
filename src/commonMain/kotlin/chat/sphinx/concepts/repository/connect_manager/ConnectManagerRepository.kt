@@ -30,12 +30,12 @@ interface ConnectManagerRepository {
 //    val restoreMinIndex: MutableStateFlow<Long?>
 //
 //    fun connectAndSubscribeToMqtt(userState: String?, mixerIp: String?) {}
-//    fun createOwnerAccount()
+    fun createOwnerAccount()
 //    fun startRestoreProcess()
 //    fun createContact(contact: NewContact)
 //    fun setInviteCode(inviteString: String)
     fun setMnemonicWords(words: List<String>?)
-//    fun setNetworkType(isTestEnvironment: Boolean)
+    fun setNetworkType(isTestEnvironment: Boolean)
 //    fun setOwnerDeviceId(deviceId: String)
 //    fun signChallenge(challenge: String): String?
 //    fun createInvite(
