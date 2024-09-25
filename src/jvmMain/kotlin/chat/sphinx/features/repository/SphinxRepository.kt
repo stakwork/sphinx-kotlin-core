@@ -176,6 +176,10 @@ abstract class SphinxRepository(
         const val AUTHORIZE_EXTERNAL_BASE_64 = "U3BoaW54IFZlcmlmaWNhdGlvbg=="
     }
 
+    override fun setInviteCode(inviteString: String) {
+        connectManager.setInviteCode(inviteString)
+    }
+
     override fun setMnemonicWords(words: List<String>?) {
         connectManager.setMnemonicWords(words)
     }
