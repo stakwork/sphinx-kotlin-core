@@ -19,14 +19,12 @@ import io.matthewnelson.kmp.tor.manager.common.TorOperationManager
 import io.matthewnelson.kmp.tor.manager.common.event.TorManagerEvent
 import io.matthewnelson.kmp.tor.manager.common.state.TorNetworkState
 import io.matthewnelson.kmp.tor.manager.common.state.TorState
-import io.matthewnelson.kmp.tor.manager.common.state.isOff
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.Cache
@@ -100,34 +98,7 @@ class NetworkClientImpl(
     }
 
     override suspend fun isTorRequired(): Boolean {
-        var required: Boolean?
-
-        lock.withLock {
-            requirementChangeLock.withLock {
-                required = isTorRequiredCache ?: authenticationStorage.getString(TOR_MANAGER_REQUIRED, null)?.let { persisted ->
-                    when (persisted) {
-                        null -> {
-                            null
-                        }
-                        TRUE -> {
-                            isTorRequiredCache = true
-                            true
-                        }
-                        else -> {
-                            isTorRequiredCache = false
-                            false
-                        }
-                    }
-                }
-            }
-        }
-
-        return required ?: run {
-            val relayUrl = SphinxContainer.networkModule.relayDataHandlerImpl.retrieveRelayUrl()
-            val required = relayUrl?.isOnionAddress == true
-            setTorRequired(required)
-            return required
-        }
+        return false
     }
 
     companion object {

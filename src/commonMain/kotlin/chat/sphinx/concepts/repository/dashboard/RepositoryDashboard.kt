@@ -71,5 +71,4 @@ interface RepositoryDashboard {
 
     suspend fun didCancelRestore()
 
-    fun getAndSaveTransportKey(forceGet: Boolean = false)
 }

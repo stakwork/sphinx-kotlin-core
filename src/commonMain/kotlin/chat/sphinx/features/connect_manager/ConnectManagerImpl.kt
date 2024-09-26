@@ -7,8 +7,8 @@ import chat.sphinx.example.concept_connect_manager.model.RestoreProgress
 import chat.sphinx.example.concept_connect_manager.model.RestoreState
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
-import chat.sphinx.logger.e
 import chat.sphinx.wrapper.contact.NewContact
+import chat.sphinx.wrapper.lightning.WalletMnemonic
 import chat.sphinx.wrapper.lightning.toLightningNodePubKey
 import chat.sphinx.wrapper.lightning.toLightningRouteHint
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
@@ -39,7 +39,7 @@ class ConnectManagerImpl(
 ) : ConnectManager() {
 
     private var _mixerIp: String? = null
-    private var walletMnemonic: String? = null
+    private var walletMnemonic: WalletMnemonic? = null
     private var mqttClient: MqttAsyncClient? = null
     private var network = ""
     private var ownerSeed: String? = null
@@ -345,6 +345,7 @@ class ConnectManagerImpl(
                         )
                     }
                 }
+
                 LOG.d("MQTT_MESSAGES", "=> my_contact_info $myContactInfo")
                 LOG.d("MQTT_MESSAGES", "=> my_contact_info mixerIp $mixerIp")
                 LOG.d("MQTT_MESSAGES", "=> my_contact_info tribeServer $tribeServer")
@@ -942,7 +943,7 @@ class ConnectManagerImpl(
 
     override fun initializeMqttAndSubscribe(
         serverUri: String,
-        mnemonicWords: String,
+        mnemonicWords: WalletMnemonic,
         ownerInfo: OwnerInfo
     ) {
         _mixerIp = serverUri
@@ -981,7 +982,7 @@ class ConnectManagerImpl(
         _ownerInfoStateFlow.value = ownerInfo
 
         val seed = try {
-            mnemonicToSeed(mnemonicWords)
+            mnemonicToSeed(mnemonicWords.value)
         } catch (e: Exception) {
             null
         }
@@ -1105,9 +1106,11 @@ class ConnectManagerImpl(
             try {
                 seed = mnemonicToSeed(words)
 
-                notifyListeners {
-                    onMnemonicWords(words)
-                }
+                // TODO V2 this method needs to be called after authentication
+//                notifyListeners {
+//                    onMnemonicWords(words)
+//                }
+
             } catch (e: Exception) {
             }
         }

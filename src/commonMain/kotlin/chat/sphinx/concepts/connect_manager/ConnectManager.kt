@@ -3,6 +3,7 @@ package chat.sphinx.concepts.connect_manager
 import chat.sphinx.example.concept_connect_manager.model.OwnerInfo
 import chat.sphinx.example.concept_connect_manager.model.RestoreState
 import chat.sphinx.wrapper.contact.NewContact
+import chat.sphinx.wrapper.lightning.WalletMnemonic
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +42,7 @@ abstract class ConnectManager {
     abstract fun getAllMessagesCount()
     abstract fun initializeMqttAndSubscribe(
         serverUri: String,
-        mnemonicWords: String,
+        mnemonicWords: WalletMnemonic,
         ownerInfo: OwnerInfo
     )
     abstract fun reconnectWithBackOff()

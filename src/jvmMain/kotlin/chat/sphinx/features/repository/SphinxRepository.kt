@@ -202,14 +202,17 @@ abstract class SphinxRepository(
     override fun onUpdateUserState(userState: String) {
 //        userStateFlow.value = userState
     }
+
     override fun onMnemonicWords(words: String) {
-//        applicationScope.launch(io) {
-//            words.toWalletMnemonic()?.let {
-//                walletDataHandler.persistWalletMnemonic(it)
-//            }
-//        }
+        applicationScope.launch(io) {
+            words.toWalletMnemonic()?.let {
+                relayDataHandler.persistWalletMnemonic(it)
+            }
+        }
+        // TODO V2 implement show mnemonic to user
 //        connectionManagerState.value = OwnerRegistrationState.MnemonicWords(words)
     }
+
     override fun onOwnerRegistered(
         okKey: String,
         routeHint: String,
@@ -2316,46 +2319,6 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError> = Response.Error(
             ResponseError("generate Github PAT failed to execute")
         )
-
-        relayDataHandler.retrieveRelayTransportKey()?.let { key ->
-
-            applicationScope.launch(mainImmediate) {
-
-                val encryptionResponse = rsa.encrypt(
-                    key,
-                    UnencryptedString(pat),
-                    formatOutput = false,
-                    dispatcher = default,
-                )
-
-                Exhaustive@
-                when (encryptionResponse) {
-                    is Response.Error -> {}
-
-                    is Response.Success -> {
-                    // TODO V2 generateGithubPAT
-
-//                        networkQueryContact.generateGithubPAT(
-//                            GithubPATDto(
-//                                encryptionResponse.value.value
-//                            )
-//                        ).collect { loadResponse ->
-//                            Exhaustive@
-//                            when (loadResponse) {
-//                                is LoadResponse.Loading -> {}
-//
-//                                is Response.Error -> {
-//                                    response = loadResponse
-//                                }
-//                                is Response.Success -> {
-//                                    response = Response.Success(true)
-//                                }
-//                            }
-//                        }
-                    }
-                }
-            }.join()
-        }
 
         return response
     }
@@ -6724,44 +6687,6 @@ abstract class SphinxRepository(
                 }
             }
         }
-    }
-
-    override fun getAndSaveTransportKey(forceGet: Boolean) {
-        applicationScope.launch(io) {
-            if (!forceGet) {
-                relayDataHandler.retrieveRelayTransportKey()?.let {
-                    return@launch
-                }
-            }
-            relayDataHandler.retrieveRelayUrl()?.let { relayUrl -> }
-        }
-    }
-
-
-    private suspend fun createHMacKey(): Response<RelayHMacKey, ResponseError> {
-        var response: Response<RelayHMacKey, ResponseError> = Response.Error(
-            ResponseError("HMac Key creation failed")
-        )
-
-        @OptIn(RawPasswordAccess::class)
-        val hMacKeyString = PasswordGenerator(passwordLength = 20).password.value.joinToString("")
-
-        relayDataHandler.retrieveRelayTransportKey()?.let { key ->
-
-            val encryptionResponse = rsa.encrypt(
-                key,
-                UnencryptedString(hMacKeyString),
-                formatOutput = false,
-                dispatcher = default,
-            )
-
-            when (encryptionResponse) {
-                is Response.Error -> {}
-                is Response.Success -> {}
-            }
-        }
-
-        return response
     }
 
     suspend fun getOwner() : Contact? {

@@ -6,7 +6,6 @@ import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.relay.retrieveRelayUrlAndToken
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.logger.e
@@ -81,27 +80,6 @@ private inline fun NetworkRelayCallImpl.handleException(
     return Response.Error(ResponseError(msg, e))
 }
 
-@Throws(Exception::class)
-private suspend inline fun RelayDataHandler.retrieveRelayData(
-    method: String,
-    path: String,
-    bodyJsonString: String
-): Triple<
-        Pair<AuthorizationToken, TransportToken?>,
-        RequestSignature?,
-        RelayUrl>
-{
-
-    Exhaustive@
-    when(val response = retrieveRelayUrlAndToken(method, path, bodyJsonString)) {
-        is Response.Error -> {
-            throw Exception(response.message)
-        }
-        is Response.Success -> {
-            return response.value
-        }
-    }
-}
 
 @Suppress("BlockingMethodInNonBlockingContext")
 class NetworkRelayCallImpl(
