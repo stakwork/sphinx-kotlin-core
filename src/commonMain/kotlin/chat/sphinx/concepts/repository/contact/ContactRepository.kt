@@ -91,4 +91,10 @@ interface ContactRepository {
     suspend fun getPersonData(
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<PersonDataDto, ResponseError>>
+
+
+    // V2 methods
+
+    suspend fun createOwner(okKey: String, routeHint: String, shortChannelId: String)
+
 }

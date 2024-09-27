@@ -73,7 +73,9 @@ import chat.sphinx.logger.d
 import chat.sphinx.logger.e
 import chat.sphinx.logger.w
 import chat.sphinx.response.*
+import chat.sphinx.utils.ServersUrlsHelper
 import chat.sphinx.utils.SphinxJson
+import chat.sphinx.utils.createPlatformSettings
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.contact.*
@@ -100,6 +102,7 @@ import chat.sphinx.wrapper.subscription.SubscriptionId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_message.ThreadUUID
+import com.russhwolf.settings.Settings
 import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
@@ -176,6 +179,8 @@ abstract class SphinxRepository(
         const val AUTHORIZE_EXTERNAL_BASE_64 = "U3BoaW54IFZlcmlmaWNhdGlvbg=="
     }
 
+    private val serversUrls = ServersUrlsHelper()
+
     override fun setInviteCode(inviteString: String) {
         connectManager.setInviteCode(inviteString)
     }
@@ -192,6 +197,26 @@ abstract class SphinxRepository(
         connectManager.createAccount()
     }
 
+    override fun startRestoreProcess() {
+        applicationScope.launch(mainImmediate) {
+//            var msgCounts: MsgsCounts? = null
+//
+//            restoreProcessState.asStateFlow().collect{ restoreProcessState ->
+//                when (restoreProcessState) {
+//                    is RestoreProcessState.MessagesCounts -> {
+//                        msgCounts = restoreProcessState.msgsCounts
+//                        connectManager.fetchFirstMessagesPerKey(0L, msgCounts?.first_for_each_scid)
+//                    }
+//                    is RestoreProcessState.RestoreMessages -> {
+//                        delay(100L)
+//                        connectManager.fetchMessagesOnRestoreAccount(msgCounts?.total_highest_index)
+//                    }
+//                    else -> {}
+//                }
+//            }
+        }
+    }
+
     init {
         connectManager.addListener(this)
     }
@@ -200,7 +225,7 @@ abstract class SphinxRepository(
 
     // Account Management
     override fun onUpdateUserState(userState: String) {
-//        userStateFlow.value = userState
+        serversUrls.storeUserState(userState)
     }
 
     override fun onMnemonicWords(words: String) {
@@ -223,27 +248,64 @@ abstract class SphinxRepository(
         routerUrl: String?,
         defaultTribe: String?
     ) {
-//        applicationScope.launch(mainImmediate) {
-//            val scid = routeHint.toLightningRouteHint()?.getScid()
-//
-//            if (scid != null && accountOwner.value?.nodePubKey == null) {
-//                createOwner(okKey, routeHint, scid)
-//
-//                connectionManagerState.value = OwnerRegistrationState.OwnerRegistered(
-//                    isRestoreAccount,
-//                    mixerServerIp,
-//                    tribeServerHost,
-//                    isProductionEnvironment,
-//                    routerUrl,
-//                    defaultTribe
-//                )
-//                delay(1000L)
-//
-//                if (isRestoreAccount) {
-//                    startRestoreProcess()
-//                }
-//            }
-//        }
+        applicationScope.launch(mainImmediate) {
+            val scid = routeHint.toLightningRouteHint()?.getScid()
+
+            if (scid != null && accountOwner.value?.nodePubKey == null) {
+                createOwner(okKey, routeHint, scid)
+
+                mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
+                defaultTribe?.let { serversUrls.storeDefaultTribe(it) }
+                serversUrls.storeEnvironmentType(isProductionEnvironment)
+
+                val needsToFetchConfig = routerUrl.isNullOrEmpty() || tribeServerHost.isNullOrEmpty()
+
+                if (needsToFetchConfig) {
+                    fetchMissingAccountConfig(isProductionEnvironment, routerUrl, tribeServerHost, defaultTribe)
+                }
+
+                delay(1000L)
+
+                if (isRestoreAccount) {
+                    startRestoreProcess()
+                }
+            }
+        }
+    }
+
+    private fun fetchMissingAccountConfig(
+        isProductionEnvironment: Boolean,
+        routerUrl: String?,
+        tribeServerHost: String?,
+        defaultTribe: String?
+    ) {
+        applicationScope.launch(mainImmediate) {
+            networkQueryContact.getAccountConfig(isProductionEnvironment).collect { loadResponse ->
+                when (loadResponse) {
+                    is Response.Success -> {
+                        loadResponse.value.router.takeIf { it.isNotEmpty() && routerUrl.isNullOrEmpty() }?.let {
+                            serversUrls.storeRouterUrl(it)
+                        }
+                        loadResponse.value.tribe_host.takeIf { it.isNotEmpty() && tribeServerHost.isNullOrEmpty() }
+                            ?.let {
+                                serversUrls.storeTribeServerIp(it)
+                            }
+                        loadResponse.value.tribe.takeIf { it.isNotEmpty() && defaultTribe.isNullOrEmpty() }?.let {
+                            serversUrls.storeDefaultTribe(it)
+                        }
+                        delay(100L)
+                        // Navigate to the next screen or perform the next action
+                    }
+
+                    is Response.Error -> {
+                        // Handle the error, e.g., show a notification or log the error
+                        // Navigate to the next screen or perform the next action
+                    }
+
+                    LoadResponse.Loading -> {}
+                }
+            }
+        }
     }
 
     override fun onRestoreAccount(isProductionEnvironment: Boolean) {
@@ -2721,6 +2783,38 @@ abstract class SphinxRepository(
 //                }
 //            }
 //        }
+    }
+
+    override suspend fun createOwner(okKey: String, routeHint: String, shortChannelId: String) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val now = DateTime.nowUTC()
+
+        val owner = Contact(
+            id = ContactId(0L),
+            routeHint = routeHint.toLightningRouteHint(),
+            nodePubKey = okKey.toLightningNodePubKey(),
+            nodeAlias = null,
+            alias = null,
+            photoUrl = null,
+            privatePhoto = PrivatePhoto.False,
+            isOwner = Owner.True,
+            status = ContactStatus.AccountOwner,
+            rsaPublicKey = null,
+            deviceId = null,
+            createdAt = now.toDateTime(),
+            updatedAt = now.toDateTime(),
+            fromGroup = ContactFromGroup.False,
+            notificationSound = null,
+            tipAmount = null,
+            inviteId = null,
+            inviteStatus = null,
+            blocked = Blocked.False
+        )
+        contactLock.withLock {
+            queries.transaction {
+                upsertNewContact(owner, queries)
+            }
+        }
     }
 
     ////////////////

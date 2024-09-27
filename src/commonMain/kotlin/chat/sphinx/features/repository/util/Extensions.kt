@@ -213,6 +213,65 @@ inline fun TransactionCallbacks.upsertChat(
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
+inline fun TransactionCallbacks.upsertNewContact(contact: Contact, queries: SphinxDatabaseQueries) {
+
+    if (contact.fromGroup.isTrue()) {
+        return
+    }
+
+    val routeHint = contact.routeHint
+    val nodePubKey = contact.nodePubKey
+    val nodeAlias = contact.nodeAlias
+    val alias = contact.alias
+    val photoUrl = contact.photoUrl
+    val privatePhoto = contact.privatePhoto
+    val status = contact.status
+    val rsaPublicKey = contact.rsaPublicKey
+    val deviceId = contact.deviceId
+    val updatedAt = contact.updatedAt
+    val notificationSound = contact.notificationSound
+    val tipAmount = contact.tipAmount
+    val blocked = contact.blocked
+
+    // Perform the upsert operation
+    queries.contactUpsert(
+        routeHint,
+        nodePubKey,
+        nodeAlias,
+        alias,
+        photoUrl,
+        privatePhoto,
+        status,
+        rsaPublicKey,
+        deviceId,
+        updatedAt,
+        notificationSound,
+        tipAmount,
+        blocked,
+        contact.id,
+        contact.isOwner,
+        contact.createdAt
+    )
+
+    if (!contact.isOwner.isTrue()) {
+        queries.dashboardUpsert(
+            contact.alias?.value,
+            ChatMuted.False,
+            Seen.True,
+            contact.photoUrl,
+            contact.id,
+            null,
+            contact.createdAt
+        )
+        queries.dashboardUpdateConversation(
+            contact.alias?.value,
+            contact.photoUrl,
+            contact.id
+        )
+    }
+}
+
+@Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
 inline fun TransactionCallbacks.upsertContact(dto: ContactDto, queries: SphinxDatabaseQueries) {
 
     if (dto.fromGroupActual) {
