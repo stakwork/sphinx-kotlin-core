@@ -1,15 +1,8 @@
-package chat.sphinx.concept_repository_connect_manager.model
+package chat.sphinx.concepts.repository.connect_manager.model
 
 sealed class OwnerRegistrationState {
 
-    data class OwnerRegistered(
-        val isRestoreAccount: Boolean,
-        val mixerServerIp: String?,
-        val tirbeServerHost: String?,
-        val isProductionEnvironment: Boolean,
-        val routerUrl: String?,
-        val defaultTribe: String?
-    ) : OwnerRegistrationState()
+    object OwnerRegistered: OwnerRegistrationState()
     data class MnemonicWords(val words: String): OwnerRegistrationState()
     data class SignedChallenge(val authToken: String): OwnerRegistrationState()
     data class NewInviteCode(val inviteCode: String): OwnerRegistrationState()

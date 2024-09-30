@@ -5,7 +5,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
 import chat.sphinx.concept_repository_connect_manager.model.NetworkStatus
-import chat.sphinx.concept_repository_connect_manager.model.OwnerRegistrationState
+import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationState
 import chat.sphinx.concept_repository_connect_manager.model.RestoreProcessState
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.connect_manager.ConnectManager
@@ -299,7 +299,13 @@ abstract class SphinxRepository(
         applicationScope.launch(mainImmediate) {
             val scid = routeHint.toLightningRouteHint()?.getScid()
 
+            val queries = coreDB.getSphinxDatabaseQueries()
+            queries.transaction {
+                deleteAll(queries)
+            }
+
             if (scid != null && accountOwner.value?.nodePubKey == null) {
+
                 createOwner(okKey, routeHint, scid , ownerAlias ?: "unknown")
 
                 mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
@@ -317,6 +323,8 @@ abstract class SphinxRepository(
                 if (isRestoreAccount) {
                     startRestoreProcess()
                 }
+
+                connectionManagerState.value = OwnerRegistrationState.OwnerRegistered
             }
         }
     }
