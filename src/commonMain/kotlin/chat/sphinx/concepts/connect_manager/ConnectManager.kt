@@ -25,7 +25,7 @@ abstract class ConnectManager {
     abstract val msgsCountsState: MutableStateFlow<MsgsCounts?>
 
     // Account Management Methods
-    abstract fun createAccount()
+    abstract fun createAccount(userAlias: String)
     abstract fun restoreAccount(
         defaultTribe: String?,
         tribeHost: String?,
@@ -185,7 +185,8 @@ interface ConnectManagerListener {
         tribeServerHost: String?,
         isProductionEnvironment: Boolean,
         routerUrl: String?,
-        defaultTribe: String?
+        defaultTribe: String?,
+        ownerAlias: String?
     )
     fun onRestoreAccount(isProductionEnvironment: Boolean)
     fun onUpsertContacts(

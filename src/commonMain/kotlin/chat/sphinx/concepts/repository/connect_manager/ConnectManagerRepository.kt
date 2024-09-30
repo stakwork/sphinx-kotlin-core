@@ -7,7 +7,6 @@ import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -33,7 +32,7 @@ interface ConnectManagerRepository {
     val restoreMinIndex: MutableStateFlow<Long?>
 
 //    fun connectAndSubscribeToMqtt(userState: String?, mixerIp: String?) {}
-    fun createOwnerAccount()
+    fun createOwnerAccount(ownerAlias: String)
     fun startRestoreProcess()
 //    fun createContact(contact: NewContact)
     fun setInviteCode(inviteString: String)

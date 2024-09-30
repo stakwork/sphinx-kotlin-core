@@ -58,7 +58,7 @@ class ConnectManagerImpl(
     private val restoreProgress = RestoreProgress()
     private var isMqttConnected: Boolean = false
     private var isAppFirstInit: Boolean = true
-
+    private var ownerUserName: String? = null
 
     companion object {
         const val TEST_V2_SERVER_IP = "75.101.247.127:1883"
@@ -341,7 +341,8 @@ class ConnectManagerImpl(
                             tribeServer,
                             isProductionEnvironment(),
                             router,
-                            serverDefaultTribe
+                            serverDefaultTribe,
+                            ownerUserName
                         )
                     }
                 }
@@ -713,7 +714,8 @@ class ConnectManagerImpl(
     }
 
     // Account Management Methods
-    override fun createAccount() {
+    override fun createAccount(userAlias: String) {
+        ownerUserName = userAlias
         if (isRestoreAccount()) {
             notifyListeners {
                 onRestoreAccount(isProductionEnvironment())

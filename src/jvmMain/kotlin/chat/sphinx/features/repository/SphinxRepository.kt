@@ -32,8 +32,6 @@ import chat.sphinx.concepts.network.query.redeem_badge_token.model.RedeemBadgeTo
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.save_profile.model.DeletePeopleProfileDto
 import chat.sphinx.concepts.network.query.save_profile.model.PeopleProfileDto
-import chat.sphinx.concepts.network.query.subscription.model.PostSubscriptionDto
-import chat.sphinx.concepts.network.query.subscription.model.PutSubscriptionDto
 import chat.sphinx.concepts.network.query.subscription.model.SubscriptionDto
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.notification.SphinxNotificationManager
@@ -78,7 +76,6 @@ import chat.sphinx.logger.w
 import chat.sphinx.response.*
 import chat.sphinx.utils.ServersUrlsHelper
 import chat.sphinx.utils.SphinxJson
-import chat.sphinx.utils.createPlatformSettings
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.contact.*
@@ -108,7 +105,6 @@ import chat.sphinx.wrapper.subscription.SubscriptionId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_message.ThreadUUID
-import com.russhwolf.settings.Settings
 import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
@@ -120,14 +116,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
-import uniffi.sphinxrs.addNode
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import kotlin.math.absoluteValue
 
 abstract class SphinxRepository(
@@ -249,8 +240,8 @@ abstract class SphinxRepository(
         connectManager.setNetworkType(isTestEnvironment)
     }
 
-    override fun createOwnerAccount() {
-        connectManager.createAccount()
+    override fun createOwnerAccount(ownerAlias: String) {
+        connectManager.createAccount(ownerAlias)
     }
 
     override fun startRestoreProcess() {
@@ -302,13 +293,14 @@ abstract class SphinxRepository(
         tribeServerHost: String?,
         isProductionEnvironment: Boolean,
         routerUrl: String?,
-        defaultTribe: String?
+        defaultTribe: String?,
+        ownerAlias: String?
     ) {
         applicationScope.launch(mainImmediate) {
             val scid = routeHint.toLightningRouteHint()?.getScid()
 
             if (scid != null && accountOwner.value?.nodePubKey == null) {
-                createOwner(okKey, routeHint, scid)
+                createOwner(okKey, routeHint, scid , ownerAlias ?: "unknown")
 
                 mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
                 defaultTribe?.let { serversUrls.storeDefaultTribe(it) }
@@ -2841,7 +2833,12 @@ abstract class SphinxRepository(
 //        }
     }
 
-    override suspend fun createOwner(okKey: String, routeHint: String, shortChannelId: String) {
+    override suspend fun createOwner(
+        okKey: String,
+        routeHint: String,
+        shortChannelId: String,
+        ownerAlias: String
+    ) {
         val queries = coreDB.getSphinxDatabaseQueries()
         val now = DateTime.nowUTC()
 
@@ -2850,7 +2847,7 @@ abstract class SphinxRepository(
             routeHint = routeHint.toLightningRouteHint(),
             nodePubKey = okKey.toLightningNodePubKey(),
             nodeAlias = null,
-            alias = null,
+            alias = ownerAlias.toContactAlias(),
             photoUrl = null,
             privatePhoto = PrivatePhoto.False,
             isOwner = Owner.True,

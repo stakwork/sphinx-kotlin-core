@@ -95,6 +95,11 @@ interface ContactRepository {
 
     // V2 methods
 
-    suspend fun createOwner(okKey: String, routeHint: String, shortChannelId: String)
+    suspend fun createOwner(
+        okKey: String,
+        routeHint: String,
+        shortChannelId: String,
+        ownerAlias: String
+    )
 
 }
