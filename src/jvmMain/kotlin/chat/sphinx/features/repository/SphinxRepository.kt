@@ -4,6 +4,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import chat.sphinx.concept_repository_connect_manager.model.NetworkStatus
+import chat.sphinx.concept_repository_connect_manager.model.OwnerRegistrationState
+import chat.sphinx.concept_repository_connect_manager.model.RestoreProcessState
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.connect_manager.ConnectManagerListener
@@ -90,6 +93,9 @@ import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
+import chat.sphinx.wrapper.mqtt.MsgsCounts
+import chat.sphinx.wrapper.mqtt.TransactionDto
+import chat.sphinx.wrapper.mqtt.TribeMembersResponse
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
@@ -181,6 +187,56 @@ abstract class SphinxRepository(
 
     private val serversUrls = ServersUrlsHelper()
 
+    ////////////////////////
+    /// Connect Manager ///
+    //////////////////////
+
+
+    override val connectionManagerState: MutableStateFlow<OwnerRegistrationState?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val networkStatus: MutableStateFlow<NetworkStatus> by lazy {
+        MutableStateFlow(NetworkStatus.Loading)
+    }
+
+    override val restoreProcessState: MutableStateFlow<RestoreProcessState?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val connectManagerErrorState: MutableStateFlow<ConnectManagerError?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val transactionDtoState: MutableStateFlow<List<TransactionDto>?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val userStateFlow: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val tribeMembersState: MutableStateFlow<TribeMembersResponse?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val restoreProgress: MutableStateFlow<Int?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val webViewPaymentHash: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val webViewPreImage: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val restoreMinIndex: MutableStateFlow<Long?> by lazy {
+        MutableStateFlow(null)
+    }
+
+
     override fun setInviteCode(inviteString: String) {
         connectManager.setInviteCode(inviteString)
     }
@@ -199,21 +255,21 @@ abstract class SphinxRepository(
 
     override fun startRestoreProcess() {
         applicationScope.launch(mainImmediate) {
-//            var msgCounts: MsgsCounts? = null
-//
-//            restoreProcessState.asStateFlow().collect{ restoreProcessState ->
-//                when (restoreProcessState) {
-//                    is RestoreProcessState.MessagesCounts -> {
-//                        msgCounts = restoreProcessState.msgsCounts
-//                        connectManager.fetchFirstMessagesPerKey(0L, msgCounts?.first_for_each_scid)
-//                    }
-//                    is RestoreProcessState.RestoreMessages -> {
-//                        delay(100L)
-//                        connectManager.fetchMessagesOnRestoreAccount(msgCounts?.total_highest_index)
-//                    }
-//                    else -> {}
-//                }
-//            }
+            var msgCounts: MsgsCounts? = null
+
+            restoreProcessState.asStateFlow().collect{ restoreProcessState ->
+                when (restoreProcessState) {
+                    is RestoreProcessState.MessagesCounts -> {
+                        msgCounts = restoreProcessState.msgsCounts
+                        connectManager.fetchFirstMessagesPerKey(0L, msgCounts?.first_for_each_scid)
+                    }
+                    is RestoreProcessState.RestoreMessages -> {
+                        delay(100L)
+                        connectManager.fetchMessagesOnRestoreAccount(msgCounts?.total_highest_index)
+                    }
+                    else -> {}
+                }
+            }
         }
     }
 
