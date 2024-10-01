@@ -299,14 +299,8 @@ abstract class SphinxRepository(
         applicationScope.launch(mainImmediate) {
             val scid = routeHint.toLightningRouteHint()?.getScid()
 
-            val queries = coreDB.getSphinxDatabaseQueries()
-            queries.transaction {
-                deleteAll(queries)
-            }
-
             if (scid != null && accountOwner.value?.nodePubKey == null) {
-
-                createOwner(okKey, routeHint, scid , ownerAlias ?: "unknown")
+                createOwner(okKey, routeHint, scid, ownerAlias ?: "unknown")
 
                 mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
                 defaultTribe?.let { serversUrls.storeDefaultTribe(it) }

@@ -886,7 +886,7 @@ class ConnectManagerImpl(
             }
 
             val limit = MSG_FIRST_PER_KEY_LIMIT
-            val fetchFirstMsg = uniffi.sphinxrs.fetchFirstMsgsPerKey(
+            val fetchFirstMsg = fetchFirstMsgsPerKey(
                 ownerSeed!!,
                 getTimestampInMilliseconds(),
                 getCurrentUserState(),
