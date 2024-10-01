@@ -2,9 +2,9 @@ package chat.sphinx.features.connect_manager
 
 import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.connect_manager.ConnectManagerListener
-import chat.sphinx.example.concept_connect_manager.model.OwnerInfo
-import chat.sphinx.example.concept_connect_manager.model.RestoreProgress
-import chat.sphinx.example.concept_connect_manager.model.RestoreState
+import chat.sphinx.concepts.connect_manager.model.OwnerInfo
+import chat.sphinx.concepts.connect_manager.model.RestoreProgress
+import chat.sphinx.concepts.connect_manager.model.RestoreState
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.wrapper.contact.NewContact

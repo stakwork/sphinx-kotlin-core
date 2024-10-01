@@ -91,6 +91,7 @@ import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
+import chat.sphinx.wrapper.mqtt.MsgsCounts.Companion.toMsgsCounts
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
 import chat.sphinx.wrapper.payment.PaymentTemplate
@@ -425,7 +426,7 @@ abstract class SphinxRepository(
     }
 
     override fun onRestoreMessages() {
-//        restoreProcessState.value = RestoreProcessState.RestoreMessages
+        restoreProcessState.value = RestoreProcessState.RestoreMessages
     }
 
     override fun onUpsertTribes(
@@ -856,14 +857,14 @@ abstract class SphinxRepository(
     }
 
     override fun onMessagesCounts(msgsCounts: String) {
-//        try {
-//            msgsCounts.toMsgsCounts(moshi)?.let {
-//                restoreProcessState.value = RestoreProcessState.MessagesCounts(it)
-//                connectManager.saveMessagesCounts(it)
-//            }
-//        } catch (e: Exception) {
-//            LOG.e(TAG, "onMessagesCounts: ${e.message}", e)
-//        }
+        try {
+            msgsCounts.toMsgsCounts()?.let {
+                restoreProcessState.value = RestoreProcessState.MessagesCounts(it)
+                connectManager.saveMessagesCounts(it)
+            }
+        } catch (e: Exception) {
+            LOG.e(TAG, "onMessagesCounts: ${e.message}", e)
+        }
     }
 
     override fun onSentStatus(sentStatus: String) {

@@ -1,4 +1,4 @@
-package chat.sphinx.example.concept_connect_manager.model
+package chat.sphinx.concepts.connect_manager.model
 
 data class RestoreProgress(
     var progressPercentage: Int = 0,

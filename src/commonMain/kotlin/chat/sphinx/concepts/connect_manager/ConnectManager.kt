@@ -1,7 +1,7 @@
 package chat.sphinx.concepts.connect_manager
 
-import chat.sphinx.example.concept_connect_manager.model.OwnerInfo
-import chat.sphinx.example.concept_connect_manager.model.RestoreState
+import chat.sphinx.concepts.connect_manager.model.OwnerInfo
+import chat.sphinx.concepts.connect_manager.model.RestoreState
 import chat.sphinx.wrapper.contact.NewContact
 import chat.sphinx.wrapper.lightning.WalletMnemonic
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
