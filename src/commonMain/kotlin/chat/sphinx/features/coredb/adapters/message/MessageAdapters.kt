@@ -157,3 +157,23 @@ internal class ThreadUUIDAdapter: ColumnAdapter<ThreadUUID, String> {
         return value.value
     }
 }
+
+internal class ErrorMessageAdapter: ColumnAdapter<ErrorMessage, String> {
+    override fun decode(databaseValue: String): ErrorMessage {
+        return ErrorMessage(databaseValue)
+    }
+
+    override fun encode(value: ErrorMessage): String {
+        return value.value
+    }
+}
+
+internal class TagMessageAdapter: ColumnAdapter<TagMessage, String> {
+    override fun decode(databaseValue: String): TagMessage {
+        return TagMessage(databaseValue)
+    }
+
+    override fun encode(value: TagMessage): String {
+        return value.value
+    }
+}

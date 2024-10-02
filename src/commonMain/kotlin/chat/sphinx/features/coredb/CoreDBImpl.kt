@@ -66,6 +66,7 @@ import chat.sphinx.features.coredb.adapters.feed.FeedTitleAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedTypeAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedUrlAdapter
 import chat.sphinx.features.coredb.adapters.feed.SubscribedAdapter
+import chat.sphinx.features.coredb.adapters.invite.InviteCodeAdapter
 import chat.sphinx.features.coredb.adapters.media.*
 import chat.sphinx.features.coredb.adapters.media.FileNameAdapter
 import chat.sphinx.features.coredb.adapters.media.MediaKeyAdapter
@@ -166,6 +167,7 @@ abstract class CoreDBImpl: CoreDB() {
                 inviteDboAdapter = InviteDbo.Adapter(
                     idAdapter = InviteIdAdapter.getInstance(),
                     invite_stringAdapter = InviteStringAdapter(),
+                    invite_codeAdapter = InviteCodeAdapter(),
                     invoiceAdapter = LightningPaymentRequestAdapter.getInstance(),
                     contact_idAdapter = ContactIdAdapter.getInstance(),
                     statusAdapter = InviteStatusAdapter.getInstance(),
@@ -207,7 +209,9 @@ abstract class CoreDBImpl: CoreDB() {
                     recipient_picAdapter = PhotoUrlAdapter.getInstance(),
                     pushAdapter = PushAdapter(),
                     personAdapter = PersonAdapter(),
-                    thread_uuidAdapter = ThreadUUIDAdapter()
+                    thread_uuidAdapter = ThreadUUIDAdapter(),
+                    error_messageAdapter = ErrorMessageAdapter(),
+                    tag_messageAdapter = TagMessageAdapter(),
                 ),
                 messageMediaDboAdapter = MessageMediaDbo.Adapter(
                     idAdapter = MessageIdAdapter.getInstance(),

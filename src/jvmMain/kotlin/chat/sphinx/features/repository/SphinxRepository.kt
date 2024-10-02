@@ -3514,6 +3514,8 @@ abstract class SphinxRepository(
                                 Push.False,
                                 null,
                                 threadUUID,
+                                null,
+                                null,
                                 provisionalId,
                                 null,
                                 chatDbo.id,

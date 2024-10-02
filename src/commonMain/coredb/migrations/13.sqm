@@ -1,0 +1,8 @@
+import chat.sphinx.wrapper.invite.InviteCode;
+import chat.sphinx.wrapper.message.ErrorMessage;
+import chat.sphinx.wrapper.message.TagMessage;
+
+ALTER TABLE inviteDbo ADD COLUMN invite_code TEXT AS InviteCode DEFAULT NULL;
+ALTER TABLE messageDbo ADD COLUMN tag_message TEXT AS TagMessage DEFAULT NULL;
+ALTER TABLE messageDbo ADD COLUMN error_message TEXT AS ErrorMessage DEFAULT NULL;
+

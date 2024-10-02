@@ -372,6 +372,8 @@ abstract class Message {
     abstract val recipientPic: PhotoUrl?
     abstract val person: MessagePerson?
     abstract val threadUUID: ThreadUUID?
+    abstract val errorMessage: ErrorMessage?
+    abstract val tagMessage: TagMessage?
     abstract val messageContentDecrypted: MessageContentDecrypted?
     abstract val messageDecryptionError: Boolean
     abstract val messageDecryptionException: Exception?

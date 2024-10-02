@@ -43,6 +43,7 @@ import chat.sphinx.wrapper.feed.FeedTitle;
 import chat.sphinx.wrapper.feed.FeedType;
 import chat.sphinx.wrapper.feed.FeedUrl;
 import chat.sphinx.wrapper.feed.Subscribed;
+import chat.sphinx.wrapper.invite.InviteCode;
 import chat.sphinx.wrapper.invite.InviteStatus;
 import chat.sphinx.wrapper.invite.InviteString;
 import chat.sphinx.wrapper.lightning.LightningNodeAlias;
@@ -51,6 +52,7 @@ import chat.sphinx.wrapper.lightning.LightningPaymentHash;
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest;
 import chat.sphinx.wrapper.lightning.LightningRouteHint;
 import chat.sphinx.wrapper.lightning.Sat;
+import chat.sphinx.wrapper.message.ErrorMessage;
 import chat.sphinx.wrapper.message.Flagged;
 import chat.sphinx.wrapper.message.MessageContent;
 import chat.sphinx.wrapper.message.MessageContentDecrypted;
@@ -63,6 +65,7 @@ import chat.sphinx.wrapper.message.MessageUUID;
 import chat.sphinx.wrapper.message.RecipientAlias;
 import chat.sphinx.wrapper.message.ReplyUUID;
 import chat.sphinx.wrapper.message.SenderAlias;
+import chat.sphinx.wrapper.message.TagMessage;
 import chat.sphinx.wrapper.message.media.FileName;
 import chat.sphinx.wrapper.message.media.MediaKey;
 import chat.sphinx.wrapper.message.media.MediaKeyDecrypted;
@@ -409,6 +412,7 @@ DELETE FROM contactDbo;
 CREATE TABLE inviteDbo(
     id                          INTEGER         AS InviteId NOT NULL PRIMARY KEY,
     invite_string               TEXT            AS InviteString NOT NULL,
+    invite_code                 TEXT            AS InviteCode,
     invoice                     TEXT            AS LightningPaymentRequest,
 --     welcome_message             TEXT,
     contact_id                  INTEGER         AS ContactId NOT NULL,
@@ -436,9 +440,15 @@ UPDATE inviteDbo
 SET status = :status
 WHERE id = ?;
 
+inviteGetByCode:
+SELECT *
+FROM inviteDbo
+WHERE invite_code = ?;
+
 inviteUpsert {
     UPDATE inviteDbo
     SET invite_string = :invite_string,
+        invite_code = :invite_code,
         invoice = :invoice,
         status = :status,
         price = :price
@@ -447,6 +457,7 @@ inviteUpsert {
     INSERT OR IGNORE INTO inviteDbo(
         id,
         invite_string,
+        invite_code,
         invoice,
         contact_id,
         status,
@@ -456,6 +467,7 @@ inviteUpsert {
     VALUES (
         :id,
         :invite_string,
+        :invite_code,
         :invoice,
         :contact_id,
         :status,
@@ -600,7 +612,9 @@ CREATE TABLE messageDbo(
     recipient_pic               TEXT            AS PhotoUrl,
     push                        INTEGER         AS Push DEFAULT 0,
     person                      TEXT            AS MessagePerson,
-    thread_uuid                 TEXT            AS ThreadUUID
+    thread_uuid                 TEXT            AS ThreadUUID,
+    error_message               TEXT            AS ErrorMessage,
+    tag_message                 TEXT            AS TagMessage
 );
 
 messageGetAllReactionsByUUID:
@@ -788,6 +802,19 @@ UPDATE messageDbo
 SET status = :status
 WHERE id = ?;
 
+messageUpdateStatusAndPaymentHashByTag:
+UPDATE messageDbo
+SET status = :status,
+    payment_hash = :payment_hash,
+    error_message = :error_message
+WHERE tag_message = ?;
+
+messageUpdateStatusByTag:
+UPDATE messageDbo
+SET status = :status,
+    error_message = :error_message
+WHERE tag_message = ?;
+
 messageUpdateInvoiceAsPaidByPaymentHash:
 UPDATE messageDbo
 SET status = 1
@@ -797,6 +824,14 @@ messageUpdateFlagged:
 UPDATE messageDbo
 SET flagged = :flagged
 WHERE id = ?;
+
+messageUpdateTagAndUUID:
+UPDATE messageDbo
+SET tag_message = :tag_message,
+    uuid = :uuid,
+    status = 1
+WHERE id = ?;
+
 
 -- If the message exists in the DB, it will update all fields _except_
 -- for message_content_decrypted as to not overwrite it.
@@ -813,7 +848,9 @@ messageUpsert {
         recipient_pic = :recipient_pic,
         push = :push,
         person = :person,
-        thread_uuid = :thread_uuid
+        thread_uuid = :thread_uuid,
+        error_message = :error_message,
+        tag_message = :tag_message
     WHERE id = :id;
 
     INSERT OR IGNORE INTO messageDbo(
@@ -842,7 +879,9 @@ messageUpsert {
         recipient_pic,
         push,
         person,
-        thread_uuid
+        thread_uuid,
+        error_message,
+        tag_message
     )
     VALUES (
         :id,
@@ -870,7 +909,9 @@ messageUpsert {
         :recipient_pic,
         :push,
         :person,
-        :thread_uuid
+        :thread_uuid,
+        :error_message,
+        :tag_message
     );
 }
 
