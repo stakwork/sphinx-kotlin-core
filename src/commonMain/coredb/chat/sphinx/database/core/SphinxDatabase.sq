@@ -397,6 +397,11 @@ UPDATE contactDbo
 SET photo_url = :photo_url
 WHERE id = ?;
 
+contactUpdateAlias:
+UPDATE contactDbo
+SET alias = :alias
+WHERE id = ?;
+
 contactUpdateBlocked:
 UPDATE contactDbo
 SET blocked = :blocked
@@ -685,6 +690,40 @@ WHERE id < 0
 ORDER BY id
 LIMIT 1;
 
+messageGetMaxId:
+SELECT MAX(id) FROM messageDbo;
+
+messageGetLastMessage:
+SELECT * FROM messageDbo
+WHERE id = (SELECT MAX(id) FROM messageDbo);
+
+messageGetMaxIdByChatId:
+SELECT *
+FROM messageDbo
+WHERE id = (
+    SELECT MAX(id)
+    FROM messageDbo
+    WHERE chat_id = ?
+);
+
+messageGetSentConfirmedMessages:
+SELECT *
+FROM messageDbo
+WHERE sender == 0
+ AND status == 1
+ AND chat_id = :chat_id;
+
+messageGetDeletedMessages:
+SELECT *
+FROM messageDbo
+WHERE type == 17;
+
+messageGetOkKeysByChatId:
+SELECT id
+FROM messageDbo
+WHERE chat_id = :chat_id
+  AND type IN (2, 3, 5, 6, 10, 11, 29);
+
 messageGetAllToShowByChatId:
 SELECT *
 FROM messageDbo
@@ -832,6 +871,17 @@ SET tag_message = :tag_message,
     status = 1
 WHERE id = ?;
 
+messageUpdateUUIDByUUID:
+UPDATE messageDbo
+SET uuid = :newUuid
+WHERE uuid = ?;
+
+messageUpdateSeenByChatIdAndId:
+UPDATE messageDbo
+SET seen = 1
+WHERE chat_id = ?
+AND id <= ?;
+
 
 -- If the message exists in the DB, it will update all fields _except_
 -- for message_content_decrypted as to not overwrite it.
@@ -918,6 +968,10 @@ messageUpsert {
 messageDeleteById:
 DELETE FROM messageDbo
 WHERE id = ?;
+
+messageDeleteByUUID:
+DELETE FROM messageDbo
+WHERE uuid = ?;
 
 messageDeleteByChatId:
 DELETE FROM messageDbo

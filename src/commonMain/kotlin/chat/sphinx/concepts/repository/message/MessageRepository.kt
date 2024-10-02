@@ -10,10 +10,14 @@ import chat.sphinx.concepts.repository.message.model.SendPaymentRequest
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
+import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.feed.FeedId
+import chat.sphinx.wrapper.lightning.Bolt11
+import chat.sphinx.wrapper.lightning.LightningPaymentHash
+import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.payment.PaymentTemplate
@@ -91,4 +95,26 @@ interface MessageRepository {
     ): LoadResponse<Any, ResponseError>
 
     suspend fun messageMediaUpdateLocalFile(message: Message, filepath: Path)
+
+    suspend fun upsertMqttMessage(
+        msg: Msg,
+        msgSender: MsgSender,
+        msgType: MessageType,
+        msgUuid: MessageUUID,
+        msgIndex: MessageId,
+        msgAmount: Sat?,
+        originalUuid: MessageUUID?,
+        timestamp: DateTime?,
+        date: DateTime?,
+        fromMe: Boolean,
+        realPaymentAmount: Sat?,
+        paymentRequest: LightningPaymentRequest?,
+        paymentHash: LightningPaymentHash?,
+        bolt11: Bolt11?,
+        tag: TagMessage?
+    )
+
+    fun getMaxIdMessage(): Flow<Long?>
+    fun getLastMessage(): Flow<Message?>
+
 }
