@@ -49,18 +49,18 @@ interface ConnectManagerRepository {
 //        mixerIp: String?
 //    )
 //
-//    fun joinTribe(
-//        tribeHost: String,
-//        tribePubKey: String,
-//        tribeRouteHint: String,
-//        tribeName: String,
-//        tribePicture: String?,
-//        isPrivate: Boolean,
-//        userAlias: String,
-//        pricePerMessage: Long,
-//        escrowAmount: Long,
-//        priceToJoin: Long,
-//    )
+    fun joinTribe(
+        tribeHost: String,
+        tribePubKey: String,
+        tribeRouteHint: String,
+        tribeName: String,
+        tribePicture: String?,
+        isPrivate: Boolean,
+        userAlias: String,
+        pricePerMessage: Long,
+        escrowAmount: Long,
+        priceToJoin: Long,
+    )
 //
 //    fun getTribeMembers(
 //        tribeServerPubKey: String,

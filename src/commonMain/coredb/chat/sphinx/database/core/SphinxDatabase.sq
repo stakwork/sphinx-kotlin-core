@@ -109,6 +109,12 @@ CREATE TABLE chatDbo(
 
 );
 
+chatUpdateNameAndStatus:
+UPDATE chatDbo
+SET name = :name,
+    status = :status
+WHERE id = ?;
+
 chatUpdateLatestMessage:
 UPDATE chatDbo
 SET latest_message_id = :latest_message_id
@@ -162,11 +168,21 @@ SELECT *
 FROM chatDbo
 WHERE uuid = ?;
 
+chatGetAllByUUIDS:
+SELECT *
+FROM chatDbo
+WHERE uuid IN :uuid;
+
 chatGetConversationForContact:
 SELECT *
 FROM chatDbo
 WHERE type = 0 AND contact_ids = ?
 LIMIT 1;
+
+chatGetLastTribeId:
+SELECT MIN(id) FROM chatDbo
+WHERE type = 2
+AND id > 10000;
 
 chatUpsert {
     UPDATE chatDbo
@@ -252,6 +268,12 @@ UPDATE chatDbo
 SET seen = :seen
 WHERE id = ?;
 
+chatUpdateDetails:
+UPDATE chatDbo
+SET photo_url = :photo_url,
+    status = :status
+WHERE id = ?;
+
 chatUpdateTribeData:
 UPDATE chatDbo
 SET price_per_message = :price_per_message,
@@ -259,6 +281,12 @@ SET price_per_message = :price_per_message,
     name = :name,
     photo_url = :photo_url
 WHERE id = ?;
+
+chatUpdateSeenByLastMessage:
+UPDATE chatDbo
+SET seen = 1
+WHERE id = ?
+AND latest_message_id = ?;
 
 chatDeleteAll:
 DELETE FROM chatDbo;
@@ -661,6 +689,22 @@ messageGetById:
 SELECT *
 FROM messageDbo
 WHERE id = ?;
+
+messageGetByMuid:
+SELECT *
+FROM messageDbo
+WHERE muid = ?
+ORDER BY id ASC
+LIMIT 1;
+
+messageLastMemberRequestGetBySenderAlias:
+SELECT *
+FROM messageDbo
+WHERE sender_alias = ?
+AND chat_id = :chat_id
+AND type = 19
+ORDER BY id ASC
+LIMIT 1;
 
 messageLastMemberRequestGetByContactId:
 SELECT *

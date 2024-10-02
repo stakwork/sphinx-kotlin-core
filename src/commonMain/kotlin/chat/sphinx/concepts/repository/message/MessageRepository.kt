@@ -41,7 +41,7 @@ interface MessageRepository {
 
     fun sendMessage(sendMessage: SendMessage?)
 
-    suspend fun payAttachment(message: Message) : Response<Any, ResponseError>
+    suspend fun payAttachment(message: Message)
 
     fun resendMessage(
         message: Message,
@@ -116,5 +116,16 @@ interface MessageRepository {
 
     fun getMaxIdMessage(): Flow<Long?>
     fun getLastMessage(): Flow<Message?>
+
+    fun sendMediaKeyOnPaidPurchase(
+        msg: Msg,
+        contactInfo: MsgSender,
+        paidAmount: Sat
+    )
+
+    suspend fun sendNewPaymentRequest(
+        requestPayment: SendPaymentRequest
+    )
+
 
 }
