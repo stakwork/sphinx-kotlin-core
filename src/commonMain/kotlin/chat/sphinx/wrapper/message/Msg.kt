@@ -7,17 +7,17 @@ import java.lang.IllegalArgumentException
 
 @Serializable
 data class Msg(
-    val content: String?,
-    val amount: Long?,
-    val mediaToken: String?,
-    val mediaKey: String?,
-    val mediaType: String?,
-    val replyUuid: String?,
-    val threadUuid: String?,
-    val originalUuid: String?,
-    val date: Long?,
-    val invoice: String?,
-    val paymentHash: String?
+    val content: String? = null,
+    val amount: Long? = null,
+    val mediaToken: String? = null,
+    val mediaKey: String? = null,
+    val mediaType: String? = null,
+    val replyUuid: String? = null,
+    val threadUuid: String? = null,
+    val originalUuid: String? = null,
+    val date: Long? = null,
+    val invoice: String? = null,
+    val paymentHash: String? = null
 ) {
     companion object {
         @Throws(Exception::class)

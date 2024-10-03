@@ -99,6 +99,8 @@ import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
 import chat.sphinx.wrapper.mqtt.MsgsCounts.Companion.toMsgsCounts
 import chat.sphinx.wrapper.mqtt.NewCreateTribe.Companion.toNewCreateTribe
+import chat.sphinx.wrapper.mqtt.NewSentStatus.Companion.toNewSentStatus
+import chat.sphinx.wrapper.mqtt.TagMessageList.Companion.toTagsList
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
 import chat.sphinx.wrapper.payment.PaymentTemplate
@@ -238,7 +240,6 @@ abstract class SphinxRepository(
     override val restoreMinIndex: MutableStateFlow<Long?> by lazy {
         MutableStateFlow(null)
     }
-
 
     override fun setInviteCode(inviteString: String) {
         connectManager.setInviteCode(inviteString)
@@ -384,6 +385,7 @@ abstract class SphinxRepository(
         defaultTribe: String?,
         ownerAlias: String?
     ) {
+
         applicationScope.launch(mainImmediate) {
             val scid = routeHint.toLightningRouteHint()?.getScid()
 
@@ -840,40 +842,40 @@ abstract class SphinxRepository(
     }
 
     override fun listenToOwnerCreation(callback: () -> Unit) {
-//        applicationScope.launch(mainImmediate) {
-//            accountOwner.filter { contact ->
-//                contact != null && !contact.routeHint?.value.isNullOrEmpty()
-//            }
-//                .map { true }
-//                .first()
-//
-//            withContext(dispatchers.mainImmediate) {
-//                delay(1000L)
-//                callback.invoke()
-//            }
-//        }
+        applicationScope.launch(mainImmediate) {
+            accountOwner.filter { contact ->
+                contact != null && !contact.routeHint?.value.isNullOrEmpty()
+            }
+                .map { true }
+                .first()
+
+            withContext(dispatchers.mainImmediate) {
+                delay(1000L)
+                callback.invoke()
+            }
+        }
     }
 
     override fun onConnectManagerError(error: ConnectManagerError) {
-//        connectManagerErrorState.value = error
+        connectManagerErrorState.value = error
     }
 
     override fun onRestoreProgress(progress: Int) {
-//        restoreProgress.value = progress
+        restoreProgress.value = progress
     }
 
     override fun onRestoreFinished() {
-//        val messageId = restoreMinIndex.value?.let { MessageId(it) }
-//        if (messageId != null) {
-//            applicationScope.launch(io) {
-//                getMessageById(messageId).collect { message ->
-//                    if (message != null) {
-//                        connectManager.getReadMessages()
-//                        restoreMinIndex.value = null
-//                    }
-//                }
-//            }
-//        }
+        val messageId = restoreMinIndex.value?.let { MessageId(it) }
+        if (messageId != null) {
+            applicationScope.launch(io) {
+                getMessageById(messageId).collect { message ->
+                    if (message != null) {
+                        connectManager.getReadMessages()
+                        restoreMinIndex.value = null
+                    }
+                }
+            }
+        }
     }
 
     // Messaging Callbacks
@@ -1020,55 +1022,55 @@ abstract class SphinxRepository(
     }
 
     override fun onSentStatus(sentStatus: String) {
-//        applicationScope.launch(io) {
-//            val newSentStatus = sentStatus.toNewSentStatus(moshi)
-//            val queries = coreDB.getSphinxDatabaseQueries()
-//
-//            if (newSentStatus.isFailedMessage()) {
-//                queries.messageUpdateStatusAndPaymentHashByTag(
-//                    MessageStatus.Failed,
-//                    newSentStatus.payment_hash?.toLightningPaymentHash(),
-//                    newSentStatus.message?.toErrorMessage(),
-//                    newSentStatus.tag?.toTagMessage()
-//                )
-//            } else {
-//                queries.messageUpdateStatusAndPaymentHashByTag(
-//                    MessageStatus.Received,
-//                    newSentStatus.payment_hash?.toLightningPaymentHash(),
-//                    newSentStatus.message?.toErrorMessage(),
-//                    newSentStatus.tag?.toTagMessage()
-//                )
-//
-//                // Check if web view payment hash matches
-//                if (newSentStatus.payment_hash == webViewPaymentHash.value) {
-//                    webViewPreImage.value = newSentStatus.preimage
-//                    webViewPaymentHash.value = null
-//                }
-//            }
-//        }
+        applicationScope.launch(io) {
+            val newSentStatus = sentStatus.toNewSentStatus()
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            if (newSentStatus.isFailedMessage()) {
+                queries.messageUpdateStatusAndPaymentHashByTag(
+                    MessageStatus.Failed,
+                    newSentStatus.payment_hash?.toLightningPaymentHash(),
+                    newSentStatus.message?.toErrorMessage(),
+                    newSentStatus.tag?.toTagMessage()
+                )
+            } else {
+                queries.messageUpdateStatusAndPaymentHashByTag(
+                    MessageStatus.Received,
+                    newSentStatus.payment_hash?.toLightningPaymentHash(),
+                    newSentStatus.message?.toErrorMessage(),
+                    newSentStatus.tag?.toTagMessage()
+                )
+
+                // Check if web view payment hash matches
+                if (newSentStatus.payment_hash == webViewPaymentHash.value) {
+                    webViewPreImage.value = newSentStatus.preimage
+                    webViewPaymentHash.value = null
+                }
+            }
+        }
     }
 
     override fun onMessageTagList(tags: String) {
-//        applicationScope.launch(io) {
-//            val queries = coreDB.getSphinxDatabaseQueries()
-//            val tagsList = tags.toTagsList(moshi)
-//
-//            queries.transaction {
-//                tagsList?.forEach { tag ->
-//                    tag.status?.toMessageStatus()?.let { messageStatus ->
-//                        queries.messageUpdateStatusByTag(
-//                            messageStatus,
-//                            tag.error?.toErrorMessage(),
-//                            tag.tag?.toTagMessage()
-//                        )
-//                    }
-//                }
-//            }
-//        }
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val tagsList = tags.toTagsList()
+
+            queries.transaction {
+                tagsList?.forEach { tag ->
+                    tag.status?.toMessageStatus()?.let { messageStatus ->
+                        queries.messageUpdateStatusByTag(
+                            messageStatus,
+                            tag.error?.toErrorMessage(),
+                            tag.tag?.toTagMessage()
+                        )
+                    }
+                }
+            }
+        }
     }
 
     override fun onRestoreMinIndex(minIndex: Long) {
-//        restoreMinIndex.value = minIndex
+        restoreMinIndex.value = minIndex
     }
 
     // Tribe Management Callbacks

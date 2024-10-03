@@ -7,15 +7,16 @@ import java.lang.IllegalArgumentException
 @Serializable
 data class MsgSender(
     val pubkey: String,
-    val route_hint: String?,
-    val alias: String?,
-    val photo_url: String?,
-    val person: String?,
-    val confirmed: Boolean,
-    val code: String?,
-    val host: String?,
-    val role: Int?
-) {
+    val route_hint: String? = null,
+    val alias: String? = null,
+    val photo_url: String? = null,
+    val person: String? = null,
+    val confirmed: Boolean = false,
+    val code: String? = null,
+    val host: String? = null,
+    val role: Int? = null
+)
+{
     companion object {
         fun String.toMsgSenderNull(): MsgSender? {
             return try {
