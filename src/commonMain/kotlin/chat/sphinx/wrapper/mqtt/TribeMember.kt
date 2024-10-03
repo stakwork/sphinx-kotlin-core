@@ -5,18 +5,18 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class TribeMember(
-    val pubkey: String?,
-    val alias: String?,
-    val photo_url: String?,
-    val person: String?,
-    val route_hint: String?,
-    val contact_key: String?
+    val pubkey: String? = null,
+    val alias: String? = null,
+    val photo_url: String? = null,
+    val person: String? = null,
+    val route_hint: String? = null,
+    val contact_key: String? = null
 )
 
 @Serializable
 data class TribeMembersResponse(
-    val confirmed: List<TribeMember>?,
-    val pending: List<TribeMember>?
+    val confirmed: List<TribeMember>? = null,
+    val pending: List<TribeMember>? = null
 ) {
     companion object {
         fun String.toTribeMembersList(): TribeMembersResponse? {

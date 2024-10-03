@@ -5,12 +5,12 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class MsgsCounts(
-    val total: Long?,
-    val ok_key: Long?,
-    val first_for_each_scid: Long?,
-    val total_highest_index: Long?,
-    val ok_key_highest_index: Long?,
-    val first_for_each_scid_highest_index: Long?
+    val total: Long? = null,
+    val ok_key: Long? = null,
+    val first_for_each_scid: Long? = null,
+    val total_highest_index: Long? = null,
+    val ok_key_highest_index: Long? = null,
+    val first_for_each_scid_highest_index: Long? = null
 ) {
     companion object {
         fun String.toMsgsCounts(): MsgsCounts? {

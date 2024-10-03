@@ -17,7 +17,8 @@ data class Msg(
     val originalUuid: String? = null,
     val date: Long? = null,
     val invoice: String? = null,
-    val paymentHash: String? = null
+    val paymentHash: String? = null,
+    val encryptedTag: String? = null
 ) {
     companion object {
         @Throws(Exception::class)
@@ -26,4 +27,3 @@ data class Msg(
         }
     }
 }
-

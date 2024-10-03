@@ -5,11 +5,11 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class NewSentStatus(
-    val tag: String?,
-    val status: String?,
-    val preimage: String?,
-    val payment_hash: String?,
-    val message: String?
+    val tag: String? = null,
+    val status: String? = null,
+    val preimage: String? = null,
+    val payment_hash: String? = null,
+    val message: String? = null
 ) {
 
     companion object {

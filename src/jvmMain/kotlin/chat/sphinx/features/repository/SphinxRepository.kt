@@ -4,9 +4,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
-import chat.sphinx.concept_repository_connect_manager.model.NetworkStatus
+import chat.sphinx.concepts.repository.connect_manager.model.NetworkStatus
 import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationState
-import chat.sphinx.concept_repository_connect_manager.model.RestoreProcessState
+import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.connect_manager.ConnectManagerListener
@@ -571,18 +571,18 @@ abstract class SphinxRepository(
     }
 
     override fun onNewBalance(balance: Long) {
-//        applicationScope.launch(io) {
-//
-//            balanceLock.withLock {
-//                accountBalanceStateFlow.value = balance.toNodeBalance()
-//                networkRefreshBalance.value = balance
-//
-//                authenticationStorage.putString(
-//                    REPOSITORY_LIGHTNING_BALANCE,
-//                    balance.toString()
-//                )
-//            }
-//        }
+        applicationScope.launch(io) {
+
+            balanceLock.withLock {
+                accountBalanceStateFlow.value = balance.toNodeBalance()
+                networkRefreshBalance.value = balance
+
+                authenticationStorage.putString(
+                    REPOSITORY_LIGHTNING_BALANCE,
+                    balance.toString()
+                )
+            }
+        }
     }
 
     override fun onSignedChallenge(sign: String) {
@@ -897,7 +897,7 @@ abstract class SphinxRepository(
             try {
                 val messageType = msgType.toMessageType()
 
-                val messageSender = msgSender.toMsgSender()
+                val messageSender = if (msgSender.isNotEmpty()) msgSender.toMsgSender() else null
 
                 val contactInfo = if (fromMe == false) {
                     messageSender
@@ -905,14 +905,14 @@ abstract class SphinxRepository(
                     // Add
                     MsgSender(
                         sentTo,
-                        messageSender.route_hint,
-                        messageSender.alias,
-                        messageSender.photo_url,
-                        messageSender.person,
-                        messageSender.confirmed,
-                        messageSender.code,
-                        messageSender.host,
-                        messageSender.role
+                        messageSender?.route_hint,
+                        messageSender?.alias,
+                        messageSender?.photo_url,
+                        messageSender?.person,
+                        messageSender?.confirmed ?: false,
+                        messageSender?.code,
+                        messageSender?.host,
+                        messageSender?.role
                     )
                 }
 
@@ -940,11 +940,13 @@ abstract class SphinxRepository(
                         when (messageType) {
                             is MessageType.Purchase.Processing -> {
                                 amount?.toSat()?.let { paidAmount ->
-                                    sendMediaKeyOnPaidPurchase(
-                                        message,
-                                        contactInfo,
-                                        paidAmount
-                                    )
+                                    if (contactInfo != null) {
+                                        sendMediaKeyOnPaidPurchase(
+                                            message,
+                                            contactInfo,
+                                            paidAmount
+                                        )
+                                    }
                                 }
                             }
                             is MessageType.ContactKeyConfirmation -> {
@@ -973,23 +975,25 @@ abstract class SphinxRepository(
                         }
                         val msgTag = tag?.toTagMessage()
 
-                        upsertMqttMessage(
-                            message,
-                            contactInfo,
-                            messageType,
-                            messageUuid,
-                            messageId,
-                            message.amount?.milliSatsToSats(),
-                            originalUUID,
-                            timestamp,
-                            date,
-                            fromMe ?: false,
-                            amount?.toSat(),
-                            paymentRequest,
-                            paymentHash,
-                            bolt11,
-                            msgTag
-                        )
+                        if (contactInfo != null) {
+                            upsertMqttMessage(
+                                message,
+                                contactInfo,
+                                messageType,
+                                messageUuid,
+                                messageId,
+                                message.amount?.milliSatsToSats(),
+                                originalUUID,
+                                timestamp,
+                                date,
+                                fromMe ?: false,
+                                amount?.toSat(),
+                                paymentRequest,
+                                paymentHash,
+                                bolt11,
+                                msgTag
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -2781,58 +2785,8 @@ abstract class SphinxRepository(
         return accountBalanceStateFlow.asStateFlow()
     }
 
-    override val networkRefreshBalance: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
-        flow {
-            // TODO V2 getbalance
-//            networkQueryLightning.getBalance().collect { loadResponse ->
-//                Exhaustive@
-//                when (loadResponse) {
-//                    is LoadResponse.Loading -> {
-//                        emit(loadResponse)
-//                    }
-//                    is Response.Error -> {
-//                        emit(loadResponse)
-//                    }
-//                    is Response.Success -> {
-//
-//                        try {
-//                            val jsonString: String = withContext(default) {
-//                                Json.encodeToString(loadResponse.value)
-//                            } ?: throw NullPointerException("Converting BalanceDto to Json failed")
-//
-//                            balanceLock.withLock {
-//                                accountBalanceStateFlow.value = loadResponse.value.toNodeBalance()
-//
-//                                authenticationStorage.putString(
-//                                    REPOSITORY_LIGHTNING_BALANCE,
-//                                    jsonString
-//                                )
-//                            }
-//
-//                            emit(Response.Success(true))
-//                        } catch (e: Exception) {
-//
-//                            // this should _never_ happen, as if the network call was
-//                            // successful, it went from json -> dto, and we're just going
-//                            // back from dto -> json to persist it...
-//                            emit(
-//                                Response.Error(
-//                                    ResponseError(
-//                                        """
-//                                        Network Fetching of balance was successful, but
-//                                        conversion to a string for persisting failed.
-//                                        ${loadResponse.value}
-//                                    """.trimIndent(),
-//                                        e
-//                                    )
-//                                )
-//                            )
-//                        }
-//
-//                    }
-//                }
-//            }
-        }
+    override val networkRefreshBalance: MutableStateFlow<Long?> by lazy {
+        MutableStateFlow(null)
     }
 
     override suspend fun getAccountBalanceAll(

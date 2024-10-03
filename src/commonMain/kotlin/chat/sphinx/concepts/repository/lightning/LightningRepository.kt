@@ -9,9 +9,10 @@ import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 interface LightningRepository {
-    val networkRefreshBalance: Flow<LoadResponse<Boolean, ResponseError>>
+    val networkRefreshBalance: MutableStateFlow<Long?>
     suspend fun getAccountBalanceAll(
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<NodeBalanceAll, ResponseError>>

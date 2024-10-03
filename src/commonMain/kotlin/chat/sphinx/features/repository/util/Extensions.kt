@@ -41,11 +41,17 @@ inline fun BalanceDto.toNodeBalanceOrNull(): NodeBalance? =
 @Suppress("NOTHING_TO_INLINE")
 inline fun BalanceDto.toNodeBalance(): NodeBalance =
     NodeBalance(
-        Sat(reserve),
-        Sat(full_balance),
         Sat(balance),
-        Sat(pending_open_balance),
     )
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Long.toNodeBalance(): NodeBalance? {
+    return try {
+        NodeBalance(Sat(this))
+    } catch (e: NumberFormatException) {
+        null
+    }
+}
 
 inline val MessageDto.updateChatDboLatestMessage: Boolean
     get() = type.toMessageType().show &&

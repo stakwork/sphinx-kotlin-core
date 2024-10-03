@@ -1,4 +1,4 @@
-package chat.sphinx.concept_repository_connect_manager.model
+package chat.sphinx.concepts.repository.connect_manager.model
 
 import chat.sphinx.wrapper.mqtt.MsgsCounts
 

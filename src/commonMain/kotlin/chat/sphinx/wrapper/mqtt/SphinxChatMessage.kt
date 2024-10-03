@@ -6,15 +6,15 @@ import kotlinx.serialization.encodeToString
 
 @Serializable
 data class Message(
-    val content: String?,
-    val amount: Int?,
-    val mediaToken: String?,
-    val mediaKey: String?,
-    val mediaType: String?,
-    val replyUuid: String?,
-    val threadUuid: String?,
-    val member: String?,
-    val invoice: String?
+    val content: String? = null,
+    val amount: Int? = null,
+    val mediaToken: String? = null,
+    val mediaKey: String? = null,
+    val mediaType: String? = null,
+    val replyUuid: String? = null,
+    val threadUuid: String? = null,
+    val member: String? = null,
+    val invoice: String? = null
 ) {
     @Throws(AssertionError::class)
     fun toJson(): String {

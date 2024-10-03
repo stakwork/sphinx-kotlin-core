@@ -5,12 +5,12 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class Payment(
-    val scid: Long?,
-    val amt_msat: Long?,
-    val rhash: String?,
-    val ts: Long?,
-    val remote: Boolean?,
-    val msg_idx: Long?
+    val scid: Long? = null,
+    val amt_msat: Long? = null,
+    val rhash: String? = null,
+    val ts: Long? = null,
+    val remote: Boolean? = null,
+    val msg_idx: Long? = null
 ) {
     companion object {
         fun String.toPaymentsList(): List<Payment>? {

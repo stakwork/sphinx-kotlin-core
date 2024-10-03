@@ -9,12 +9,12 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class InvoiceBolt11(
-    val value: Long?,
-    val payment_hash: String?,
-    val pubkey: String?,
-    val description: String?,
-    val expiry: Long?,
-    val hop_hints: List<String>?
+    val value: Long? = null,
+    val payment_hash: String? = null,
+    val pubkey: String? = null,
+    val description: String? = null,
+    val expiry: Long? = null,
+    val hop_hints: List<String>? = null
 ) {
     companion object {
         @Throws(Exception::class, IllegalArgumentException::class)

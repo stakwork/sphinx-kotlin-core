@@ -5,10 +5,10 @@ import kotlinx.serialization.json.Json
 
 @Serializable
 data class MessageTag(
-    val tag: String?,
-    val ts: Long?,
-    val status: String?,
-    val error: String?
+    val tag: String? = null,
+    val ts: Long? = null,
+    val status: String? = null,
+    val error: String? = null
 )
 
 @Serializable

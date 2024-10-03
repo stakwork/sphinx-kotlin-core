@@ -1,8 +1,8 @@
 package chat.sphinx.concepts.repository.connect_manager
 
 import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationState
-import chat.sphinx.concept_repository_connect_manager.model.NetworkStatus
-import chat.sphinx.concept_repository_connect_manager.model.RestoreProcessState
+import chat.sphinx.concepts.repository.connect_manager.model.NetworkStatus
+import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
