@@ -3174,6 +3174,26 @@ abstract class SphinxRepository(
         )
     }
 
+    override suspend fun updateOwnerAlias(alias: ContactAlias) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val now = DateTime.nowUTC().toDateTime()
+
+        val updatedOwner = accountOwner.value?.copy(
+            alias = alias,
+            updatedAt = now
+        )
+
+        if (updatedOwner != null) {
+            applicationScope.launch(mainImmediate) {
+                contactLock.withLock {
+                    queries.transaction {
+                        upsertNewContact(updatedOwner, queries)
+                    }
+                }
+            }
+        }
+    }
+
 
     ////////////////
     /// Messages ///
