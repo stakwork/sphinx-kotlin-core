@@ -1,6 +1,7 @@
 package chat.sphinx.concepts.repository.chat
 
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
+import chat.sphinx.concepts.network.query.chat.model.NewTribeDto
 import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
 import chat.sphinx.response.LoadResponse
@@ -43,7 +44,7 @@ interface ChatRepository {
 
     suspend fun updateChatContentSeenAt(chatId: ChatId)
 
-    suspend fun updateTribeInfo(chat: Chat): TribeData?
+    suspend fun updateTribeInfo(chat: Chat, isProductionEnvironment: Boolean): NewTribeDto?
     suspend fun createTribe(createTribe: CreateTribe): Response<Any, ResponseError>
     suspend fun updateTribe(chatId: ChatId, createTribe: CreateTribe): Response<Any, ResponseError>
     suspend fun exitAndDeleteTribe(chat: Chat): Response<Boolean, ResponseError>

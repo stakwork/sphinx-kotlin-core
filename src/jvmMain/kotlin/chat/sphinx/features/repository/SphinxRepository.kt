@@ -83,16 +83,20 @@ import chat.sphinx.wrapper.contact.*
 import chat.sphinx.wrapper.dashboard.*
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.invite.Invite
+import chat.sphinx.wrapper.invite.InviteCode
 import chat.sphinx.wrapper.invite.InviteStatus
+import chat.sphinx.wrapper.invite.InviteString
 import chat.sphinx.wrapper.lightning.*
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.*
+import chat.sphinx.wrapper.message.MsgSender.Companion.toMsgSender
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
 import chat.sphinx.wrapper.mqtt.MsgsCounts.Companion.toMsgsCounts
+import chat.sphinx.wrapper.mqtt.NewCreateTribe.Companion.toNewCreateTribe
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
 import chat.sphinx.wrapper.payment.PaymentTemplate
@@ -122,6 +126,9 @@ import kotlinx.coroutines.sync.withLock
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.LinkedHashMap
 import kotlin.math.absoluteValue
 
 abstract class SphinxRepository(
@@ -507,51 +514,51 @@ abstract class SphinxRepository(
         isProductionEnvironment: Boolean,
         callback: (() -> Unit)?
     )  {
-//        if (tribes.isEmpty()) {
-//            callback?.let { nnCallback ->
-//                nnCallback()
-//            }
-//            return
-//        }
-//
-//        applicationScope.launch(io) {
-//            val total = tribes.count();
-//            var index = 0
-//
-//            val tribeList = tribes.mapNotNull { tribes ->
-//                try {
-//                    Pair(
-//                        tribes.first?.toMsgSender(moshi),
-//                        tribes.second
-//                    )
-//                } catch (e: Exception) {
-//                    null
-//                }
-//            }
-//
-//            tribeList.forEach { tribe ->
-//                val isAdmin = (tribe.first?.role == 0 && tribe.second == true)
-//                tribe.first?.let {
-//                    joinTribeOnRestoreAccount(it, isAdmin, isProductionEnvironment) {
-//                        if (index == total - 1) {
-//                            callback?.let { nnCallback ->
-//                                nnCallback()
-//                            }
-//                        } else {
-//                            index += 1
-//                        }
-//                    }
-//                } ?: run {
-//                    if (index == total - 1) {
-//                        callback?.let { nnCallback ->
-//                            nnCallback()
-//                        }
-//                    } else {
-//                        index += 1
-//                    }
-//                }
-//            }
-//        }
+        if (tribes.isEmpty()) {
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
+            return
+        }
+
+        applicationScope.launch(io) {
+            val total = tribes.count();
+            var index = 0
+
+            val tribeList = tribes.mapNotNull { tribes ->
+                try {
+                    Pair(
+                        tribes.first?.toMsgSender(),
+                        tribes.second
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            tribeList.forEach { tribe ->
+                val isAdmin = (tribe.first?.role == 0 && tribe.second == true)
+                tribe.first?.let {
+                    joinTribeOnRestoreAccount(it, isAdmin, isProductionEnvironment) {
+                        if (index == total - 1) {
+                            callback?.let { nnCallback ->
+                                nnCallback()
+                            }
+                        } else {
+                            index += 1
+                        }
+                    }
+                } ?: run {
+                    if (index == total - 1) {
+                        callback?.let { nnCallback ->
+                            nnCallback()
+                        }
+                    } else {
+                        index += 1
+                    }
+                }
+            }
+        }
     }
 
 //    override fun onRestoreNextPageMessages(highestIndex: Long, limit: Int) {
@@ -565,6 +572,7 @@ abstract class SphinxRepository(
 //            }
 //        }
 //    }
+
 
     override fun onNewBalance(balance: Long) {
 //        applicationScope.launch(io) {
@@ -660,6 +668,85 @@ abstract class SphinxRepository(
                 }
         }
     }
+
+    private suspend fun joinTribeOnRestoreAccount(
+        contactInfo: MsgSender,
+        isAdmin: Boolean,
+        isProductionEnvironment: Boolean,
+        callback: (() -> Unit)? = null
+    ) {
+        val host = contactInfo.host ?: return
+
+        withContext(dispatchers.io) {
+            networkQueryChat.getTribeInfo(ChatHost(host), LightningNodePubKey(contactInfo.pubkey), isProductionEnvironment)
+                .collect { loadResponse ->
+                    when (loadResponse) {
+                        is LoadResponse.Loading -> {}
+                        is Response.Error -> {
+                            callback?.let {nnCallback ->
+                                nnCallback()
+                            }
+                        }
+                        is Response.Success -> {
+                            val queries = coreDB.getSphinxDatabaseQueries()
+
+                            // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
+                            val tribeId = queries.chatGetLastTribeId().executeAsOneOrNull()
+                                ?.let { it.MIN?.minus(1) }
+                                ?: (Long.MAX_VALUE)
+
+                            val now: String = DateTime.nowUTC()
+
+                            val newTribe = Chat(
+                                id = ChatId(tribeId),
+                                uuid = ChatUUID(contactInfo.pubkey),
+                                name = ChatName(loadResponse.value.name),
+                                photoUrl = loadResponse.value.img?.toPhotoUrl(),
+                                type = ChatType.Tribe,
+                                status = ChatStatus.Approved,
+                                contactIds = listOf(ContactId(0), ContactId(tribeId)),
+                                isMuted = ChatMuted.False,
+                                createdAt = now.toDateTime(),
+                                groupKey = null,
+                                host = contactInfo.host?.toChatHost(),
+                                pricePerMessage = loadResponse.value.getPricePerMessageInSats().toSat(),
+                                escrowAmount = loadResponse.value.getEscrowAmountInSats().toSat(),
+                                unlisted = loadResponse.value.unlisted?.toChatUnlisted() ?: ChatUnlisted.False,
+                                privateTribe = loadResponse.value.private.toChatPrivate(),
+                                ownerPubKey = if (isAdmin) accountOwner.value?.nodePubKey else LightningNodePubKey(contactInfo.pubkey),
+                                seen = Seen.False,
+                                metaData = null,
+                                myPhotoUrl = null,
+                                myAlias = null,
+                                pendingContactIds = emptyList(),
+                                latestMessageId = null,
+                                contentSeenAt = null,
+                                notify = NotificationLevel.SeeAll
+                            )
+
+                            messageLock.withLock {
+                                chatLock.withLock {
+                                    queries.transaction {
+                                        upsertNewChat(
+                                            newTribe,
+                                            SynchronizedMap<ChatId, Seen>(),
+                                            queries,
+                                            null,
+                                            accountOwner.value?.nodePubKey
+                                        )
+                                    }
+                                }
+                            }
+
+                            callback?.let {nnCallback ->
+                                nnCallback()
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
 
     override fun onLastReadMessages(lastReadMessages: String) {
 //        applicationScope.launch(io) {
@@ -992,59 +1079,57 @@ abstract class SphinxRepository(
 
     // Tribe Management Callbacks
     override fun onNewTribeCreated(newTribe: String) {
-//        applicationScope.launch(io) {
-//            val queries = coreDB.getSphinxDatabaseQueries()
-//            val newCreateTribe = newTribe.toNewCreateTribe(moshi)
-//            newCreateTribe.pubkey?.let { tribePubKey ->
-//
-//                val existingTribe = tribePubKey.toChatUUID()?.let { getChatByUUID(it) }?.firstOrNull()
-//                // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
-//                val tribeId = existingTribe?.id?.value ?: queries.chatGetLastTribeId().executeAsOneOrNull()?.let { it.MIN?.minus(1) }
-//                ?: (Long.MAX_VALUE)
-//                val now: String = DateTime.nowUTC()
-//
-//                val chatTribe = Chat(
-//                    id = ChatId(tribeId),
-//                    uuid = ChatUUID(tribePubKey),
-//                    name = ChatName(newCreateTribe.name),
-//                    photoUrl = newCreateTribe.img?.toPhotoUrl(),
-//                    type = ChatType.Tribe,
-//                    status = ChatStatus.Approved,
-//                    contactIds = listOf(ContactId(0), ContactId(tribeId)),
-//                    isMuted = ChatMuted.False,
-//                    createdAt = newCreateTribe.created?.toDateTime() ?: now.toDateTime(),
-//                    groupKey = existingTribe?.groupKey,
-//                    host = existingTribe?.host,
-//                    pricePerMessage = newCreateTribe.getPricePerMessageInSats().toSat(),
-//                    escrowAmount = newCreateTribe.getEscrowAmountInSats().toSat(),
-//                    unlisted = if (newCreateTribe.unlisted == true) ChatUnlisted.True else ChatUnlisted.False,
-//                    privateTribe = if (newCreateTribe.private == true) ChatPrivate.True else ChatPrivate.False,
-//                    ownerPubKey = accountOwner.value?.nodePubKey,
-//                    seen = Seen.False,
-//                    metaData = existingTribe?.metaData,
-//                    myPhotoUrl = accountOwner.value?.photoUrl,
-//                    myAlias = ChatAlias(newCreateTribe.owner_alias),
-//                    pendingContactIds = emptyList(),
-//                    latestMessageId = existingTribe?.latestMessageId,
-//                    contentSeenAt = existingTribe?.contentSeenAt,
-//                    pinedMessage = existingTribe?.pinedMessage,
-//                    notify = NotificationLevel.SeeAll
-//                )
-//
-//                chatLock.withLock {
-//                    queries.transaction {
-//                        upsertNewChat(
-//                            chatTribe,
-//                            moshi,
-//                            SynchronizedMap<ChatId, Seen>(),
-//                            queries,
-//                            null,
-//                            accountOwner.value?.nodePubKey
-//                        )
-//                    }
-//                }
-//            }
-//        }
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val newCreateTribe = newTribe.toNewCreateTribe()
+            newCreateTribe.pubkey?.let { tribePubKey ->
+
+                val existingTribe = tribePubKey.toChatUUID()?.let { getChatByUUID(it) }?.firstOrNull()
+                // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
+                val tribeId = existingTribe?.id?.value ?: queries.chatGetLastTribeId().executeAsOneOrNull()?.let { it.MIN?.minus(1) }
+                ?: (Long.MAX_VALUE)
+                val now: String = DateTime.nowUTC()
+
+                val chatTribe = Chat(
+                    id = ChatId(tribeId),
+                    uuid = ChatUUID(tribePubKey),
+                    name = ChatName(newCreateTribe.name),
+                    photoUrl = newCreateTribe.img?.toPhotoUrl(),
+                    type = ChatType.Tribe,
+                    status = ChatStatus.Approved,
+                    contactIds = listOf(ContactId(0), ContactId(tribeId)),
+                    isMuted = ChatMuted.False,
+                    createdAt = newCreateTribe.created?.toDateTime() ?: now.toDateTime(),
+                    groupKey = existingTribe?.groupKey,
+                    host = existingTribe?.host,
+                    pricePerMessage = newCreateTribe.getPricePerMessageInSats().toSat(),
+                    escrowAmount = newCreateTribe.getEscrowAmountInSats().toSat(),
+                    unlisted = if (newCreateTribe.unlisted == true) ChatUnlisted.True else ChatUnlisted.False,
+                    privateTribe = if (newCreateTribe.private == true) ChatPrivate.True else ChatPrivate.False,
+                    ownerPubKey = accountOwner.value?.nodePubKey,
+                    seen = Seen.False,
+                    metaData = existingTribe?.metaData,
+                    myPhotoUrl = accountOwner.value?.photoUrl,
+                    myAlias = ChatAlias(newCreateTribe.owner_alias),
+                    pendingContactIds = emptyList(),
+                    latestMessageId = existingTribe?.latestMessageId,
+                    contentSeenAt = existingTribe?.contentSeenAt,
+                    notify = NotificationLevel.SeeAll
+                )
+
+                chatLock.withLock {
+                    queries.transaction {
+                        upsertNewChat(
+                            chatTribe,
+                            SynchronizedMap<ChatId, Seen>(),
+                            queries,
+                            null,
+                            accountOwner.value?.nodePubKey
+                        )
+                    }
+                }
+            }
+        }
     }
 
     override fun onTribeMembersList(tribeMembers: String) {
@@ -2944,6 +3029,152 @@ abstract class SphinxRepository(
         }
     }
 
+    override suspend fun createNewContact(contact: NewContact) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val now = DateTime.nowUTC()
+        val contactId = getNewContactIndex().firstOrNull()?.value
+
+        val exitingContact = contact.lightningNodePubKey
+            ?.let { getContactByPubKey(it).firstOrNull() }
+
+        val status = (contact.confirmed || exitingContact?.status?.isConfirmed() == true)
+
+        if (exitingContact?.nodePubKey != null) {
+            val contactStatus = if (status) ContactStatus.Confirmed else ContactStatus.Pending
+            val chatStatus = if (status) ChatStatus.Approved else ChatStatus.Pending
+
+            contactLock.withLock {
+                withContext(dispatchers.io) {
+                    queries.contactUpdateDetails(
+                        contact.contactAlias,
+                        contact.photoUrl,
+                        contactStatus,
+                        exitingContact.id
+                    )
+                }
+            }
+            chatLock.withLock {
+                withContext(dispatchers.io) {
+                    queries.chatUpdateDetails(
+                        contact.photoUrl,
+                        chatStatus,
+                        ChatId(exitingContact.id.value)
+                    )
+                }
+            }
+        } else {
+            val invite = if (contact.invitePrice != null && contact.inviteCode != null) {
+                Invite(
+                    id = InviteId(contactId ?: -1L),
+                    inviteString = InviteString(contact.inviteString ?: "null"),
+                    inviteCode = InviteCode(contact.inviteCode ?: ""),
+                    paymentRequest = null,
+                    contactId = ContactId(contactId ?: -1L),
+                    status = InviteStatus.Pending,
+                    price = contact.invitePrice,
+                    createdAt = now.toDateTime()
+                )
+            } else {
+                null
+            }
+
+            val newContact = Contact(
+                id = ContactId(exitingContact?.id?.value ?: contactId ?: -1L),
+                routeHint = contact.lightningRouteHint,
+                nodePubKey = contact.lightningNodePubKey,
+                nodeAlias = null,
+                alias = exitingContact?.alias ?: contact.contactAlias,
+                photoUrl = contact.photoUrl,
+                privatePhoto = PrivatePhoto.False,
+                isOwner = Owner.False,
+                status = if (status) ContactStatus.Confirmed else ContactStatus.Pending,
+                rsaPublicKey = null,
+                deviceId = null,
+                createdAt = contact.createdAt ?: now.toDateTime(),
+                updatedAt = contact.createdAt ?: now.toDateTime(),
+                fromGroup = ContactFromGroup.False,
+                notificationSound = null,
+                tipAmount = null,
+                inviteId = invite?.id,
+                inviteStatus = invite?.status,
+                blocked = Blocked.False
+            )
+
+            val newChat = Chat(
+                id = ChatId(exitingContact?.id?.value ?: contactId ?: -1L),
+                uuid = ChatUUID("${UUID.randomUUID()}"),
+                name = ChatName(
+                    exitingContact?.alias?.value ?: contact.contactAlias?.value ?: "unknown"
+                ),
+                photoUrl = contact.photoUrl,
+                type = ChatType.Conversation,
+                status = if (status) ChatStatus.Approved else ChatStatus.Pending,
+                contactIds = listOf(ContactId(0), ContactId(contactId ?: -1)),
+                isMuted = ChatMuted.False,
+                createdAt = contact.createdAt ?: now.toDateTime(),
+                groupKey = null,
+                host = null,
+                pricePerMessage = null,
+                escrowAmount = null,
+                unlisted = ChatUnlisted.False,
+                privateTribe = ChatPrivate.False,
+                ownerPubKey = null,
+                seen = Seen.False,
+                metaData = null,
+                myPhotoUrl = null,
+                myAlias = null,
+                pendingContactIds = emptyList(),
+                latestMessageId = null,
+                contentSeenAt = null,
+                notify = NotificationLevel.SeeAll
+            )
+
+            contactLock.withLock {
+                withContext(dispatchers.io) {
+                    queries.transaction {
+                        upsertNewContact(newContact, queries)
+                    }
+                }
+            }
+            chatLock.withLock {
+                withContext(dispatchers.io) {
+                    queries.transaction {
+                        upsertNewChat(
+                            newChat,
+                            SynchronizedMap<ChatId, Seen>(),
+                            queries,
+                            newContact,
+                            accountOwner.value?.nodePubKey
+                        )
+                    }
+                }
+            }
+            inviteLock.withLock {
+                invite?.let { invite ->
+                    withContext(dispatchers.io) {
+                        queries.transaction {
+                            upsertNewInvite(invite, queries)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    override suspend fun getNewContactIndex(): Flow<ContactId?> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries().contactGetLastContactIndex()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { dbContactId ->
+                    dbContactId?.value?.let {
+                        ContactId(it + 1)
+                    }
+                }
+        )
+    }
+
+
     ////////////////
     /// Messages ///
     ////////////////
@@ -4836,7 +5067,7 @@ abstract class SphinxRepository(
     }
 
 
-    override suspend fun updateTribeInfo(chat: Chat): TribeData? {
+    override suspend fun updateTribeInfo(chat: Chat, isProductionEnvironment: Boolean): NewTribeDto? {
         var owner: Contact? = accountOwner.value
 
         if (owner == null) {
@@ -4852,7 +5083,7 @@ abstract class SphinxRepository(
             delay(25L)
         }
 
-        var tribeData: TribeData? = null
+        var tribeData: NewTribeDto? = null
 
         chat.host?.let { chatHost ->
             val chatUUID = chat.uuid
@@ -4861,67 +5092,30 @@ abstract class SphinxRepository(
                 chatHost.toString().isNotEmpty() &&
                 chatUUID.toString().isNotEmpty()
             ) {
-
                 val queries = coreDB.getSphinxDatabaseQueries()
 
-                // TODO V2 getTribeInfo
+                networkQueryChat.getTribeInfo(chatHost, LightningNodePubKey(chatUUID.value), isProductionEnvironment)
+                    .collect { loadResponse ->
+                        when (loadResponse) {
 
-//                networkQueryChat.getTribeInfo(chatHost, chatUUID).collect { loadResponse ->
-//                    when (loadResponse) {
-//
-//                        is LoadResponse.Loading -> {
-//                        }
-//                        is Response.Error -> {
-//                        }
-//
-//                        is Response.Success -> {
-//                            val tribeDto = loadResponse.value
-//                            if (owner?.nodePubKey != chat.ownerPubKey) {
-//                                val didChangeNameOrPhotoUrl = (
-//                                    tribeDto.name != chat.name?.value ?: "" ||
-//                                    tribeDto.img != chat.photoUrl?.value ?: ""
-//                                )
-//
-//                                chatLock.withLock {
-//                                    queries.transaction {
-//                                        updateChatTribeData(tribeDto, chat.id, queries)
-//                                    }
-//                                }
-//
-//                                if (didChangeNameOrPhotoUrl) {
-//
-//                                    // TODO V2 updateTribe
-//
-////                                    networkQueryChat.updateTribe(
-////                                        chat.id,
-////                                        PostGroupDto(
-////                                            tribeDto.name,
-////                                            tribeDto.description,
-////                                            img = tribeDto.img ?: "",
-////                                            tags = arrayOf()
-////                                        )
-////                                    ).collect {}
-//                                }
-//
-//                            }
-//
-//                            chat.host.let { host ->
-//                                tribeData = TribeData(
-//                                    host,
-//                                    chat.uuid,
-//                                    tribeDto.app_url?.toAppUrl(),
-//                                    tribeDto.feed_url?.toFeedUrl(),
-//                                    (tribeDto.feed_type ?: 0).toFeedType()
-//                                )
-//                            }
-//                        }
-//                    }
-//                }
-            } else {
-                println("Kgothatso conditions are not met")
+                            is LoadResponse.Loading -> {}
+                            is Response.Error -> {}
+                            is Response.Success -> {
+                                tribeData = loadResponse.value
+
+                                if (owner?.nodePubKey != chat.ownerPubKey) {
+
+                                    chatLock.withLock {
+                                        queries.transaction {
+                                            updateNewChatTribeData(loadResponse.value, chat.id, queries)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
             }
         }
-
         return tribeData
     }
 

@@ -102,4 +102,8 @@ interface ContactRepository {
         ownerAlias: String
     )
 
+    suspend fun createNewContact(contact: NewContact)
+    suspend fun getNewContactIndex(): Flow<ContactId?>
+
+
 }
