@@ -89,7 +89,9 @@ import chat.sphinx.wrapper.invite.InviteString
 import chat.sphinx.wrapper.lightning.*
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.*
+import chat.sphinx.wrapper.message.Msg.Companion.toMsg
 import chat.sphinx.wrapper.message.MsgSender.Companion.toMsgSender
+import chat.sphinx.wrapper.message.MsgSender.Companion.toMsgSenderNull
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
@@ -250,6 +252,10 @@ abstract class SphinxRepository(
         connectManager.setNetworkType(isTestEnvironment)
     }
 
+    override fun signChallenge(challenge: String): String? {
+        return connectManager.processChallengeSignature(challenge)
+    }
+
     override fun joinTribe(
         tribeHost: String,
         tribePubKey: String,
@@ -347,6 +353,7 @@ abstract class SphinxRepository(
 
     init {
         connectManager.addListener(this)
+        memeServerTokenHandler.addListener(this)
     }
 
     // ConnectManagerListener Callbacks implemented
@@ -462,47 +469,47 @@ abstract class SphinxRepository(
         contacts: List<Pair<String?, Long?>>,
         callback: (() -> Unit)?
     ) {
-//        if (contacts.isEmpty()) {
-//            callback?.let { nnCallback ->
-//                nnCallback()
-//            }
-//            return
-//        }
-//        applicationScope.launch(mainImmediate) {
-//            val contactList: List<Pair<MsgSender?, DateTime?>> = contacts.mapNotNull { contact ->
-//                Pair(contact?.first?.toMsgSenderNull(moshi), contact.second?.toDateTime())
-//            }.groupBy { it.first?.pubkey }
-//                .map { (_, group) ->
-//                    group.find { it.first?.confirmed == true } ?: group.first()
-//                }
-//
-//            val newContactList = contactList.map { contactInfo ->
-//                NewContact(
-//                    contactAlias = contactInfo.first?.alias?.toContactAlias(),
-//                    lightningNodePubKey = contactInfo.first?.pubkey?.toLightningNodePubKey(),
-//                    lightningRouteHint = contactInfo.first?.route_hint?.toLightningRouteHint(),
-//                    photoUrl = contactInfo.first?.photo_url?.toPhotoUrl(),
-//                    confirmed = contactInfo.first?.confirmed == true,
-//                    null,
-//                    inviteCode = contactInfo.first?.code,
-//                    invitePrice = null,
-//                    null,
-//                    contactInfo.second
-//                )
-//            }
-//
-//            newContactList.forEach { newContact ->
-//                if (newContact.inviteCode != null) {
-//                    updateNewContactInvited(newContact)
-//                } else {
-//                    createNewContact(newContact)
-//                }
-//            }
-//
-//            callback?.let { nnCallback ->
-//                nnCallback()
-//            }
-//        }
+        if (contacts.isEmpty()) {
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
+            return
+        }
+        applicationScope.launch(mainImmediate) {
+            val contactList: List<Pair<MsgSender?, DateTime?>> = contacts.mapNotNull { contact ->
+                Pair(contact.first?.toMsgSenderNull(), contact.second?.toDateTime())
+            }.groupBy { it.first?.pubkey }
+                .map { (_, group) ->
+                    group.find { it.first?.confirmed == true } ?: group.first()
+                }
+
+            val newContactList = contactList.map { contactInfo ->
+                NewContact(
+                    contactAlias = contactInfo.first?.alias?.toContactAlias(),
+                    lightningNodePubKey = contactInfo.first?.pubkey?.toLightningNodePubKey(),
+                    lightningRouteHint = contactInfo.first?.route_hint?.toLightningRouteHint(),
+                    photoUrl = contactInfo.first?.photo_url?.toPhotoUrl(),
+                    confirmed = contactInfo.first?.confirmed == true,
+                    null,
+                    inviteCode = contactInfo.first?.code,
+                    invitePrice = null,
+                    null,
+                    contactInfo.second
+                )
+            }
+
+            newContactList.forEach { newContact ->
+                if (newContact.inviteCode != null) {
+                    updateNewContactInvited(newContact)
+                } else {
+                    createNewContact(newContact)
+                }
+            }
+
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
+        }
     }
 
     override fun onRestoreMessages() {
@@ -560,19 +567,6 @@ abstract class SphinxRepository(
             }
         }
     }
-
-//    override fun onRestoreNextPageMessages(highestIndex: Long, limit: Int) {
-//        applicationScope.launch(io) {
-//            val nextHighestIndex = highestIndex.minus(limit)
-//            if (nextHighestIndex > 0) {
-//                delay(200L)
-//                connectManager.fetchMessagesOnRestoreAccount(nextHighestIndex)
-//            } else {
-//                // Restore complete
-//            }
-//        }
-//    }
-
 
     override fun onNewBalance(balance: Long) {
 //        applicationScope.launch(io) {
@@ -897,121 +891,121 @@ abstract class SphinxRepository(
         date: Long?,
         isRestore: Boolean
     ) {
-//        applicationScope.launch(io) {
-//            try {
-//                val messageType = msgType.toMessageType()
-//
-//                val messageSender = msgSender.toMsgSender(moshi)
-//
-//                val contactInfo = if (fromMe == false) {
-//                    messageSender
-//                } else {
-//                    // Add
-//                    MsgSender(
-//                        sentTo,
-//                        messageSender.route_hint,
-//                        messageSender.alias,
-//                        messageSender.photo_url,
-//                        messageSender.person,
-//                        messageSender.confirmed,
-//                        messageSender.code,
-//                        messageSender.host,
-//                        messageSender.role
-//                    )
-//                }
-//
-//                when (messageType) {
-//                    is MessageType.ContactKeyRecord -> {
-//                        if (!isRestore) {
-//                            saveNewContactRegistered(msgSender, date)
-//                        }
-//                    }
-//                    else -> {
-//                        val message = if (msg.isNotEmpty()) msg.toMsg(moshi) else Msg(
-//                            null,
-//                            null,
-//                            null,
-//                            null,
-//                            null,
-//                            null,
-//                            null,
-//                            null,
-//                            null,
-//                            null,
-//                            null
-//                        )
-//
-//                        when (messageType) {
-//                            is MessageType.Purchase.Processing -> {
-//                                amount?.toSat()?.let { paidAmount ->
-//                                    sendMediaKeyOnPaidPurchase(
-//                                        message,
-//                                        contactInfo,
-//                                        paidAmount
-//                                    )
-//                                }
-//                            }
-//                            is MessageType.ContactKeyConfirmation -> {
-//                                saveNewContactRegistered(msgSender, date)
-//                            }
-//                            is MessageType.ContactKey -> {
-//                                saveNewContactRegistered(msgSender, date)
-//                            }
-//                            is MessageType.Delete -> {
-//                                msg.toMsg(moshi).replyUuid?.toMessageUUID()?.let { replyUuid ->
-//                                    deleteMqttMessage(replyUuid)
-//                                }
-//                            }
-//                            else -> {}
-//                        }
-//
-//                        val messageId = if (msgIndex.isNotEmpty()) MessageId(msgIndex.toLong()) else return@launch
-//                        val messageUuid = msgUuid.toMessageUUID() ?: return@launch
-//                        val originalUUID = message.originalUuid?.toMessageUUID()
-//                        val timestamp = msgTimestamp?.toDateTime()
-//                        val date = message.date?.toDateTime()
-//                        val paymentRequest = message.invoice?.toLightningPaymentRequestOrNull()
-//                        val bolt11 = paymentRequest?.let { Bolt11.decode(it) }
-//                        val paymentHash = paymentRequest?.let {
-//                            connectManager.retrievePaymentHash(it.value)?.toLightningPaymentHash()
-//                        }
-//                        val msgTag = tag?.toTagMessage()
-//
-//                        upsertMqttMessage(
-//                            message,
-//                            contactInfo,
-//                            messageType,
-//                            messageUuid,
-//                            messageId,
-//                            message.amount?.milliSatsToSats(),
-//                            originalUUID,
-//                            timestamp,
-//                            date,
-//                            fromMe ?: false,
-//                            amount?.toSat(),
-//                            paymentRequest,
-//                            paymentHash,
-//                            bolt11,
-//                            msgTag
-//                        )
-//                    }
-//                }
-//            } catch (e: Exception) {
-//                LOG.e(TAG, "onMessage: ${e.message}", e)
-//            }
-//        }
+        applicationScope.launch(io) {
+            try {
+                val messageType = msgType.toMessageType()
+
+                val messageSender = msgSender.toMsgSender()
+
+                val contactInfo = if (fromMe == false) {
+                    messageSender
+                } else {
+                    // Add
+                    MsgSender(
+                        sentTo,
+                        messageSender.route_hint,
+                        messageSender.alias,
+                        messageSender.photo_url,
+                        messageSender.person,
+                        messageSender.confirmed,
+                        messageSender.code,
+                        messageSender.host,
+                        messageSender.role
+                    )
+                }
+
+                when (messageType) {
+                    is MessageType.ContactKeyRecord -> {
+                        if (!isRestore) {
+                            saveNewContactRegistered(msgSender, date)
+                        }
+                    }
+                    else -> {
+                        val message = if (msg.isNotEmpty()) msg.toMsg() else Msg(
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                        )
+
+                        when (messageType) {
+                            is MessageType.Purchase.Processing -> {
+                                amount?.toSat()?.let { paidAmount ->
+                                    sendMediaKeyOnPaidPurchase(
+                                        message,
+                                        contactInfo,
+                                        paidAmount
+                                    )
+                                }
+                            }
+                            is MessageType.ContactKeyConfirmation -> {
+                                saveNewContactRegistered(msgSender, date)
+                            }
+                            is MessageType.ContactKey -> {
+                                saveNewContactRegistered(msgSender, date)
+                            }
+                            is MessageType.Delete -> {
+                                msg.toMsg().replyUuid?.toMessageUUID()?.let { replyUuid ->
+                                    deleteMqttMessage(replyUuid)
+                                }
+                            }
+                            else -> {}
+                        }
+
+                        val messageId = if (msgIndex.isNotEmpty()) MessageId(msgIndex.toLong()) else return@launch
+                        val messageUuid = msgUuid.toMessageUUID() ?: return@launch
+                        val originalUUID = message.originalUuid?.toMessageUUID()
+                        val timestamp = msgTimestamp?.toDateTime()
+                        val date = message.date?.toDateTime()
+                        val paymentRequest = message.invoice?.toLightningPaymentRequestOrNull()
+                        val bolt11 = paymentRequest?.let { Bolt11.decode(it) }
+                        val paymentHash = paymentRequest?.let {
+                            connectManager.retrievePaymentHash(it.value)?.toLightningPaymentHash()
+                        }
+                        val msgTag = tag?.toTagMessage()
+
+                        upsertMqttMessage(
+                            message,
+                            contactInfo,
+                            messageType,
+                            messageUuid,
+                            messageId,
+                            message.amount?.milliSatsToSats(),
+                            originalUUID,
+                            timestamp,
+                            date,
+                            fromMe ?: false,
+                            amount?.toSat(),
+                            paymentRequest,
+                            paymentHash,
+                            bolt11,
+                            msgTag
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                LOG.e(TAG, "onMessage: ${e.message}", e)
+            }
+        }
     }
 
     override fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long) {
-//        applicationScope.launch(io) {
-//            val queries = coreDB.getSphinxDatabaseQueries()
-//            val tagMessage = tag?.let { TagMessage(it) }
-//
-//            // messageUpdateTagAndUUID also updates the Status to CONFIRMED
-//            messageLock.withLock {
-//                queries.messageUpdateTagAndUUID(tagMessage, MessageUUID(msgUUID), MessageId(provisionalId))
-//            }
-//        }
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val tagMessage = tag?.let { TagMessage(it) }
+
+            // messageUpdateTagAndUUID also updates the Status to CONFIRMED
+            messageLock.withLock {
+                queries.messageUpdateTagAndUUID(tagMessage, MessageUUID(msgUUID), MessageId(provisionalId))
+            }
+        }
     }
 
     override fun onMessagesCounts(msgsCounts: String) {
@@ -3190,6 +3184,67 @@ abstract class SphinxRepository(
                         upsertNewContact(updatedOwner, queries)
                     }
                 }
+            }
+        }
+    }
+
+    override fun saveNewContactRegistered(
+        msgSender: String,
+        date: Long?
+    ) {
+        applicationScope.launch(mainImmediate) {
+            val contactInfo = msgSender.toMsgSender()
+            val contact = NewContact(
+                contactAlias = contactInfo.alias?.toContactAlias(),
+                lightningNodePubKey = contactInfo.pubkey.toLightningNodePubKey(),
+                lightningRouteHint = contactInfo.route_hint?.toLightningRouteHint(),
+                photoUrl = contactInfo.photo_url?.toPhotoUrl(),
+                confirmed = contactInfo.confirmed,
+                null,
+                inviteCode = contactInfo.code,
+                invitePrice = null,
+                null,
+                date?.toDateTime()
+            )
+
+            if (contactInfo.code != null) {
+                updateNewContactInvited(contact)
+            } else {
+                createNewContact(contact)
+            }
+        }
+    }
+
+    override fun updateNewContactInvited(contact: NewContact) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val invite = queries.inviteGetByCode(contact.inviteCode?.let { InviteCode(it) }).executeAsOneOrNull()
+
+            if (invite != null) {
+                val contactId = invite.contact_id
+
+                queries.contactUpdateInvitee(
+                    contact.contactAlias,
+                    contact.photoUrl,
+                    contact.lightningNodePubKey,
+                    ContactStatus.Confirmed,
+                    contact.lightningRouteHint,
+                    ContactId(invite.id.value)
+                )
+
+                queries.inviteUpdateStatus(InviteStatus.Complete, invite.id)
+                queries.chatUpdateNameAndStatus(
+                    ChatName(contact.contactAlias?.value ?: "unknown"),
+                    ChatStatus.Approved,
+                    ChatId(contactId.value)
+                )
+                queries.dashboardUpdateConversation(
+                    contact.contactAlias?.value,
+                    contact.photoUrl,
+                    contactId
+                )
+
+            } else {
             }
         }
     }
@@ -7302,6 +7357,15 @@ abstract class SphinxRepository(
             }
         }
     }
+
+    override suspend fun deleteMqttMessage(messageUuid: MessageUUID) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        messageLock.withLock {
+            queries.messageUpdateStatusByUUID(MessageStatus.Deleted, messageUuid)
+        }
+    }
+
 
     override fun getMaxIdMessage(): Flow<Long?> = flow {
         emitAll(

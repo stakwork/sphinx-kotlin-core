@@ -920,6 +920,16 @@ SET status = :status,
     error_message = :error_message
 WHERE tag_message = ?;
 
+messageUpdateStatusByUUID:
+UPDATE messageDbo
+SET status = :status
+WHERE uuid = ?;
+
+messageUpdateMessagesStatusByUUIDS:
+UPDATE messageDbo
+SET status = :status
+WHERE uuid IN ?;
+
 messageUpdateInvoiceAsPaidByPaymentHash:
 UPDATE messageDbo
 SET status = 1

@@ -328,6 +328,7 @@ sealed class MessageType {
         const val QUERY = 30
         const val QUERY_RESPONSE = 31
         const val CALL_LINK = 32
+        const val CONTACT_KEY_RECORD = 33
 
         const val CAN_CONTAIN_MEDIA = true
         const val CAN_NOT_CONTAIN_MEDIA = false
@@ -725,5 +726,16 @@ sealed class MessageType {
 
         override val show: Boolean
             get() = DO_NOT_SHOW
+    }
+
+    object ContactKeyRecord : MessageType() {
+        override val canContainMedia: Boolean
+            get() = CAN_NOT_CONTAIN_MEDIA
+
+        override val show: Boolean
+            get() = DO_NOT_SHOW
+
+        override val value: Int
+            get() = CONTACT_KEY_RECORD
     }
 }

@@ -114,6 +114,9 @@ interface MessageRepository {
         tag: TagMessage?
     )
 
+    suspend fun deleteMqttMessage(messageUuid: MessageUUID)
+
+
     fun getMaxIdMessage(): Flow<Long?>
     fun getLastMessage(): Flow<Message?>
 

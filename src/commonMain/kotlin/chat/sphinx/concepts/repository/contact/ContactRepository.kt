@@ -105,6 +105,7 @@ interface ContactRepository {
     suspend fun createNewContact(contact: NewContact)
     suspend fun getNewContactIndex(): Flow<ContactId?>
     suspend fun updateOwnerAlias(alias: ContactAlias)
-
+    fun saveNewContactRegistered(msgSender: String, date: Long?)
+    fun updateNewContactInvited(contact: NewContact)
 
 }
