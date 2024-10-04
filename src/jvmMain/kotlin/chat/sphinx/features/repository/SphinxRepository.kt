@@ -242,6 +242,10 @@ abstract class SphinxRepository(
         MutableStateFlow(null)
     }
 
+    override val mnemonicWords: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
     override fun setInviteCode(inviteString: String) {
         connectManager.setInviteCode(inviteString)
     }
@@ -326,6 +330,10 @@ abstract class SphinxRepository(
                 }
             }
         }
+    }
+
+    override fun cleanMnemonic() {
+        mnemonicWords.value = null
     }
 
     override fun connectAndSubscribeToMqtt() {
@@ -414,14 +422,15 @@ abstract class SphinxRepository(
         serversUrls.storeUserState(userState)
     }
 
-    override fun onMnemonicWords(words: String) {
+    override fun onMnemonicWords(words: String, isRestoreAccount: Boolean) {
         applicationScope.launch(io) {
             words.toWalletMnemonic()?.let {
                 relayDataHandler.persistWalletMnemonic(it)
             }
         }
-        // TODO V2 implement show mnemonic to user
-//        connectionManagerState.value = OwnerRegistrationState.MnemonicWords(words)
+        if (!isRestoreAccount) {
+            mnemonicWords.value = words
+        }
     }
 
     override fun onOwnerRegistered(

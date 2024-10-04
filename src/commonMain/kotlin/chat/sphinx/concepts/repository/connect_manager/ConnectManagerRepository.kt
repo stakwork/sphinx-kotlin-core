@@ -30,6 +30,7 @@ interface ConnectManagerRepository {
     val webViewPaymentHash: MutableStateFlow<String?>
     val webViewPreImage: MutableStateFlow<String?>
     val restoreMinIndex: MutableStateFlow<Long?>
+    val mnemonicWords: MutableStateFlow<String?>
 
     fun connectAndSubscribeToMqtt()
     fun createOwnerAccount(ownerAlias: String)
@@ -114,5 +115,6 @@ interface ConnectManagerRepository {
 //    fun attemptReconnectOnResume()
 //
 //    fun reconnectMqtt()
+    fun cleanMnemonic()
 
 }

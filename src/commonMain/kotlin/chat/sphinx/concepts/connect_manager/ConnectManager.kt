@@ -176,7 +176,7 @@ interface ConnectManagerListener {
 
     // Account Management Callbacks
     fun onUpdateUserState(userState: String)
-    fun onMnemonicWords(words: String)
+    fun onMnemonicWords(words: String, isRestoreAccount: Boolean)
     fun onOwnerRegistered(
         okKey: String,
         routeHint: String,

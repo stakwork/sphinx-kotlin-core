@@ -1108,9 +1108,8 @@ class ConnectManagerImpl(
             try {
                 seed = mnemonicToSeed(words)
 
-                // TODO V2 this method needs to be called after authentication
                 notifyListeners {
-                    onMnemonicWords(words)
+                    onMnemonicWords(words, isRestoreAccount())
                 }
 
             } catch (e: Exception) {
