@@ -10,6 +10,7 @@ import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.connect_manager.ConnectManagerListener
+import chat.sphinx.concepts.connect_manager.model.OwnerInfo
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
@@ -327,6 +328,55 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun connectAndSubscribeToMqtt() {
+        applicationScope.launch(mainImmediate) {
+            val userState = serversUrls.getUserState()
+            val mixerIp = serversUrls.getNetworkMixerIp()
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val mnemonic = relayDataHandler.retrieveWalletMnemonic()
+            var owner: Contact? = accountOwner.value
+
+            if (owner == null) {
+                try {
+                    accountOwner.collect { contact ->
+                        if (contact != null) {
+                            owner = contact
+                            throw Exception()
+                        }
+                    }
+                } catch (e: Exception) {
+                }
+                delay(25L)
+            }
+
+            val okKey = owner?.nodePubKey?.value
+            val lastMessageIndex = queries.messageGetMaxId().executeAsOneOrNull()?.MAX
+
+            val ownerInfo = OwnerInfo(
+                owner?.alias?.value ?: "",
+                owner?.photoUrl?.value ?: "",
+                userState,
+                lastMessageIndex
+            )
+
+            if (mnemonic != null && okKey != null && mixerIp != null) {
+                connectManager.initializeMqttAndSubscribe(
+                    mixerIp,
+                    mnemonic,
+                    ownerInfo
+                )
+            } else {
+                val logMixerIp = !mixerIp.isNullOrEmpty()
+                val logMnemonic = !mnemonic?.value.isNullOrEmpty()
+                val logOkKey = !okKey.isNullOrEmpty()
+
+                connectManagerErrorState.value = ConnectManagerError.MqttInitError(
+                    "mixerIp: $logMixerIp mnemonic: $logMnemonic okKey: $logOkKey"
+                )
+            }
+        }
+
+    }
 
     override fun createOwnerAccount(ownerAlias: String) {
         connectManager.createAccount(ownerAlias)
@@ -2789,34 +2839,6 @@ abstract class SphinxRepository(
         MutableStateFlow(null)
     }
 
-    override suspend fun getAccountBalanceAll(
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<NodeBalanceAll, ResponseError>> = flow {
-
-        // TODO V2 getBalanceAll
-
-//        networkQueryLightning.getBalanceAll(
-//            relayData
-//        ).collect { loadResponse ->
-//            Exhaustive@
-//            when (loadResponse) {
-//                is LoadResponse.Loading -> {
-//                    emit(loadResponse)
-//                }
-//                is Response.Error -> {
-//                    emit(loadResponse)
-//                }
-//                is Response.Success -> {
-//                    val nodeBalanceAll = NodeBalanceAll(
-//                        Sat(loadResponse.value.local_balance),
-//                        Sat(loadResponse.value.remote_balance)
-//                    )
-//                    emit(Response.Success(nodeBalanceAll))
-//                }
-//            }
-//        }
-    }
-
     override suspend fun getActiveLSat(
         issuer: String,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
@@ -2993,25 +3015,24 @@ abstract class SphinxRepository(
             val contactStatus = if (status) ContactStatus.Confirmed else ContactStatus.Pending
             val chatStatus = if (status) ChatStatus.Approved else ChatStatus.Pending
 
+            withContext(dispatchers.io) {
             contactLock.withLock {
-                withContext(dispatchers.io) {
                     queries.contactUpdateDetails(
                         contact.contactAlias,
                         contact.photoUrl,
                         contactStatus,
                         exitingContact.id
                     )
-                }
+
             }
             chatLock.withLock {
-                withContext(dispatchers.io) {
                     queries.chatUpdateDetails(
                         contact.photoUrl,
                         chatStatus,
                         ChatId(exitingContact.id.value)
                     )
-                }
             }
+                }
         } else {
             val invite = if (contact.invitePrice != null && contact.inviteCode != null) {
                 Invite(
@@ -3078,33 +3099,26 @@ abstract class SphinxRepository(
                 contentSeenAt = null,
                 notify = NotificationLevel.SeeAll
             )
-
-            contactLock.withLock {
-                withContext(dispatchers.io) {
-                    queries.transaction {
-                        upsertNewContact(newContact, queries)
-                    }
+            withContext(dispatchers.io) {
+                queries.transaction {
+                    upsertNewContact(newContact, queries)
                 }
             }
             chatLock.withLock {
-                withContext(dispatchers.io) {
-                    queries.transaction {
-                        upsertNewChat(
-                            newChat,
-                            SynchronizedMap<ChatId, Seen>(),
-                            queries,
-                            newContact,
-                            accountOwner.value?.nodePubKey
-                        )
-                    }
+                queries.transaction {
+                    upsertNewChat(
+                        newChat,
+                        SynchronizedMap<ChatId, Seen>(),
+                        queries,
+                        newContact,
+                        accountOwner.value?.nodePubKey
+                    )
                 }
             }
             inviteLock.withLock {
                 invite?.let { invite ->
-                    withContext(dispatchers.io) {
-                        queries.transaction {
-                            upsertNewInvite(invite, queries)
-                        }
+                    queries.transaction {
+                        upsertNewInvite(invite, queries)
                     }
                 }
             }
