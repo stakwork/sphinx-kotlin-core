@@ -645,7 +645,7 @@ abstract class SphinxRepository(
     }
 
     override fun onSignedChallenge(sign: String) {
-//        connectionManagerState.value = OwnerRegistrationState.SignedChallenge(sign)
+        connectionManagerState.value = OwnerRegistrationState.SignedChallenge(sign)
     }
 
     override fun onInitialTribe(tribe: String, isProductionEnvironment: Boolean) {
