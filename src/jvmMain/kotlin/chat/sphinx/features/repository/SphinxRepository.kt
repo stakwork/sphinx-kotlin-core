@@ -920,14 +920,16 @@ abstract class SphinxRepository(
     }
 
     override fun onRestoreProgress(progress: Int) {
-        if (progress < 100)
+        if (progress < 100) {
             restoreProgress.value = RestoreProgress(true, progress)
-        else {
-            restoreProgress.value = RestoreProgress(false, progress)
+        }
+        if (progress > 50) {
+            restoreProgress.value = RestoreProgress(true, progress)
         }
     }
 
     override fun onRestoreFinished() {
+        restoreProgress.value = RestoreProgress(false, 100)
         val messageId = restoreMinIndex.value?.let { MessageId(it) }
         if (messageId != null) {
             applicationScope.launch(io) {
@@ -1317,10 +1319,10 @@ abstract class SphinxRepository(
     }
 
     override fun onPerformDelay(delay: Long, callback: () -> Unit) {
-//        applicationScope.launch(mainImmediate) {
-//            delay(delay)
-//            callback.invoke()
-//        }
+        applicationScope.launch(mainImmediate) {
+            delay(delay)
+            callback.invoke()
+        }
     }
 
     fun extractUrlParts(url: String): Pair<String?, String?> {
