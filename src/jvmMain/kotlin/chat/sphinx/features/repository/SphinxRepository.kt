@@ -226,7 +226,7 @@ abstract class SphinxRepository(
         MutableStateFlow(null)
     }
 
-    override val restoreProgress: MutableStateFlow<Int?> by lazy {
+    override val restoreProgress: MutableStateFlow<RestoreProgress?> by lazy {
         MutableStateFlow(null)
     }
 
@@ -920,7 +920,11 @@ abstract class SphinxRepository(
     }
 
     override fun onRestoreProgress(progress: Int) {
-        restoreProgress.value = progress
+        if (progress < 100)
+            restoreProgress.value = RestoreProgress(true, progress)
+        else {
+            restoreProgress.value = RestoreProgress(false, progress)
+        }
     }
 
     override fun onRestoreFinished() {

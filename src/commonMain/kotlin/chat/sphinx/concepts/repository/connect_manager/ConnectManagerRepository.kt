@@ -3,6 +3,7 @@ package chat.sphinx.concepts.repository.connect_manager
 import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationState
 import chat.sphinx.concepts.repository.connect_manager.model.NetworkStatus
 import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
+import chat.sphinx.wrapper.dashboard.RestoreProgress
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
@@ -26,7 +27,7 @@ interface ConnectManagerRepository {
     val transactionDtoState: MutableStateFlow<List<TransactionDto>?>
     val userStateFlow: MutableStateFlow<String?>
     val tribeMembersState: MutableStateFlow<TribeMembersResponse?>
-    val restoreProgress: MutableStateFlow<Int?>
+    val restoreProgress: MutableStateFlow<RestoreProgress?>
     val webViewPaymentHash: MutableStateFlow<String?>
     val webViewPreImage: MutableStateFlow<String?>
     val restoreMinIndex: MutableStateFlow<Long?>
@@ -106,7 +107,6 @@ interface ConnectManagerRepository {
 //
 //    fun clearWebViewPreImage()
 //
-//    suspend fun updateLspAndOwner(data: String) {}
 //    fun requestNodes(nodeUrl: String)
 //    fun getInvoiceInfo(invoice: String): String?
 //    fun getSignedTimeStamps(): String?
