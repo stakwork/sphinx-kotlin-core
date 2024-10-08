@@ -288,10 +288,10 @@ class ConnectManagerImpl(
                 LOG.d("MQTT_MESSAGES", "=> stateMp $it")
             }
 
-            rr.stateToDelete.let {
-                removeKeysFromUserState(it)
-                LOG.d("MQTT_MESSAGES", "=> stateToDelete $it")
-            }
+            if (rr.stateToDelete.isNotEmpty()) {
+                removeKeysFromUserState(rr.stateToDelete)
+                    LOG.d("MQTT_MESSAGES", "=> stateToDelete ${rr.stateToDelete}")
+                }
 
             // Set your balance
             rr.newBalance?.let { newBalance ->
@@ -641,7 +641,6 @@ class ConnectManagerImpl(
     }
 
     private fun processMessage(msg: Msg) {
-        LOG.d("RESTORE_PROCESS_MESSAGE", "${msg.index.orEmpty()}")
 
         notifyListeners {
             onMessage(

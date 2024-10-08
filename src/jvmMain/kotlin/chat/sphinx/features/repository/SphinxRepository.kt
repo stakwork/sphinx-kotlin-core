@@ -981,9 +981,7 @@ abstract class SphinxRepository(
 
                 when (messageType) {
                     is MessageType.ContactKeyRecord -> {
-                        if (!isRestore) {
-                            saveNewContactRegistered(msgSender, date)
-                        }
+                        saveNewContactRegistered(msgSender, date, isRestore)
                     }
                     else -> {
                         val message = if (msg.isNotEmpty()) msg.toMsg() else Msg(
@@ -1013,10 +1011,10 @@ abstract class SphinxRepository(
                                 }
                             }
                             is MessageType.ContactKeyConfirmation -> {
-                                saveNewContactRegistered(msgSender, date)
+                                saveNewContactRegistered(msgSender, date, isRestore)
                             }
                             is MessageType.ContactKey -> {
-                                saveNewContactRegistered(msgSender, date)
+                                saveNewContactRegistered(msgSender, date, isRestore)
                             }
                             is MessageType.Delete -> {
                                 msg.toMsg().replyUuid?.toMessageUUID()?.let { replyUuid ->
@@ -3173,7 +3171,8 @@ abstract class SphinxRepository(
 
     override fun saveNewContactRegistered(
         msgSender: String,
-        date: Long?
+        date: Long?,
+        isRestoreAccount: Boolean,
     ) {
         applicationScope.launch(mainImmediate) {
             val contactInfo = msgSender.toMsgSender()
@@ -3190,7 +3189,7 @@ abstract class SphinxRepository(
                 date?.toDateTime()
             )
 
-            if (contactInfo.code != null) {
+            if (contactInfo.code != null && !isRestoreAccount) {
                 updateNewContactInvited(contact)
             } else {
                 createNewContact(contact)
