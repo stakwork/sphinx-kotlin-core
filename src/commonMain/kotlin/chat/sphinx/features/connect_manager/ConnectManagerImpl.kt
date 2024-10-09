@@ -1199,7 +1199,6 @@ class ConnectManagerImpl(
     ) {
         val now = getTimestampInMilliseconds()
 
-        // Initial tribe is hardcoded for now
         try {
             val createInvite = makeInvite(
                 ownerSeed!!,

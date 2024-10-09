@@ -43,15 +43,12 @@ interface ConnectManagerRepository {
     fun setNetworkType(isTestEnvironment: Boolean)
 //    fun setOwnerDeviceId(deviceId: String)
     fun signChallenge(challenge: String): String?
-//    fun createInvite(
-//        nickname: String,
-//        welcomeMessage: String,
-//        sats: Long,
-//        serverDefaultTribe: String?,
-//        tribeServerIp: String?,
-//        mixerIp: String?
-//    )
-//
+    fun createInvite(
+        nickname: String,
+        welcomeMessage: String,
+        sats: Long,
+    )
+
     fun joinTribe(
         tribeHost: String,
         tribePubKey: String,

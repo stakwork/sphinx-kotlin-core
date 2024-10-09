@@ -262,6 +262,25 @@ abstract class SphinxRepository(
         return connectManager.processChallengeSignature(challenge)
     }
 
+    override fun createInvite(
+        nickname: String,
+        welcomeMessage: String,
+        sats: Long
+    ) {
+        val serverDefaultTribe = serversUrls.getDefaultTribe()?.ifEmpty { null }
+        val tribeServerIp = serversUrls.getTribeServerIp()?.ifEmpty { null }
+        val mixerIp = serversUrls.getNetworkMixerIp()?.ifEmpty { null }
+
+        connectManager.createInvite(
+            nickname,
+            welcomeMessage,
+            sats,
+            serverDefaultTribe,
+            tribeServerIp,
+            mixerIp
+        )
+    }
+
     override fun joinTribe(
         tribeHost: String,
         tribePubKey: String,
@@ -2843,23 +2862,12 @@ abstract class SphinxRepository(
                 authenticationStorage
                     .getString(REPOSITORY_LIGHTNING_BALANCE, null)
                     ?.let { balanceJsonString ->
-
-                        val balanceDto: BalanceDto? = try {
-                            withContext(default) {
-                                SphinxJson.decodeFromString(balanceJsonString)
-                            }
-                        } catch (e: Exception) {
-                            null
-                        }
-
-                        balanceDto?.toNodeBalanceOrNull()?.let { nodeBalance ->
+                        balanceJsonString.toLong().toNodeBalance()?.let { nodeBalance ->
                             accountBalanceStateFlow.value = nodeBalance
                         }
                     }
             }
-
         }
-
         return accountBalanceStateFlow.asStateFlow()
     }
 
