@@ -332,6 +332,14 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun reconnectMqtt() {
+        applicationScope.launch(mainImmediate) {
+            delay(1000L)
+            connectManager.reconnectWithBackOff()
+        }
+    }
+
+
     override fun cleanMnemonic() {
         mnemonicWords.value = null
     }
@@ -1286,14 +1294,14 @@ abstract class SphinxRepository(
         isConnected: Boolean,
         isLoading: Boolean
     ) {
-//        if (isConnected) {
-//            networkStatus.value = NetworkStatus.Connected
-//        } else if (isLoading) {
-//            networkStatus.value = NetworkStatus.Loading
-//        } else {
-//            networkStatus.value = NetworkStatus.Disconnected
-//            reconnectMqtt()
-//        }
+        if (isConnected) {
+            networkStatus.value = NetworkStatus.Connected
+        } else if (isLoading) {
+            networkStatus.value = NetworkStatus.Loading
+        } else {
+            networkStatus.value = NetworkStatus.Disconnected
+            reconnectMqtt()
+        }
     }
     override fun onNewInviteCreated(
         nickname: String,

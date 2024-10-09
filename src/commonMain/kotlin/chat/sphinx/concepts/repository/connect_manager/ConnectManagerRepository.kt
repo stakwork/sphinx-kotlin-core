@@ -114,7 +114,7 @@ interface ConnectManagerRepository {
 //    fun getIdFromMacaroon(macaroon: String): String?
 //    fun attemptReconnectOnResume()
 //
-//    fun reconnectMqtt()
+    fun reconnectMqtt()
     fun cleanMnemonic()
 
 }
