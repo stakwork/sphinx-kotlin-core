@@ -3,6 +3,7 @@ package chat.sphinx.concepts.repository.connect_manager
 import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationState
 import chat.sphinx.concepts.repository.connect_manager.model.NetworkStatus
 import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
+import chat.sphinx.wrapper.contact.NewContact
 import chat.sphinx.wrapper.dashboard.RestoreProgress
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.TransactionDto
@@ -36,7 +37,7 @@ interface ConnectManagerRepository {
     fun connectAndSubscribeToMqtt()
     fun createOwnerAccount(ownerAlias: String)
     fun startRestoreProcess()
-//    fun createContact(contact: NewContact)
+    fun createContact(contact: NewContact)
     fun setInviteCode(inviteString: String)
     fun setMnemonicWords(words: List<String>?)
     fun setNetworkType(isTestEnvironment: Boolean)

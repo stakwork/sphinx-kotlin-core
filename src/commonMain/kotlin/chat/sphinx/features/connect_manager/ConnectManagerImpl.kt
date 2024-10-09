@@ -618,16 +618,17 @@ class ConnectManagerImpl(
                         }
                     }
                 }
-            }
-            // Restore Message Step
-            if (restoreStateFlow.value is RestoreState.RestoringMessages) {
-                val minIndex = msgs.minByOrNull { it.index?.toLong() ?: 0L }?.index?.toULong()
-                minIndex?.let { nnMinIndex ->
-                    calculateMessageRestore()
-                    fetchMessagesOnRestoreAccount(nnMinIndex.minus(1u).toLong())
+            } else {
+                // Restore Message Step
+                if (restoreStateFlow.value is RestoreState.RestoringMessages) {
+                    val minIndex = msgs.minByOrNull { it.index?.toLong() ?: 0L }?.index?.toULong()
+                    minIndex?.let { nnMinIndex ->
+                        calculateMessageRestore()
+                        fetchMessagesOnRestoreAccount(nnMinIndex.minus(1u).toLong())
 
-                    notifyListeners {
-                        onRestoreMinIndex(nnMinIndex.toLong())
+                        notifyListeners {
+                            onRestoreMinIndex(nnMinIndex.toLong())
+                        }
                     }
                 }
             }

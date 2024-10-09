@@ -418,6 +418,13 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun createContact(contact: NewContact) {
+        applicationScope.launch(mainImmediate) {
+            createNewContact(contact)
+            connectManager.createContact(contact)
+        }
+    }
+
     init {
         connectManager.addListener(this)
         memeServerTokenHandler.addListener(this)
