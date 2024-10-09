@@ -23,7 +23,6 @@ import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.contact.model.*
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
 import chat.sphinx.concepts.network.query.feed_search.model.toFeedSearchResult
-import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
@@ -955,9 +954,6 @@ abstract class SphinxRepository(
 
     override fun onRestoreProgress(progress: Int) {
         if (progress < 100) {
-            restoreProgress.value = RestoreProgress(true, progress)
-        }
-        if (progress > 50) {
             restoreProgress.value = RestoreProgress(true, progress)
         }
     }
