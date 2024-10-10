@@ -1331,21 +1331,21 @@ abstract class SphinxRepository(
         inviteCode: String,
         sats: Long
     ) {
-//        applicationScope.launch(mainImmediate) {
-//            val newInvitee = NewContact(
-//                contactAlias = nickname.toContactAlias(),
-//                lightningNodePubKey = null,
-//                lightningRouteHint = null,
-//                photoUrl = null,
-//                confirmed = false,
-//                inviteString = inviteString,
-//                inviteCode = inviteCode,
-//                invitePrice = sats.toSat(),
-//                inviteStatus = InviteStatus.Pending,
-//                null
-//            )
-//            createNewContact(newInvitee)
-//        }
+        applicationScope.launch(mainImmediate) {
+            val newInvitee = NewContact(
+                contactAlias = nickname.toContactAlias(),
+                lightningNodePubKey = null,
+                lightningRouteHint = null,
+                photoUrl = null,
+                confirmed = false,
+                inviteString = inviteString,
+                inviteCode = inviteCode,
+                invitePrice = sats.toSat(),
+                inviteStatus = InviteStatus.Pending,
+                null
+            )
+            createNewContact(newInvitee)
+        }
     }
 
     override fun onPerformDelay(delay: Long, callback: () -> Unit) {
@@ -3048,7 +3048,7 @@ abstract class SphinxRepository(
             val chatStatus = if (status) ChatStatus.Approved else ChatStatus.Pending
 
             withContext(dispatchers.io) {
-            contactLock.withLock {
+                contactLock.withLock {
                     queries.contactUpdateDetails(
                         contact.contactAlias,
                         contact.photoUrl,
@@ -3056,15 +3056,15 @@ abstract class SphinxRepository(
                         exitingContact.id
                     )
 
-            }
-            chatLock.withLock {
+                }
+                chatLock.withLock {
                     queries.chatUpdateDetails(
                         contact.photoUrl,
                         chatStatus,
                         ChatId(exitingContact.id.value)
                     )
-            }
                 }
+            }
         } else {
             val invite = if (contact.invitePrice != null && contact.inviteCode != null) {
                 Invite(
