@@ -3070,12 +3070,12 @@ abstract class SphinxRepository(
                 Invite(
                     id = InviteId(contactId ?: -1L),
                     inviteString = InviteString(contact.inviteString ?: "null"),
-                    inviteCode = InviteCode(contact.inviteCode ?: ""),
                     paymentRequest = null,
                     contactId = ContactId(contactId ?: -1L),
                     status = InviteStatus.Pending,
                     price = contact.invitePrice,
-                    createdAt = now.toDateTime()
+                    createdAt = now.toDateTime(),
+                    inviteCode = InviteCode(contact.inviteCode ?: "")
                 )
             } else {
                 null

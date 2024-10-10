@@ -497,14 +497,14 @@ inline fun TransactionCallbacks.upsertContact(dto: ContactDto, queries: SphinxDa
 inline fun TransactionCallbacks.upsertNewInvite(invite: Invite, queries: SphinxDatabaseQueries) {
 
     queries.inviteUpsert(
-        invite.inviteString,
-        invite.inviteCode,
-        invite.paymentRequest,
-        invite.status,
-        invite.price,
-        invite.id,
-        invite.contactId,
-        invite.createdAt,
+        invite_string = invite.inviteString,
+        invoice = invite.paymentRequest,
+        status = invite.status,
+        price = invite.price,
+        id = invite.id,
+        contact_id = invite.contactId,
+        created_at = invite.createdAt,
+        invite_code = invite.inviteCode,
     )
 
     queries.contactUpdateInvite(

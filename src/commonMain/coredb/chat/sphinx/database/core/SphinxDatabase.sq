@@ -467,13 +467,13 @@ DELETE FROM contactDbo;
 CREATE TABLE inviteDbo(
     id                          INTEGER         AS InviteId NOT NULL PRIMARY KEY,
     invite_string               TEXT            AS InviteString NOT NULL,
-    invite_code                 TEXT            AS InviteCode,
     invoice                     TEXT            AS LightningPaymentRequest,
 --     welcome_message             TEXT,
     contact_id                  INTEGER         AS ContactId NOT NULL,
     status                      INTEGER         AS InviteStatus NOT NULL,
     price                       INTEGER         AS Sat,
-    created_at                  INTEGER         AS DateTime NOT NULL
+    created_at                  INTEGER         AS DateTime NOT NULL,
+    invite_code                 TEXT            AS InviteCode
 );
 
 inviteGetAll:
