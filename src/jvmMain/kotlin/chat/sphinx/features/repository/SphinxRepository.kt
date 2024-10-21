@@ -481,7 +481,7 @@ abstract class SphinxRepository(
         applicationScope.launch(mainImmediate) {
             val scid = routeHint.toLightningRouteHint()?.getScid()
 
-            if (scid != null && accountOwner.value?.nodePubKey == null) {
+            if (scid != null && ownerAlias != null) {
                 createOwner(okKey, routeHint, scid, ownerAlias ?: "unknown")
 
                 mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
