@@ -2313,49 +2313,18 @@ abstract class SphinxRepository(
     }
 
     override suspend fun updateOwner(
-        alias: String?, privatePhoto: PrivatePhoto?, tipAmount: Sat?
+        alias: String?, privatePhoto: PrivatePhoto, tipAmount: Sat
     ): Response<Any, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
         var response: Response<Any, ResponseError> = Response.Success(Any())
+        val newAlias = alias?.toContactAlias()
 
-        try {
-            accountOwner.collect { owner ->
-
-                if (owner != null) {
-
-                    // TODO V2 updateContact
-
-//                    networkQueryContact.updateContact(
-//                        owner.id,
-//                        PutContactDto(
-//                            alias = alias,
-//                            private_photo = privatePhoto?.isTrue(),
-//                            tip_amount = tipAmount?.value
-//                        )
-//                    ).collect { loadResponse ->
-//                        Exhaustive@
-//                        when (loadResponse) {
-//                            is LoadResponse.Loading -> {
-//                            }
-//                            is Response.Error -> {
-//                                response = loadResponse
-//                            }
-//                            is Response.Success -> {
-//                                contactLock.withLock {
-//                                    queries.transaction {
-//                                        upsertContact(loadResponse.value, queries)
-//                                    }
-//                                }
-//                                LOG.d(TAG, "Owner has been successfully updated")
-//                            }
-//                        }
-//                    }
-
-                    throw Exception()
-                }
-
-            }
-        } catch (e: Exception) {
+        if (newAlias != null) {
+            queries.contactUpdateOwnerDetails(
+                alias = newAlias,
+                private_photo = privatePhoto,
+                tip_amount = tipAmount
+            )
         }
 
         return response

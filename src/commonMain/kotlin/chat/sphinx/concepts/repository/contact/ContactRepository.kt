@@ -63,7 +63,7 @@ interface ContactRepository {
     suspend fun deleteContactById(contactId: ContactId): Response<Any, ResponseError>
     suspend fun updateOwnerDeviceId(deviceId: DeviceId): Response<Any, ResponseError>
     suspend fun updateOwnerNameAndKey(name: String, contactKey: Password): Response<Any, ResponseError>
-    suspend fun updateOwner(alias: String?, privatePhoto: PrivatePhoto?, tipAmount: Sat?): Response<Any, ResponseError>
+    suspend fun updateOwner(alias: String?, privatePhoto: PrivatePhoto, tipAmount: Sat): Response<Any, ResponseError>
 
     suspend fun updateContact(
         contactId: ContactId,

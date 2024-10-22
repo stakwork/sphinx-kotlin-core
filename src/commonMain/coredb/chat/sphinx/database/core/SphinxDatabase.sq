@@ -443,6 +443,13 @@ SET alias = :alias,
     status = :status
 WHERE id = ? AND id != 0;
 
+contactUpdateOwnerDetails:
+UPDATE contactDbo
+SET alias = :alias,
+    private_photo = :private_photo,
+    tip_amount = :tip_amount
+WHERE id = 0;
+
 contactUpdateInvitee:
 UPDATE contactDbo
 SET alias = :alias,
