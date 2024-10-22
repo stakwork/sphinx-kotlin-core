@@ -46,6 +46,7 @@ abstract class ConnectManager {
         ownerInfo: OwnerInfo
     )
     abstract fun reconnectWithBackOff()
+    abstract fun disconnectMqtt()
     abstract fun attemptReconnectOnResume()
     abstract fun retrieveLspIp(): String?
 

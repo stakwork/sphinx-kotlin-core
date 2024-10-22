@@ -1050,6 +1050,20 @@ class ConnectManagerImpl(
         }
     }
 
+    override fun disconnectMqtt() {
+        try {
+            mqttClient?.disconnect()
+            mqttClient?.close()
+            mqttClient = null
+            isMqttConnected = false
+            notifyListeners {
+                onNetworkStatusChange(false)
+            }
+        } catch (e: Exception) {
+            LOG.d("MQTT_MESSAGES", "disconnectMqtt ${e.message}")
+        }
+    }
+
     override fun attemptReconnectOnResume() {
         if (isAppFirstInit) {
             isAppFirstInit = false

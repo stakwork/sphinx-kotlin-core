@@ -362,6 +362,10 @@ abstract class SphinxRepository(
         mnemonicWords.value = null
     }
 
+    override fun disconnectMqtt() {
+        connectManager.disconnectMqtt()
+    }
+
     override fun connectAndSubscribeToMqtt() {
         applicationScope.launch(mainImmediate) {
             val userState = serversUrls.getUserState()

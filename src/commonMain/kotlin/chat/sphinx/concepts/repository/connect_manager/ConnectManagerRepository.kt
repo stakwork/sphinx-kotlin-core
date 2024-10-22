@@ -114,5 +114,6 @@ interface ConnectManagerRepository {
 //
     fun reconnectMqtt()
     fun cleanMnemonic()
+    fun disconnectMqtt()
 
 }
