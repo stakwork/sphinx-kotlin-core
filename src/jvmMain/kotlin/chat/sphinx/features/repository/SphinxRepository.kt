@@ -350,6 +350,10 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun createInvoice(amount: Long, memo: String): Pair<String, String>? {
+        return connectManager.createInvoice(amount, memo)
+    }
+
     override fun reconnectMqtt() {
         applicationScope.launch(mainImmediate) {
             delay(1000L)

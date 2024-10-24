@@ -98,10 +98,10 @@ interface ConnectManagerRepository {
 //
 //    fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean
 //
-//    fun createInvoice(
-//        amount: Long,
-//        memo: String
-//    ): Pair<String, String>? // invoice, paymentHash
+    fun createInvoice(
+        amount: Long,
+        memo: String
+    ): Pair<String, String>? // invoice, paymentHash
 //
 //    fun clearWebViewPreImage()
 //
