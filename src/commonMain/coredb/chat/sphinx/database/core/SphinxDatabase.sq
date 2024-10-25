@@ -719,6 +719,16 @@ SELECT *
 FROM messageDbo
 WHERE id = ?;
 
+messageGetMessagesByIds:
+SELECT *
+FROM messageDbo
+WHERE id IN ?;
+
+messageGetByPaymentHashes:
+SELECT *
+FROM messageDbo
+WHERE payment_hash IN :payment_hashes;
+
 messageGetByMuid:
 SELECT *
 FROM messageDbo

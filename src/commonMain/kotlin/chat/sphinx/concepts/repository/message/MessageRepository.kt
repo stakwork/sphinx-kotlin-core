@@ -29,6 +29,8 @@ interface MessageRepository {
     suspend fun getAllMessagesToShowByChatIdPaginated(chatId: ChatId): Flow<PagingData<Message>>
     fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long, chatThreadUUID: ThreadUUID? = null): Flow<List<Message>>
     fun getMessageById(messageId: MessageId): Flow<Message?>
+    fun getMessagesByIds(messagesIds: List<MessageId>): Flow<List<Message?>>
+    fun getMessagesByPaymentHashes(paymentHashes: List<LightningPaymentHash>): Flow<List<Message?>>
     fun getTribeLastMemberRequestByContactId(contactId: ContactId, chatId: ChatId, ): Flow<Message?>
     fun getMessageByUUID(messageUUID: MessageUUID): Flow<Message?>
     fun getPaymentsTotalFor(feedId: FeedId): Flow<Sat?>

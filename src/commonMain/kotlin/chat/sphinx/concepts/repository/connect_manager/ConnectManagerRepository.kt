@@ -68,7 +68,7 @@ interface ConnectManagerRepository {
 //        tribePubKey: String
 //    )
 //    fun getTribeServerPubKey(): String?
-//    fun getPayments(lastMessageDate: Long, limit: Int)
+    fun getPayments(lastMessageDate: Long, limit: Int)
 //    suspend fun getChatIdByEncryptedChild(child: String): Flow<ChatId?>
 //    fun getTagsByChatId(chatId: ChatId)
 //    suspend fun payContactPaymentRequest(paymentRequest: LightningPaymentRequest?)

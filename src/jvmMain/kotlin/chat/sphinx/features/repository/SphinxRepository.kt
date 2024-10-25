@@ -101,6 +101,7 @@ import chat.sphinx.wrapper.mqtt.*
 import chat.sphinx.wrapper.mqtt.MsgsCounts.Companion.toMsgsCounts
 import chat.sphinx.wrapper.mqtt.NewCreateTribe.Companion.toNewCreateTribe
 import chat.sphinx.wrapper.mqtt.NewSentStatus.Companion.toNewSentStatus
+import chat.sphinx.wrapper.mqtt.Payment.Companion.toPaymentsList
 import chat.sphinx.wrapper.mqtt.TagMessageList.Companion.toTagsList
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.payment.PaymentTemplate
@@ -348,6 +349,17 @@ abstract class SphinxRepository(
                 }
             }
         }
+    }
+
+    override fun getPayments(lastMessageDate: Long, limit: Int) {
+        connectManager.getPayments(
+            lastMessageDate,
+            limit,
+            null,
+            null,
+            null,
+            true
+        )
     }
 
     override suspend fun payInvoice(
@@ -1280,77 +1292,77 @@ abstract class SphinxRepository(
     // Invoice and Payment Management Callbacks
 
     override fun onPayments(payments: String) {
-//        applicationScope.launch(io) {
-//            val paymentsJson = payments.toPaymentsList(moshi)
-//
-//            val paymentsReceived = paymentsJson?.mapNotNull {
-//                it.msg_idx?.let { msgId ->
-//                    MessageId(msgId)
-//                }
-//            }
-//
-//            val paymentsSent = paymentsJson?.mapNotNull {
-//                it.rhash?.let { hash ->
-//                    LightningPaymentHash(hash)
-//                }
-//            }
-//
-//            val paymentsReceivedMsgs = paymentsReceived?.let {
-//                getMessagesByIds(it).firstOrNull()
-//            }
-//
-//            val paymentsSentMsgs = paymentsSent?.let {
-//                getMessagesByPaymentHashes(it).firstOrNull()
-//            }
-//
-//            // Combine all retrieved messages from DB
-//            val combinedMessages: List<Message?> = paymentsReceivedMsgs.orEmpty() + paymentsSentMsgs.orEmpty()
-//
-//            // Generate TransactionDto from the combinedMessages list or from the raw payments data
-//            val transactionDtoList = paymentsJson?.map { payment ->
-//                // Try to find corresponding DB message first
-//                val dbMessage = combinedMessages.firstOrNull {
-//                    it?.id?.value == payment.msg_idx || it?.paymentHash?.value == payment.rhash
-//                }
-//
-//                dbMessage?.takeIf { it.type !is MessageType.Invoice }?.let { message ->
-//                    // If found in DB, build TransactionDto using DB information
-//                    TransactionDto(
-//                        id = message.id.value,
-//                        chat_id = message.chatId.value,
-//                        type = message.type.value,
-//                        sender = message.sender.value,
-//                        sender_alias = message.senderAlias?.value,
-//                        receiver = message.receiver?.value,
-//                        amount = message.amount.value,
-//                        payment_hash = message.paymentHash?.value,
-//                        payment_request = message.paymentRequest?.value,
-//                        date = message.date,
-//                        reply_uuid = message.replyUUID?.value,
-//                        error_message = message.errorMessage?.value
-//                    )
-//                } ?: run {
-//                    // If not found in DB, create TransactionDto with available information from the Payment object
-//                    TransactionDto(
-//                        id = payment.msg_idx ?: 0L,
-//                        chat_id = null,
-//                        type = MessageType.DirectPayment.value,
-//                        sender = 0L,
-//                        sender_alias = null,
-//                        receiver = null,
-//                        amount = payment.amt_msat?.milliSatsToSats()?.value ?: 0L,
-//                        payment_hash = payment.rhash,
-//                        payment_request = null,
-//                        date = payment.ts?.toDateTime(),
-//                        reply_uuid = null,
-//                        error_message = null
-//                    )
-//                }
-//            }.orEmpty()
-//
-//            // Sort the transactions by date and set the result to the state
-//            transactionDtoState.value = transactionDtoList.sortedByDescending { it.date?.value }.distinct()
-//        }
+        applicationScope.launch(io) {
+            val paymentsJson = payments.toPaymentsList()
+
+            val paymentsReceived = paymentsJson?.mapNotNull {
+                it.msg_idx?.let { msgId ->
+                    MessageId(msgId)
+                }
+            }
+
+            val paymentsSent = paymentsJson?.mapNotNull {
+                it.rhash?.let { hash ->
+                    LightningPaymentHash(hash)
+                }
+            }
+
+            val paymentsReceivedMsgs = paymentsReceived?.let {
+                getMessagesByIds(it).firstOrNull()
+            }
+
+            val paymentsSentMsgs = paymentsSent?.let {
+                getMessagesByPaymentHashes(it).firstOrNull()
+            }
+
+            // Combine all retrieved messages from DB
+            val combinedMessages: List<Message?> = paymentsReceivedMsgs.orEmpty() + paymentsSentMsgs.orEmpty()
+
+            // Generate TransactionDto from the combinedMessages list or from the raw payments data
+            val transactionDtoList = paymentsJson?.map { payment ->
+                // Try to find corresponding DB message first
+                val dbMessage = combinedMessages.firstOrNull {
+                    it?.id?.value == payment.msg_idx || it?.paymentHash?.value == payment.rhash
+                }
+
+                dbMessage?.takeIf { it.type !is MessageType.Invoice }?.let { message ->
+                    // If found in DB, build TransactionDto using DB information
+                    TransactionDto(
+                        id = message.id.value,
+                        chat_id = message.chatId.value,
+                        type = message.type.value,
+                        sender = message.sender.value,
+                        sender_alias = message.senderAlias?.value,
+                        receiver = message.receiver?.value,
+                        amount = message.amount.value,
+                        payment_hash = message.paymentHash?.value,
+                        payment_request = message.paymentRequest?.value,
+                        date = message.date.time,
+                        reply_uuid = message.replyUUID?.value,
+                        error_message = message.errorMessage?.value
+                    )
+                } ?: run {
+                    // If not found in DB, create TransactionDto with available information from the Payment object
+                    TransactionDto(
+                        id = payment.msg_idx ?: 0L,
+                        chat_id = null,
+                        type = MessageType.DirectPayment.value,
+                        sender = 0L,
+                        sender_alias = null,
+                        receiver = null,
+                        amount = payment.amt_msat?.milliSatsToSats()?.value ?: 0L,
+                        payment_hash = payment.rhash,
+                        payment_request = null,
+                        date = payment.ts,
+                        reply_uuid = null,
+                        error_message = null
+                    )
+                }
+            }.orEmpty()
+
+            // Sort the transactions by date and set the result to the state
+            transactionDtoState.value = transactionDtoList.sortedByDescending { it.date}.distinct()
+        }
     }
 
     override fun onNetworkStatusChange(
@@ -3662,6 +3674,36 @@ abstract class SphinxRepository(
     override fun getMessageById(messageId: MessageId): Flow<Message?> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
         emitAll(getMessageByIdImpl(messageId, queries))
+    }
+
+    override fun getMessagesByIds(messagesIds: List<MessageId>): Flow<List<Message?>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetMessagesByIds(messagesIds)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getMessagesByPaymentHashes(paymentHashes: List<LightningPaymentHash>): Flow<List<Message?>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetByPaymentHashes(paymentHashes)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
     }
 
     private fun getMessageByIdImpl(

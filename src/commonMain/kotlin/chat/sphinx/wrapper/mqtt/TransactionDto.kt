@@ -4,6 +4,8 @@ import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.dashboard.toChatId
 import chat.sphinx.wrapper.dashboard.toContactId
+import chat.sphinx.wrapper.message.SenderAlias
+import chat.sphinx.wrapper.message.toSenderAlias
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -42,8 +44,8 @@ data class TransactionDto(
         return sender.toContactId()
     }
 
-    fun getSenderAlias(): String? {
-        return sender_alias
+    fun getSenderAlias(): SenderAlias? {
+        return sender_alias?.toSenderAlias()
     }
 
     fun getReceiverId(): ContactId? {
