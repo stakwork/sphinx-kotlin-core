@@ -3,7 +3,9 @@ package chat.sphinx.concepts.repository.lightning
 import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
+import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.lightning.NodeBalance
+import chat.sphinx.wrapper.mqtt.InvoiceBolt11
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.RequestSignature
@@ -36,4 +38,9 @@ interface LightningRepository {
         updateLSatDto: UpdateLsatDto,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<String, ResponseError>>
+
+    suspend fun processLightningPaymentRequest(
+        lightningPaymentRequest: LightningPaymentRequest,
+        invoiceBolt11: InvoiceBolt11
+    )
 }

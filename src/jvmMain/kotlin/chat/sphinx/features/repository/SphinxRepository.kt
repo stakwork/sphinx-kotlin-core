@@ -27,6 +27,7 @@ import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
 import chat.sphinx.concepts.network.query.message.model.*
+import chat.sphinx.concepts.network.query.message.model.MessageDto
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.redeem_badge_token.model.RedeemBadgeTokenDto
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
@@ -89,20 +90,19 @@ import chat.sphinx.wrapper.invite.InviteString
 import chat.sphinx.wrapper.lightning.*
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.*
+import chat.sphinx.wrapper.message.Message
 import chat.sphinx.wrapper.message.Msg.Companion.toMsg
 import chat.sphinx.wrapper.message.MsgSender.Companion.toMsgSender
 import chat.sphinx.wrapper.message.MsgSender.Companion.toMsgSenderNull
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
-import chat.sphinx.wrapper.mqtt.ConnectManagerError
-import chat.sphinx.wrapper.mqtt.MsgsCounts
+import chat.sphinx.wrapper.mqtt.*
 import chat.sphinx.wrapper.mqtt.MsgsCounts.Companion.toMsgsCounts
 import chat.sphinx.wrapper.mqtt.NewCreateTribe.Companion.toNewCreateTribe
 import chat.sphinx.wrapper.mqtt.NewSentStatus.Companion.toNewSentStatus
 import chat.sphinx.wrapper.mqtt.TagMessageList.Companion.toTagsList
 import chat.sphinx.wrapper.mqtt.TransactionDto
-import chat.sphinx.wrapper.mqtt.TribeMembersResponse
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
@@ -350,8 +350,42 @@ abstract class SphinxRepository(
         }
     }
 
+    override suspend fun payInvoice(
+        paymentRequest: LightningPaymentRequest,
+        endHops: String?,
+        routerPubKey: String?,
+        milliSatAmount: Long,
+        paymentHash: String?
+    ) {
+        if (paymentHash != null) {
+            webViewPaymentHash.value = paymentHash
+
+        }
+
+        if (endHops?.isNotEmpty() == true && routerPubKey != null) {
+            connectManager.concatNodesFromResponse(
+                endHops,
+                routerPubKey,
+                milliSatAmount
+            )
+        }
+        connectManager.processInvoicePayment(
+            paymentRequest.value,
+            milliSatAmount
+        )
+    }
+
+
+    override fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean {
+        return connectManager.isRouteAvailable(pubKey, routeHint, milliSat)
+    }
+
     override fun createInvoice(amount: Long, memo: String): Pair<String, String>? {
         return connectManager.createInvoice(amount, memo)
+    }
+
+    override fun getInvoiceInfo(invoice: String): String? {
+        return connectManager.getInvoiceInfo(invoice)
     }
 
     override fun reconnectMqtt() {
@@ -360,7 +394,6 @@ abstract class SphinxRepository(
             connectManager.reconnectWithBackOff()
         }
     }
-
 
     override fun cleanMnemonic() {
         mnemonicWords.value = null
@@ -2947,6 +2980,99 @@ abstract class SphinxRepository(
 //                }
 //            }
 //        }
+    }
+
+    private var payInvoiceJob: Job? = null
+
+
+    override suspend fun processLightningPaymentRequest(
+        lightningPaymentRequest: LightningPaymentRequest,
+        invoiceBolt11: InvoiceBolt11
+    ) {
+        if (payInvoiceJob?.isActive == true) {
+            return
+        }
+
+        payInvoiceJob = applicationScope.launch(mainImmediate) {
+            val balance = getAccountBalanceStateFlow().firstOrNull() ?: return@launch
+
+            val invoiceAmount = invoiceBolt11.getSatsAmount()?.value
+            if (invoiceAmount != null && invoiceAmount > balance.balance.value) {
+                return@launch
+            }
+
+            val invoicePayeePubKey = invoiceBolt11.getPubKey()
+            val invoiceAmountMilliSat = invoiceBolt11.getMilliSatsAmount()?.value
+
+            if (invoicePayeePubKey == null || invoiceAmountMilliSat == null) {
+                return@launch
+            }
+
+            var payeeLspPubKey = invoiceBolt11.hop_hints?.getOrNull(0)?.substringBefore('_')
+            val ownerLsp = getOwner()?.routeHint?.getLspPubKey()
+
+            if (payeeLspPubKey == null) {
+                val contact = getContactByPubKey(invoicePayeePubKey).firstOrNull()
+                payeeLspPubKey = contact?.routeHint?.getLspPubKey()
+            }
+
+            if (payeeLspPubKey == null || payeeLspPubKey != ownerLsp) {
+
+                val isRouteAvailable = isRouteAvailable(
+                    invoicePayeePubKey.value,
+                    null,
+                    invoiceAmountMilliSat
+                )
+
+                if (isRouteAvailable) {
+                    payInvoice(
+                        lightningPaymentRequest,
+                        null,
+                        null,
+                        invoiceAmountMilliSat
+                    )
+                } else {
+                    val routerUrl = serversUrls.getRouterUrl()
+
+                    if (routerUrl == null) {
+                        return@launch
+                    }
+
+                    networkQueryContact.getRoutingNodes(
+                        routerUrl,
+                        invoicePayeePubKey,
+                        invoiceAmountMilliSat
+                    ).collect { response ->
+                        when (response) {
+                            is LoadResponse.Loading -> {}
+                            is Response.Error -> {}
+
+                            is Response.Success -> {
+                                try {
+                                    val routerPubKey = serversUrls.getRouterPubkey() ?: "true"
+
+                                    payInvoice(
+                                        lightningPaymentRequest,
+                                        response.value,
+                                        routerPubKey,
+                                        invoiceAmountMilliSat
+                                    )
+                                } catch (e: Exception) {
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                payInvoice(
+                    lightningPaymentRequest,
+                    null,
+                    null,
+                    invoiceAmountMilliSat
+                )
+            }
+        }
+
     }
 
     override suspend fun getPersonData(

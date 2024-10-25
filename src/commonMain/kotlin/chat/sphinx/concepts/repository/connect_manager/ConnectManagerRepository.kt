@@ -5,6 +5,7 @@ import chat.sphinx.concepts.repository.connect_manager.model.NetworkStatus
 import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
 import chat.sphinx.wrapper.contact.NewContact
 import chat.sphinx.wrapper.dashboard.RestoreProgress
+import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
@@ -71,13 +72,13 @@ interface ConnectManagerRepository {
 //    suspend fun getChatIdByEncryptedChild(child: String): Flow<ChatId?>
 //    fun getTagsByChatId(chatId: ChatId)
 //    suspend fun payContactPaymentRequest(paymentRequest: LightningPaymentRequest?)
-//    suspend fun payInvoice(
-//        paymentRequest: LightningPaymentRequest,
-//        endHops: String?,
-//        routerPubKey: String?,
-//        milliSatAmount: Long,
-//        paymentHash: String? = null
-//    )
+    suspend fun payInvoice(
+    paymentRequest: LightningPaymentRequest,
+    endHops: String?,
+    routerPubKey: String?,
+    milliSatAmount: Long,
+    paymentHash: String? = null
+    )
 //    suspend fun sendKeySend(
 //        pubKey: String,
 //        endHops: String?,
@@ -96,7 +97,7 @@ interface ConnectManagerRepository {
 //        data: String? = null
 //    ): Boolean
 //
-//    fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean
+    fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean
 //
     fun createInvoice(
         amount: Long,
@@ -106,7 +107,7 @@ interface ConnectManagerRepository {
 //    fun clearWebViewPreImage()
 //
 //    fun requestNodes(nodeUrl: String)
-//    fun getInvoiceInfo(invoice: String): String?
+    fun getInvoiceInfo(invoice: String): String?
 //    fun getSignedTimeStamps(): String?
 //    fun getSignBase64(text: String): String?
 //    fun getIdFromMacaroon(macaroon: String): String?
