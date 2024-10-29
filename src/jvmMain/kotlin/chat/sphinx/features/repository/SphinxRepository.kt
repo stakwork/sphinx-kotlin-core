@@ -3853,18 +3853,15 @@ abstract class SphinxRepository(
         return sendMessage.text
     }
 
-    // TODO: Rework to handle different message types
     @OptIn(RawPasswordAccess::class)
     override fun sendMessage(sendMessage: SendMessage?) {
         if (sendMessage == null) return
 
         applicationScope.launch(mainImmediate) {
-
             val queries = coreDB.getSphinxDatabaseQueries()
 
-            // TODO: Update SendMessage to accept a Chat && Contact instead of just IDs
             val chat: Chat? = sendMessage.chatId?.let {
-                getChatByIdFlow(it).firstOrNull()
+                getChatById(it)
             }
 
             val contact: Contact? = sendMessage.contactId?.let {
@@ -3888,7 +3885,7 @@ abstract class SphinxRepository(
                     owner
                 }
 
-            val ownerPubKey = owner?.rsaPublicKey
+            val ownerPubKey = owner?.nodePubKey
 
             if (owner == null) {
                 LOG.w(TAG, "Owner returned null")
@@ -3896,72 +3893,22 @@ abstract class SphinxRepository(
             }
 
             if (ownerPubKey == null) {
-                LOG.w(TAG, "Owner's RSA public key was null")
+                LOG.w(TAG, "Owner's public key was null")
                 return@launch
             }
 
-            // encrypt text
-            val message: Pair<MessageContentDecrypted, MessageContent>? =
-                messageText(sendMessage)?.let { msgText ->
+            val message = messageText(sendMessage)
+            val isPaidMessage: Boolean = (sendMessage.paidMessagePrice?.value ?: 0) > 0
+            val media: AttachmentInfo? = sendMessage.attachmentInfo
 
-                    val response = rsa.encrypt(
-                        ownerPubKey,
-                        UnencryptedString(msgText),
-                        formatOutput = false,
-                        dispatcher = default,
-                    )
-
-                    Exhaustive@
-                    when (response) {
-                        is Response.Error -> {
-                            LOG.e(TAG, response.message, response.exception)
-                            null
-                        }
-                        is Response.Success -> {
-                            Pair(
-                                MessageContentDecrypted(msgText),
-                                MessageContent(response.value.value)
-                            )
-                        }
-                    }
-                }
-
-            // media attachment
-            val media: Triple<Password, MediaKey, AttachmentInfo>? =
-                if (sendMessage.giphyData == null) {
-                    sendMessage.attachmentInfo?.let { info ->
-                        val password = PasswordGenerator(MEDIA_KEY_SIZE).password
-
-                        val response = rsa.encrypt(
-                            ownerPubKey,
-                            UnencryptedString(password.value.joinToString("")),
-                            formatOutput = false,
-                            dispatcher = default,
-                        )
-
-                        Exhaustive@
-                        when (response) {
-                            is Response.Error -> {
-                                LOG.e(TAG, response.message, response.exception)
-                                null
-                            }
-                            is Response.Success -> {
-                                Triple(password, MediaKey(response.value.value), info)
-                            }
-                        }
-                    }
-                } else {
-                    null
-                }
-
-            if (message == null && media == null && !sendMessage.isTribePayment) {
-                return@launch
-            }
+//            if (message == null && media == null && !sendMessage.isTribePayment) {
+//                return@launch
+//            }
 
             val pricePerMessage = chat?.pricePerMessage?.value ?: 0
             val escrowAmount = chat?.escrowAmount?.value ?: 0
             val priceToMeet = sendMessage.priceToMeet?.value ?: 0
-            val messagePrice = (pricePerMessage + escrowAmount + priceToMeet).toSat() ?: Sat(0)
+            val messagePrice = (pricePerMessage + escrowAmount).toSat() ?: Sat(0)
 
             val messageType = when {
                 (media != null) -> {
@@ -3970,18 +3917,18 @@ abstract class SphinxRepository(
                 (sendMessage.isBoost) -> {
                     MessageType.Boost
                 }
-                (sendMessage.isTribePayment) -> {
-                    MessageType.DirectPayment
-                }
                 (sendMessage.isCall) -> {
                     MessageType.CallLink
+                }
+                (sendMessage.isTribePayment) -> {
+                    MessageType.DirectPayment
                 }
                 else -> {
                     MessageType.Message
                 }
             }
 
-            //If is tribe payment, reply UUID is sent to identify recipient. But it's not a response
+//            //If is tribe payment, reply UUID is sent to identify recipient. But it's not a response
             val replyUUID = when {
                 (sendMessage.isTribePayment) -> {
                     null
@@ -3991,45 +3938,27 @@ abstract class SphinxRepository(
                 }
             }
 
-            val threadUUID = when {
-                (sendMessage.isTribePayment) -> {
-                    null
-                }
-                else -> {
-                    sendMessage.threadUUID
-                }
-            }
+            val threadUUID = sendMessage.threadUUID
 
             val provisionalMessageId: MessageId? = chat?.let { chatDbo ->
                 // Build provisional message and insert
                 provisionalMessageLock.withLock {
+
                     val currentProvisionalId: MessageId? = withContext(io) {
                         queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
                     }
-
                     val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
 
                     withContext(io) {
-
                         queries.transaction {
 
-                            if (media != null) {
-                                queries.messageMediaUpsert(
-                                    media.second,
-                                    media.third.mediaType,
-                                    MediaToken.PROVISIONAL_TOKEN,
-                                    provisionalId,
-                                    chatDbo.id,
-                                    MediaKeyDecrypted(media.first.value.joinToString("")),
-                                    media.third.filePath,
-                                    media.third.fileName
-                                )
-                            }
+                            // The following parms are set to null to make the upsert to work
+                            // type, message_content, message_decrypted, status
 
                             queries.messageUpsert(
                                 MessageStatus.Pending,
                                 Seen.True,
-                                chatDbo.myAlias?.value?.toSenderAlias(),
+                                sendMessage.senderAlias ?: chatDbo.myAlias?.value?.toSenderAlias(),
                                 chatDbo.myPhotoUrl,
                                 null,
                                 replyUUID,
@@ -4046,140 +3975,486 @@ abstract class SphinxRepository(
                                 chatDbo.id,
                                 owner.id,
                                 sendMessage.contactId,
-                                messagePrice,
+                                sendMessage.tribePaymentAmount ?: sendMessage.paidMessagePrice ?: messagePrice ,
                                 null,
                                 null,
                                 DateTime.nowUTC().toDateTime(),
                                 null,
-                                message?.second,
-                                message?.first,
                                 null,
-                                false.toFlagged()
+                                message?.toMessageContentDecrypted() ?: sendMessage.text?.toMessageContentDecrypted(),
+                                null,
+                                false.toFlagged(),
                             )
-
-                            if (media != null) {
-                                queries.messageMediaUpsert(
-                                    media.second,
-                                    media.third.mediaType,
-                                    MediaToken.PROVISIONAL_TOKEN,
-                                    provisionalId,
-                                    chatDbo.id,
-                                    MediaKeyDecrypted(media.first.value.joinToString("")),
-                                    media.third.filePath,
-                                    media.third.fileName
-                                )
-                            }
                         }
+                        provisionalId
                     }
-
-                    provisionalId
                 }
             }
 
-            val isPaidTextMessage =
-                sendMessage.attachmentInfo?.mediaType?.isSphinxText == true &&
-                        sendMessage.paidMessagePrice?.value ?: 0 > 0
-
-            val messageContent: String? = if (isPaidTextMessage) null else message?.second?.value
-
-            val remoteTextMap: Map<String, String>? =
-                if (isPaidTextMessage) null else getRemoteTextMap(
-                    UnencryptedString(message?.first?.value ?: ""),
-                    contact,
-                    chat
-                )
-
-            val mediaKeyMap: Map<String, String>? = if (media != null) {
-                getMediaKeyMap(
-                    owner.id,
-                    media.second,
-                    UnencryptedString(media.first.value.joinToString("")),
-                    contact,
-                    chat
-                )
-            } else {
-                null
-            }
-
-            val postMemeServerDto: PostMemeServerUploadDto? = if (media != null) {
-                val token = memeServerTokenHandler.retrieveAuthenticationToken(MediaHost.DEFAULT)
-                    ?: provisionalMessageId?.let { provId ->
-                        withContext(io) {
-                            queries.messageUpdateStatus(MessageStatus.Failed, provId)
-                        }
-
-                        return@launch
-                    } ?: return@launch
-
-                val response = networkQueryMemeServer.uploadAttachmentEncrypted(
-                    token,
-                    media.third.mediaType,
-                    media.third.filePath,
-                    media.first,
-                    MediaHost.DEFAULT,
-                )
-
-                Exhaustive@
-                when (response) {
-                    is Response.Error -> {
-                        LOG.e(TAG, response.message, response.exception)
-
-                        provisionalMessageId?.let { provId ->
+            if (contact != null || chat != null) {
+                if (media != null) {
+                    val password = PasswordGenerator(MEDIA_KEY_SIZE).password
+                    val token = memeServerTokenHandler.retrieveAuthenticationToken(MediaHost.DEFAULT)
+                        ?: provisionalMessageId?.let { provId ->
                             withContext(io) {
                                 queries.messageUpdateStatus(MessageStatus.Failed, provId)
                             }
+                            return@launch
+                        } ?: return@launch
+
+                    val response = networkQueryMemeServer.uploadAttachmentEncrypted(
+                        token,
+                        media.mediaType,
+                        media.filePath,
+                        password,
+                        MediaHost.DEFAULT,
+                    )
+
+                    when (response) {
+                        is Response.Error -> {
+                            LOG.e(TAG, response.message, response.exception)
+
+                            provisionalMessageId?.let { provId ->
+                                withContext(io) {
+                                    queries.messageUpdateStatus(MessageStatus.Failed, provId)
+                                }
+                            }
+                            return@launch
                         }
 
-                        return@launch
+                        is Response.Success -> {
+                            val pubKey = contact?.nodePubKey?.value ?: chat?.uuid?.value
+
+                            pubKey?.let { nnPubKey ->
+
+                                val amount = sendMessage.paidMessagePrice?.value
+
+                                val mediaTokenValue = connectManager.generateMediaToken(
+                                    nnPubKey,
+                                    response.value.muid,
+                                    MediaHost.DEFAULT.value,
+                                    null,
+                                    amount,
+                                )
+
+                                val mediaKey = MediaKey(password.value.copyOf().joinToString(""))
+
+                                queries.messageMediaUpsert(
+                                    mediaKey,
+                                    media.mediaType,
+                                    mediaTokenValue?.toMediaToken() ?: MediaToken.PROVISIONAL_TOKEN,
+                                    provisionalMessageId ?: MessageId(Long.MIN_VALUE),
+                                    chat?.id ?: ChatId(ChatId.NULL_CHAT_ID.toLong()),
+                                    MediaKeyDecrypted(password.value.copyOf().joinToString("")),
+                                    media.filePath,
+                                    sendMessage.attachmentInfo?.fileName
+                                )
+
+                                sendNewMessage(
+                                    contact?.nodePubKey?.value ?: chat?.uuid?.value ?: "",
+                                    message ?: sendMessage.text ?: "",
+                                    media,
+                                    mediaTokenValue?.toMediaToken(),
+                                    if (isPaidMessage && chat?.isTribe() == false) null else mediaKey,
+                                    messageType,
+                                    provisionalMessageId,
+                                    sendMessage.tribePaymentAmount ?: messagePrice,
+                                    replyUUID,
+                                    threadUUID,
+                                    chat?.isTribe() ?: false,
+                                    sendMessage.memberPubKey
+                                )
+
+                                LOG.d("MQTT_MESSAGES", "Media Message was sent. mediatoken=$mediaTokenValue mediakey$mediaKey" )
+                            }
+                        }
                     }
-                    is Response.Success -> {
-                        response.value
-                    }
+                } else {
+                    sendNewMessage(
+                        contact?.nodePubKey?.value ?: chat?.uuid?.value ?: "",
+                        message ?: sendMessage.text ?: "",
+                        null,
+                        null,
+                        null,
+                        messageType,
+                        provisionalMessageId,
+                        sendMessage.tribePaymentAmount ?: messagePrice,
+                        replyUUID,
+                        threadUUID,
+                        chat?.isTribe() ?: false,
+                        sendMessage.memberPubKey
+                    )
                 }
-            } else {
-                null
             }
+        }
+    }
 
-            val amount = messagePrice.value + (sendMessage.tribePaymentAmount ?: Sat(0)).value
+    fun sendNewMessage(
+        contact: String,
+        messageContent: String,
+        attachmentInfo: AttachmentInfo?,
+        mediaToken: MediaToken?,
+        mediaKey: MediaKey?,
+        messageType: MessageType?,
+        provisionalId: MessageId?,
+        amount: Sat?,
+        replyUUID: ReplyUUID?,
+        threadUUID: ThreadUUID?,
+        isTribe: Boolean,
+        memberPubKey: LightningNodePubKey?
+    ) {
+        val newMessage = chat.sphinx.wrapper.mqtt.Message(
+            messageContent,
+            null,
+            mediaToken?.value,
+            mediaKey?.value,
+            attachmentInfo?.mediaType?.value,
+            replyUUID?.value,
+            threadUUID?.value,
+            memberPubKey?.value,
+            null
+        ).toJson()
 
-            val postMessageDto: PostMessageDto = try {
-                PostMessageDto(
-                    sendMessage.chatId?.value,
-                    sendMessage.contactId?.value,
-                    amount,
-                    messagePrice.value,
-                    sendMessage.replyUUID?.value,
-                    messageContent,
-                    remoteTextMap,
-                    mediaKeyMap,
-                    postMemeServerDto?.mime,
-                    postMemeServerDto?.muid,
-                    sendMessage.paidMessagePrice?.value,
-                    sendMessage.isBoost,
-                    sendMessage.isCall,
-                    sendMessage.isTribePayment,
-                    sendMessage.threadUUID?.value
-                )
-            } catch (e: IllegalArgumentException) {
-                LOG.e(TAG, "Failed to create PostMessageDto", e)
-
-                provisionalMessageId?.let { provId ->
-                    withContext(io) {
-                        queries.messageUpdateStatus(MessageStatus.Failed, provId)
-                    }
-                }
-
-                return@launch
-            }
-
-            sendMessage(
-                provisionalMessageId,
-                postMessageDto,
-                message?.first,
-                media
+        provisionalId?.value?.let {
+            connectManager.sendMessage(
+                newMessage,
+                contact,
+                it,
+                messageType?.value ?: 0,
+                amount?.value,
+                isTribe
             )
         }
     }
+
+
+//    // TODO: Rework to handle different message types
+//    @OptIn(RawPasswordAccess::class)
+//    override fun sendMessage(sendMessage: SendMessage?) {
+//        if (sendMessage == null) return
+//
+//        applicationScope.launch(mainImmediate) {
+//
+//            val queries = coreDB.getSphinxDatabaseQueries()
+//
+//            // TODO: Update SendMessage to accept a Chat && Contact instead of just IDs
+//            val chat: Chat? = sendMessage.chatId?.let {
+//                getChatByIdFlow(it).firstOrNull()
+//            }
+//
+//            val contact: Contact? = sendMessage.contactId?.let {
+//                getContactById(it).firstOrNull()
+//            }
+//
+//            val owner: Contact? = accountOwner.value
+//                ?: let {
+//                    // TODO: Handle this better...
+//                    var owner: Contact? = null
+//                    try {
+//                        accountOwner.collect {
+//                            if (it != null) {
+//                                owner = it
+//                                throw Exception()
+//                            }
+//                        }
+//                    } catch (e: Exception) {
+//                    }
+//                    delay(25L)
+//                    owner
+//                }
+//
+//            val ownerPubKey = owner?.rsaPublicKey
+//
+//            if (owner == null) {
+//                LOG.w(TAG, "Owner returned null")
+//                return@launch
+//            }
+//
+//            if (ownerPubKey == null) {
+//                LOG.w(TAG, "Owner's RSA public key was null")
+//                return@launch
+//            }
+//
+//            // encrypt text
+//            val message: Pair<MessageContentDecrypted, MessageContent>? =
+//                messageText(sendMessage)?.let { msgText ->
+//
+//                    val response = rsa.encrypt(
+//                        ownerPubKey,
+//                        UnencryptedString(msgText),
+//                        formatOutput = false,
+//                        dispatcher = default,
+//                    )
+//
+//                    Exhaustive@
+//                    when (response) {
+//                        is Response.Error -> {
+//                            LOG.e(TAG, response.message, response.exception)
+//                            null
+//                        }
+//                        is Response.Success -> {
+//                            Pair(
+//                                MessageContentDecrypted(msgText),
+//                                MessageContent(response.value.value)
+//                            )
+//                        }
+//                    }
+//                }
+//
+//            // media attachment
+//            val media: Triple<Password, MediaKey, AttachmentInfo>? =
+//                if (sendMessage.giphyData == null) {
+//                    sendMessage.attachmentInfo?.let { info ->
+//                        val password = PasswordGenerator(MEDIA_KEY_SIZE).password
+//
+//                        val response = rsa.encrypt(
+//                            ownerPubKey,
+//                            UnencryptedString(password.value.joinToString("")),
+//                            formatOutput = false,
+//                            dispatcher = default,
+//                        )
+//
+//                        Exhaustive@
+//                        when (response) {
+//                            is Response.Error -> {
+//                                LOG.e(TAG, response.message, response.exception)
+//                                null
+//                            }
+//                            is Response.Success -> {
+//                                Triple(password, MediaKey(response.value.value), info)
+//                            }
+//                        }
+//                    }
+//                } else {
+//                    null
+//                }
+//
+//            if (message == null && media == null && !sendMessage.isTribePayment) {
+//                return@launch
+//            }
+//
+//            val pricePerMessage = chat?.pricePerMessage?.value ?: 0
+//            val escrowAmount = chat?.escrowAmount?.value ?: 0
+//            val priceToMeet = sendMessage.priceToMeet?.value ?: 0
+//            val messagePrice = (pricePerMessage + escrowAmount + priceToMeet).toSat() ?: Sat(0)
+//
+//            val messageType = when {
+//                (media != null) -> {
+//                    MessageType.Attachment
+//                }
+//                (sendMessage.isBoost) -> {
+//                    MessageType.Boost
+//                }
+//                (sendMessage.isTribePayment) -> {
+//                    MessageType.DirectPayment
+//                }
+//                (sendMessage.isCall) -> {
+//                    MessageType.CallLink
+//                }
+//                else -> {
+//                    MessageType.Message
+//                }
+//            }
+//
+//            //If is tribe payment, reply UUID is sent to identify recipient. But it's not a response
+//            val replyUUID = when {
+//                (sendMessage.isTribePayment) -> {
+//                    null
+//                }
+//                else -> {
+//                    sendMessage.replyUUID
+//                }
+//            }
+//
+//            val threadUUID = when {
+//                (sendMessage.isTribePayment) -> {
+//                    null
+//                }
+//                else -> {
+//                    sendMessage.threadUUID
+//                }
+//            }
+//
+//            val provisionalMessageId: MessageId? = chat?.let { chatDbo ->
+//                // Build provisional message and insert
+//                provisionalMessageLock.withLock {
+//                    val currentProvisionalId: MessageId? = withContext(io) {
+//                        queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+//                    }
+//
+//                    val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
+//
+//                    withContext(io) {
+//
+//                        queries.transaction {
+//
+//                            if (media != null) {
+//                                queries.messageMediaUpsert(
+//                                    media.second,
+//                                    media.third.mediaType,
+//                                    MediaToken.PROVISIONAL_TOKEN,
+//                                    provisionalId,
+//                                    chatDbo.id,
+//                                    MediaKeyDecrypted(media.first.value.joinToString("")),
+//                                    media.third.filePath,
+//                                    media.third.fileName
+//                                )
+//                            }
+//
+//                            queries.messageUpsert(
+//                                MessageStatus.Pending,
+//                                Seen.True,
+//                                chatDbo.myAlias?.value?.toSenderAlias(),
+//                                chatDbo.myPhotoUrl,
+//                                null,
+//                                replyUUID,
+//                                messageType,
+//                                null,
+//                                null,
+//                                Push.False,
+//                                null,
+//                                threadUUID,
+//                                null,
+//                                null,
+//                                provisionalId,
+//                                null,
+//                                chatDbo.id,
+//                                owner.id,
+//                                sendMessage.contactId,
+//                                messagePrice,
+//                                null,
+//                                null,
+//                                DateTime.nowUTC().toDateTime(),
+//                                null,
+//                                message?.second,
+//                                message?.first,
+//                                null,
+//                                false.toFlagged()
+//                            )
+//
+//                            if (media != null) {
+//                                queries.messageMediaUpsert(
+//                                    media.second,
+//                                    media.third.mediaType,
+//                                    MediaToken.PROVISIONAL_TOKEN,
+//                                    provisionalId,
+//                                    chatDbo.id,
+//                                    MediaKeyDecrypted(media.first.value.joinToString("")),
+//                                    media.third.filePath,
+//                                    media.third.fileName
+//                                )
+//                            }
+//                        }
+//                    }
+//
+//                    provisionalId
+//                }
+//            }
+//
+//            val isPaidTextMessage =
+//                sendMessage.attachmentInfo?.mediaType?.isSphinxText == true &&
+//                        sendMessage.paidMessagePrice?.value ?: 0 > 0
+//
+//            val messageContent: String? = if (isPaidTextMessage) null else message?.second?.value
+//
+//            val remoteTextMap: Map<String, String>? =
+//                if (isPaidTextMessage) null else getRemoteTextMap(
+//                    UnencryptedString(message?.first?.value ?: ""),
+//                    contact,
+//                    chat
+//                )
+//
+//            val mediaKeyMap: Map<String, String>? = if (media != null) {
+//                getMediaKeyMap(
+//                    owner.id,
+//                    media.second,
+//                    UnencryptedString(media.first.value.joinToString("")),
+//                    contact,
+//                    chat
+//                )
+//            } else {
+//                null
+//            }
+//
+//            val postMemeServerDto: PostMemeServerUploadDto? = if (media != null) {
+//                val token = memeServerTokenHandler.retrieveAuthenticationToken(MediaHost.DEFAULT)
+//                    ?: provisionalMessageId?.let { provId ->
+//                        withContext(io) {
+//                            queries.messageUpdateStatus(MessageStatus.Failed, provId)
+//                        }
+//
+//                        return@launch
+//                    } ?: return@launch
+//
+//                val response = networkQueryMemeServer.uploadAttachmentEncrypted(
+//                    token,
+//                    media.third.mediaType,
+//                    media.third.filePath,
+//                    media.first,
+//                    MediaHost.DEFAULT,
+//                )
+//
+//                Exhaustive@
+//                when (response) {
+//                    is Response.Error -> {
+//                        LOG.e(TAG, response.message, response.exception)
+//
+//                        provisionalMessageId?.let { provId ->
+//                            withContext(io) {
+//                                queries.messageUpdateStatus(MessageStatus.Failed, provId)
+//                            }
+//                        }
+//
+//                        return@launch
+//                    }
+//                    is Response.Success -> {
+//                        response.value
+//                    }
+//                }
+//            } else {
+//                null
+//            }
+//
+//            val amount = messagePrice.value + (sendMessage.tribePaymentAmount ?: Sat(0)).value
+//
+//            val postMessageDto: PostMessageDto = try {
+//                PostMessageDto(
+//                    sendMessage.chatId?.value,
+//                    sendMessage.contactId?.value,
+//                    amount,
+//                    messagePrice.value,
+//                    sendMessage.replyUUID?.value,
+//                    messageContent,
+//                    remoteTextMap,
+//                    mediaKeyMap,
+//                    postMemeServerDto?.mime,
+//                    postMemeServerDto?.muid,
+//                    sendMessage.paidMessagePrice?.value,
+//                    sendMessage.isBoost,
+//                    sendMessage.isCall,
+//                    sendMessage.isTribePayment,
+//                    sendMessage.threadUUID?.value
+//                )
+//            } catch (e: IllegalArgumentException) {
+//                LOG.e(TAG, "Failed to create PostMessageDto", e)
+//
+//                provisionalMessageId?.let { provId ->
+//                    withContext(io) {
+//                        queries.messageUpdateStatus(MessageStatus.Failed, provId)
+//                    }
+//                }
+//
+//                return@launch
+//            }
+//
+//            sendMessage(
+//                provisionalMessageId,
+//                postMessageDto,
+//                message?.first,
+//                media
+//            )
+//        }
+//    }
 
     private suspend fun getRemoteTextMap(
         unencryptedString: UnencryptedString?,
