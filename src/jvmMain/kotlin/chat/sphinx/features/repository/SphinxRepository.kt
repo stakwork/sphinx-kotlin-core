@@ -2609,34 +2609,16 @@ abstract class SphinxRepository(
 
                         owner?.let { nnOwner ->
 
-                            // TODO V2 updateContact
+                            val queries = coreDB.getSphinxDatabaseQueries()
 
-//                            networkQueryContact.updateContact(
-//                                nnOwner.id,
-//                                PutContactDto(photo_url = newUrl.value)
-//                            ).collect { loadResponse ->
-//
-//                                Exhaustive@
-//                                when (loadResponse) {
-//                                    is LoadResponse.Loading -> {
-//                                    }
-//                                    is Response.Error -> {
-//                                        response = loadResponse
-//                                    }
-//                                    is Response.Success -> {
-//                                        val queries = coreDB.getSphinxDatabaseQueries()
-//
-//                                        contactLock.withLock {
-//                                            withContext(io) {
-//                                                queries.contactUpdatePhotoUrl(
-//                                                    newUrl,
-//                                                    nnOwner.id,
-//                                                )
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
+                            contactLock.withLock {
+                                withContext(io) {
+                                    queries.contactUpdatePhotoUrl(
+                                        newUrl,
+                                        nnOwner.id,
+                                    )
+                                }
+                            }
                         } ?: throw IllegalStateException("Failed to retrieve account owner")
                     }
                 }
