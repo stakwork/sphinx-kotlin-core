@@ -25,7 +25,6 @@ import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
 import chat.sphinx.concepts.network.query.feed_search.model.toFeedSearchResult
 import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
-import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
 import chat.sphinx.concepts.network.query.message.model.*
 import chat.sphinx.concepts.network.query.message.model.MessageDto
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
@@ -4731,11 +4730,13 @@ abstract class SphinxRepository(
         }
     }
 
-    override suspend fun deleteMessage(message: Message): Response<Any, ResponseError> {
+    override suspend fun deleteMessage(message: Message) {
         var response: Response<Any, ResponseError> = Response.Success(true)
 
         applicationScope.launch(mainImmediate) {
             val queries = coreDB.getSphinxDatabaseQueries()
+            val contact = getContactById(ContactId(message.chatId.value)).firstOrNull()
+            val chatTribe = getChatById(message.chatId)
 
             if (message.id.isProvisionalMessage) {
                 messageLock.withLock {
@@ -4746,33 +4747,36 @@ abstract class SphinxRepository(
                     }
                 }
             } else {
-                // TODO V2 deleteMessage
+                messageLock.withLock {
+                    withContext(io) {
+                        queries.messageUpdateStatus(MessageStatus.Deleted, message.id)
+                    }
+                }
 
-//                networkQueryMessage.deleteMessage(message.id).collect { loadResponse ->
-//                    Exhaustive@
-//                    when (loadResponse) {
-//                        is LoadResponse.Loading -> {
-//                        }
-//                        is Response.Error -> {
-//                            response = Response.Error(
-//                                ResponseError(loadResponse.message, loadResponse.exception)
-//                            )
-//                        }
-//                        is Response.Success -> {
-//                            messageLock.withLock {
-//                                withContext(io) {
-//                                    queries.transaction {
-//                                        upsertMessage(loadResponse.value, queries)
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
+                val newMessage = chat.sphinx.wrapper.mqtt.Message(
+                    "",
+                    null,
+                    null,
+                    null,
+                    null,
+                    message.uuid?.value,
+                    null,
+                    null,
+                    null
+                ).toJson()
+
+                val contactPubKey = contact?.nodePubKey?.value ?: chatTribe?.uuid?.value
+                val isTribe = (chatTribe != null)
+
+                if (contactPubKey != null) {
+                    connectManager.deleteMessage(
+                        newMessage,
+                        contactPubKey,
+                        isTribe
+                    )
+                }
             }
-        }.join()
-
-        return response
+        }
     }
 
     override suspend fun sendPayment(
