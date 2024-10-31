@@ -361,6 +361,18 @@ abstract class SphinxRepository(
         )
     }
 
+    override fun getTagsByChatId(chatId: ChatId) {
+        applicationScope.launch(io) {
+            getSentConfirmedMessagesByChatId(chatId).collect { messages ->
+                if (messages.isNotEmpty()) {
+                    val tags = messages.mapNotNull { it.tagMessage?.value }.distinct()
+                    connectManager.getMessagesStatusByTags(tags)
+                }
+            }
+        }
+    }
+
+
     override suspend fun payInvoice(
         paymentRequest: LightningPaymentRequest,
         endHops: String?,
@@ -1698,6 +1710,21 @@ abstract class SphinxRepository(
                 .asFlow()
                 .mapToOneOrNull(io)
                 .map { it?.SUM }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getSentConfirmedMessagesByChatId(chatId: ChatId): Flow<List<Message>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetSentConfirmedMessages(chatId)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
                 .distinctUntilChanged()
         )
     }
@@ -5005,6 +5032,7 @@ abstract class SphinxRepository(
                 person = null,
                 threadUUID = null,
                 errorMessage = null,
+                tagMessage = null,
                 messageContentDecrypted = null,
                 messageDecryptionError = false,
                 messageDecryptionException = null,

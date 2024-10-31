@@ -601,6 +601,11 @@ fun TransactionCallbacks.upsertNewMessage(
         )
     }
 
+    println(" --------------------------------------------------------------------------------------------------------------")
+    println("errorMessage: ${message.errorMessage}")  // Add this line to confirm the value
+    println("tagMessage: ${message.tagMessage}")      // Add this line to confirm the value
+
+
     queries.messageUpsert(
         message.status,
         message.seen,

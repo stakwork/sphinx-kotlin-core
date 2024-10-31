@@ -4,6 +4,7 @@ import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationSt
 import chat.sphinx.concepts.repository.connect_manager.model.NetworkStatus
 import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
 import chat.sphinx.wrapper.contact.NewContact
+import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.RestoreProgress
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
@@ -70,7 +71,7 @@ interface ConnectManagerRepository {
 //    fun getTribeServerPubKey(): String?
     fun getPayments(lastMessageDate: Long, limit: Int)
 //    suspend fun getChatIdByEncryptedChild(child: String): Flow<ChatId?>
-//    fun getTagsByChatId(chatId: ChatId)
+    fun getTagsByChatId(chatId: ChatId)
 //    suspend fun payContactPaymentRequest(paymentRequest: LightningPaymentRequest?)
     suspend fun payInvoice(
     paymentRequest: LightningPaymentRequest,

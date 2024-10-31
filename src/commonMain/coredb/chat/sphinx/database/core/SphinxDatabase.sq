@@ -977,7 +977,7 @@ AND id <= ?;
 
 
 -- If the message exists in the DB, it will update all fields _except_
--- for message_content_decrypted as to not overwrite it.
+    -- for message_content_decrypted as to not overwrite it.
 messageUpsert {
     UPDATE messageDbo
     SET status = :status,

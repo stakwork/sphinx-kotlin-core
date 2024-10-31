@@ -34,6 +34,8 @@ interface MessageRepository {
     fun getTribeLastMemberRequestByContactId(contactId: ContactId, chatId: ChatId, ): Flow<Message?>
     fun getMessageByUUID(messageUUID: MessageUUID): Flow<Message?>
     fun getPaymentsTotalFor(feedId: FeedId): Flow<Sat?>
+    fun getSentConfirmedMessagesByChatId(chatId: ChatId): Flow<List<Message>>
+
 
     suspend fun getAllMessagesByUUID(messageUUIDs: List<MessageUUID>): List<Message>
 
