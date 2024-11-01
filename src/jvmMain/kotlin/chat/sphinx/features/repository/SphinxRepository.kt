@@ -624,57 +624,50 @@ abstract class SphinxRepository(
         }
     }
 
-    val inProgressContacts = mutableSetOf<String?>()
-
     override fun onUpsertContacts(
         contacts: List<Pair<String?, Long?>>,
         callback: (() -> Unit)?
     ) {
         if (contacts.isEmpty()) {
-            callback?.invoke()
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
             return
         }
-
         applicationScope.launch(mainImmediate) {
             val contactList: List<Pair<MsgSender?, DateTime?>> = contacts.mapNotNull { contact ->
-                Pair(contact.first?.toMsgSenderNull(), contact.second?.toDateTime())
+                Pair(contact?.first?.toMsgSenderNull(), contact.second?.toDateTime())
             }.groupBy { it.first?.pubkey }
                 .map { (_, group) ->
                     group.find { it.first?.confirmed == true } ?: group.first()
                 }
 
-            val newContactList = contactList.mapNotNull { contactInfo ->
-                val pubkey = contactInfo.first?.pubkey
-                if (pubkey != null && !inProgressContacts.contains(pubkey)) {
-                    inProgressContacts.add(pubkey)
-                    NewContact(
-                        contactAlias = contactInfo.first?.alias?.let(::ContactAlias),
-                        lightningNodePubKey = pubkey.let(::LightningNodePubKey),
-                        lightningRouteHint = contactInfo.first?.route_hint?.let(::LightningRouteHint),
-                        photoUrl = contactInfo.first?.photo_url?.let(::PhotoUrl),
-                        confirmed = contactInfo.first?.confirmed == true,
-                        inviteString = contactInfo.first?.code,
-                        inviteCode = contactInfo.first?.code,
-                        invitePrice = null,
-                        inviteStatus = null,
-                        createdAt = contactInfo.second
-                    )
-                } else {
-                    null
-                }
+            val newContactList = contactList.map { contactInfo ->
+                NewContact(
+                    contactAlias = contactInfo.first?.alias?.toContactAlias(),
+                    lightningNodePubKey = contactInfo.first?.pubkey?.toLightningNodePubKey(),
+                    lightningRouteHint = contactInfo.first?.route_hint?.toLightningRouteHint(),
+                    photoUrl = contactInfo.first?.photo_url?.toPhotoUrl(),
+                    confirmed = contactInfo.first?.confirmed == true,
+                    null,
+                    inviteCode = contactInfo.first?.code,
+                    invitePrice = null,
+                    null,
+                    contactInfo.second
+                )
             }
 
             newContactList.forEach { newContact ->
-                launch {
-                    try {
-                        createNewContact(newContact)
-                    } finally {
-                        inProgressContacts.remove(newContact.lightningNodePubKey?.value)
-                    }
+                if (newContact.inviteCode != null) {
+                    updateNewContactInvited(newContact)
+                } else {
+                    createNewContact(newContact)
                 }
             }
 
-            callback?.invoke()
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
         }
     }
 
