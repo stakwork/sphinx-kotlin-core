@@ -504,6 +504,7 @@ abstract class SphinxRepository(
         applicationScope.launch(mainImmediate) {
             createNewContact(contact)
             connectManager.createContact(contact)
+            println("CREATE_CONTACT: createContact (SPHINX REPO)")
         }
     }
 
@@ -623,16 +624,17 @@ abstract class SphinxRepository(
         }
     }
 
+    val inProgressContacts = mutableSetOf<String?>()
+
     override fun onUpsertContacts(
         contacts: List<Pair<String?, Long?>>,
         callback: (() -> Unit)?
     ) {
         if (contacts.isEmpty()) {
-            callback?.let { nnCallback ->
-                nnCallback()
-            }
+            callback?.invoke()
             return
         }
+
         applicationScope.launch(mainImmediate) {
             val contactList: List<Pair<MsgSender?, DateTime?>> = contacts.mapNotNull { contact ->
                 Pair(contact.first?.toMsgSenderNull(), contact.second?.toDateTime())
@@ -641,32 +643,38 @@ abstract class SphinxRepository(
                     group.find { it.first?.confirmed == true } ?: group.first()
                 }
 
-            val newContactList = contactList.map { contactInfo ->
-                NewContact(
-                    contactAlias = contactInfo.first?.alias?.toContactAlias(),
-                    lightningNodePubKey = contactInfo.first?.pubkey?.toLightningNodePubKey(),
-                    lightningRouteHint = contactInfo.first?.route_hint?.toLightningRouteHint(),
-                    photoUrl = contactInfo.first?.photo_url?.toPhotoUrl(),
-                    confirmed = contactInfo.first?.confirmed == true,
-                    null,
-                    inviteCode = contactInfo.first?.code,
-                    invitePrice = null,
-                    null,
-                    contactInfo.second
-                )
-            }
-
-            newContactList.forEach { newContact ->
-                if (newContact.inviteCode != null) {
-                    updateNewContactInvited(newContact)
+            val newContactList = contactList.mapNotNull { contactInfo ->
+                val pubkey = contactInfo.first?.pubkey
+                if (pubkey != null && !inProgressContacts.contains(pubkey)) {
+                    inProgressContacts.add(pubkey)
+                    NewContact(
+                        contactAlias = contactInfo.first?.alias?.let(::ContactAlias),
+                        lightningNodePubKey = pubkey.let(::LightningNodePubKey),
+                        lightningRouteHint = contactInfo.first?.route_hint?.let(::LightningRouteHint),
+                        photoUrl = contactInfo.first?.photo_url?.let(::PhotoUrl),
+                        confirmed = contactInfo.first?.confirmed == true,
+                        inviteString = contactInfo.first?.code,
+                        inviteCode = contactInfo.first?.code,
+                        invitePrice = null,
+                        inviteStatus = null,
+                        createdAt = contactInfo.second
+                    )
                 } else {
-                    createNewContact(newContact)
+                    null
                 }
             }
 
-            callback?.let { nnCallback ->
-                nnCallback()
+            newContactList.forEach { newContact ->
+                launch {
+                    try {
+                        createNewContact(newContact)
+                    } finally {
+                        inProgressContacts.remove(newContact.lightningNodePubKey?.value)
+                    }
+                }
             }
+
+            callback?.invoke()
         }
     }
 
@@ -1409,6 +1417,7 @@ abstract class SphinxRepository(
                 null
             )
             createNewContact(newInvitee)
+            println("CREATE_CONTACT: onNewInviteCreated")
         }
     }
 
@@ -3278,6 +3287,7 @@ abstract class SphinxRepository(
                 }
             }
         }
+        println("CREATE_CONTACT: override suspend fun createNewContact")
     }
 
     override suspend fun getNewContactIndex(): Flow<ContactId?> = flow {
@@ -3337,6 +3347,7 @@ abstract class SphinxRepository(
                 updateNewContactInvited(contact)
             } else {
                 createNewContact(contact)
+                println("CREATE_CONTACT: saveNewContactRegistered")
             }
         }
     }

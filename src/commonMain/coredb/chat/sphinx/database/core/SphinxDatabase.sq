@@ -675,8 +675,8 @@ CREATE TABLE messageDbo(
     push                        INTEGER         AS Push DEFAULT 0,
     person                      TEXT            AS MessagePerson,
     thread_uuid                 TEXT            AS ThreadUUID,
-    error_message               TEXT            AS ErrorMessage,
-    tag_message                 TEXT            AS TagMessage
+    tag_message                 TEXT            AS TagMessage,
+    error_message               TEXT            AS ErrorMessage
 );
 
 messageGetAllReactionsByUUID:
@@ -992,8 +992,8 @@ messageUpsert {
         push = :push,
         person = :person,
         thread_uuid = :thread_uuid,
-        error_message = :error_message,
-        tag_message = :tag_message
+        tag_message = :tag_message,
+        error_message = :error_message
     WHERE id = :id;
 
     INSERT OR IGNORE INTO messageDbo(
@@ -1023,8 +1023,8 @@ messageUpsert {
         push,
         person,
         thread_uuid,
-        error_message,
-        tag_message
+        tag_message,
+        error_message
     )
     VALUES (
         :id,
@@ -1053,8 +1053,8 @@ messageUpsert {
         :push,
         :person,
         :thread_uuid,
-        :error_message,
-        :tag_message
+        :tag_message,
+        :error_message
     );
 }
 

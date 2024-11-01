@@ -35,8 +35,8 @@ class NewMessage(
     override val recipientPic: PhotoUrl? = null,
     override val person: MessagePerson? = null,
     override val threadUUID: ThreadUUID? = null,
-    override val errorMessage: ErrorMessage? = null,
     override val tagMessage: TagMessage? = null,
+    override val errorMessage: ErrorMessage? = null,
 
     override val messageContentDecrypted: MessageContentDecrypted? = null,
     override val messageDecryptionError: Boolean = false,

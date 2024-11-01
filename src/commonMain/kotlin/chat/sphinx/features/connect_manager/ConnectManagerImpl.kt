@@ -1181,6 +1181,8 @@ class ConnectManagerImpl(
     ) {
         val now = getTimestampInMilliseconds()
 
+        println("CREATE_CONTACT: override fun createContact (CONNECT MANG IMPLEMENTATION)")
+
         try {
             val runReturn = addContact(
                 ownerSeed!!,

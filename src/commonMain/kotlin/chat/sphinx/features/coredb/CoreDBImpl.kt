@@ -210,8 +210,8 @@ abstract class CoreDBImpl: CoreDB() {
                     pushAdapter = PushAdapter(),
                     personAdapter = PersonAdapter(),
                     thread_uuidAdapter = ThreadUUIDAdapter(),
-                    error_messageAdapter = ErrorMessageAdapter(),
                     tag_messageAdapter = TagMessageAdapter(),
+                    error_messageAdapter = ErrorMessageAdapter(),
                 ),
                 messageMediaDboAdapter = MessageMediaDbo.Adapter(
                     idAdapter = MessageIdAdapter.getInstance(),
