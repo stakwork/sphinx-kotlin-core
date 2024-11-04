@@ -492,7 +492,11 @@ abstract class SphinxRepository(
                     }
                     is RestoreProcessState.RestoreMessages -> {
                         delay(100L)
-                        connectManager.fetchMessagesOnRestoreAccount(msgCounts?.total_highest_index)
+                        connectManager.fetchMessagesOnRestoreAccount(
+                            msgCounts?.total_highest_index,
+                            msgCounts?.total
+                        )
+
                     }
                     else -> {}
                 }
@@ -658,6 +662,7 @@ abstract class SphinxRepository(
             }
 
             newContactList.forEach { newContact ->
+                delay(100L)
                 if (newContact.inviteCode != null) {
                     updateNewContactInvited(newContact)
                 } else {
@@ -3163,40 +3168,45 @@ abstract class SphinxRepository(
         val now = DateTime.nowUTC()
         val contactId = getNewContactIndex().firstOrNull()?.value
 
-        val exitingContact = contact.lightningNodePubKey
+        if (contactId == null || contactId < 0) {
+            // Log and throw an exception if a valid contactId cannot be generated
+            println("Error: Invalid contactId generated. Contact creation aborted.")
+            throw IllegalArgumentException("Invalid contactId: Cannot create new contact without a valid contactId.")
+        }
+
+        val existingContact = contact.lightningNodePubKey
             ?.let { getContactByPubKey(it).firstOrNull() }
 
-        val status = (contact.confirmed || exitingContact?.status?.isConfirmed() == true)
+        val status = (contact.confirmed || existingContact?.status?.isConfirmed() == true)
+        val contactStatus = if (status) ContactStatus.Confirmed else ContactStatus.Pending
+        val chatStatus = if (status) ChatStatus.Approved else ChatStatus.Pending
 
-        if (exitingContact?.nodePubKey != null) {
-            val contactStatus = if (status) ContactStatus.Confirmed else ContactStatus.Pending
-            val chatStatus = if (status) ChatStatus.Approved else ChatStatus.Pending
-
+        if (existingContact?.nodePubKey != null) {
             withContext(dispatchers.io) {
                 contactLock.withLock {
                     queries.contactUpdateDetails(
                         contact.contactAlias,
                         contact.photoUrl,
                         contactStatus,
-                        exitingContact.id
+                        existingContact.id
                     )
-
                 }
                 chatLock.withLock {
                     queries.chatUpdateDetails(
                         contact.photoUrl,
                         chatStatus,
-                        ChatId(exitingContact.id.value)
+                        ChatId(existingContact.id.value)
                     )
                 }
             }
         } else {
+            // Initialize invite if applicable
             val invite = if (contact.invitePrice != null && contact.inviteCode != null) {
                 Invite(
-                    id = InviteId(contactId ?: -1L),
+                    id = InviteId(contactId),
                     inviteString = InviteString(contact.inviteString ?: "null"),
                     paymentRequest = null,
-                    contactId = ContactId(contactId ?: -1L),
+                    contactId = ContactId(contactId),
                     status = InviteStatus.Pending,
                     price = contact.invitePrice,
                     createdAt = now.toDateTime(),
@@ -3206,16 +3216,17 @@ abstract class SphinxRepository(
                 null
             }
 
+            // Create new contact and chat
             val newContact = Contact(
-                id = ContactId(exitingContact?.id?.value ?: contactId ?: -1L),
+                id = ContactId(contactId),
                 routeHint = contact.lightningRouteHint,
                 nodePubKey = contact.lightningNodePubKey,
                 nodeAlias = null,
-                alias = exitingContact?.alias ?: contact.contactAlias,
+                alias = existingContact?.alias ?: contact.contactAlias,
                 photoUrl = contact.photoUrl,
                 privatePhoto = PrivatePhoto.False,
                 isOwner = Owner.False,
-                status = if (status) ContactStatus.Confirmed else ContactStatus.Pending,
+                status = contactStatus,
                 rsaPublicKey = null,
                 deviceId = null,
                 createdAt = contact.createdAt ?: now.toDateTime(),
@@ -3229,15 +3240,13 @@ abstract class SphinxRepository(
             )
 
             val newChat = Chat(
-                id = ChatId(exitingContact?.id?.value ?: contactId ?: -1L),
+                id = ChatId(contactId),
                 uuid = ChatUUID("${UUID.randomUUID()}"),
-                name = ChatName(
-                    exitingContact?.alias?.value ?: contact.contactAlias?.value ?: "unknown"
-                ),
+                name = ChatName(existingContact?.alias?.value ?: contact.contactAlias?.value ?: "unknown"),
                 photoUrl = contact.photoUrl,
                 type = ChatType.Conversation,
-                status = if (status) ChatStatus.Approved else ChatStatus.Pending,
-                contactIds = listOf(ContactId(0), ContactId(contactId ?: -1)),
+                status = chatStatus,
+                contactIds = listOf(ContactId(0), ContactId(contactId)),
                 isMuted = ChatMuted.False,
                 createdAt = contact.createdAt ?: now.toDateTime(),
                 groupKey = null,
@@ -3256,31 +3265,32 @@ abstract class SphinxRepository(
                 contentSeenAt = null,
                 notify = NotificationLevel.SeeAll
             )
+
             withContext(dispatchers.io) {
                 queries.transaction {
                     upsertNewContact(newContact, queries)
                 }
-            }
-            chatLock.withLock {
-                queries.transaction {
-                    upsertNewChat(
-                        newChat,
-                        SynchronizedMap<ChatId, Seen>(),
-                        queries,
-                        newContact,
-                        accountOwner.value?.nodePubKey
-                    )
-                }
-            }
-            inviteLock.withLock {
-                invite?.let { invite ->
+                chatLock.withLock {
                     queries.transaction {
-                        upsertNewInvite(invite, queries)
+                        upsertNewChat(
+                            newChat,
+                            SynchronizedMap<ChatId, Seen>(),
+                            queries,
+                            newContact,
+                            accountOwner.value?.nodePubKey
+                        )
+                    }
+                }
+                inviteLock.withLock {
+                    invite?.let {
+                        queries.transaction {
+                            upsertNewInvite(it, queries)
+                        }
                     }
                 }
             }
         }
-        println("CREATE_CONTACT: override suspend fun createNewContact")
+        println("CREATE_CONTACT: Contact and chat creation process completed.")
     }
 
     override suspend fun getNewContactIndex(): Flow<ContactId?> = flow {
