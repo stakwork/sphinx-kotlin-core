@@ -512,12 +512,11 @@ abstract class SphinxRepository(
         }
     }
 
+    // ConnectManagerListener Callbacks implemented
     init {
         connectManager.addListener(this)
         memeServerTokenHandler.addListener(this)
     }
-
-    // ConnectManagerListener Callbacks implemented
 
     // Account Management
     override fun onUpdateUserState(userState: String) {

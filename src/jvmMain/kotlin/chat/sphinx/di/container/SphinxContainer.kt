@@ -13,12 +13,20 @@ object SphinxContainer {
         appModule,
         authenticationModule
     )
+
+    private var repositoryModuleInstance: RepositoryModule? = null
+
     fun repositoryModule(
         sphinxNotificationManager: SphinxNotificationManager
-    ) = RepositoryModule(
-        appModule,
-        authenticationModule,
-        networkModule,
-        sphinxNotificationManager
-    )
+    ): RepositoryModule {
+        if (repositoryModuleInstance == null) {
+            repositoryModuleInstance = RepositoryModule(
+                appModule,
+                authenticationModule,
+                networkModule,
+                sphinxNotificationManager
+            )
+        }
+        return repositoryModuleInstance!!
+    }
 }
