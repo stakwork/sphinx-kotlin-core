@@ -372,6 +372,15 @@ abstract class SphinxRepository(
         }
     }
 
+    override suspend fun payContactPaymentRequest(
+        paymentRequest: LightningPaymentRequest?
+    ) {
+        applicationScope.launch(mainImmediate) {
+            paymentRequest?.value?.let {
+                connectManager.processContactInvoicePayment(it)
+            }
+        }
+    }
 
     override suspend fun payInvoice(
         paymentRequest: LightningPaymentRequest,
@@ -382,7 +391,6 @@ abstract class SphinxRepository(
     ) {
         if (paymentHash != null) {
             webViewPaymentHash.value = paymentHash
-
         }
 
         if (endHops?.isNotEmpty() == true && routerPubKey != null) {

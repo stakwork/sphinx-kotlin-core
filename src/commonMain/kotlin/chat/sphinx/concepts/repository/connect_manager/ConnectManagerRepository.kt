@@ -72,7 +72,7 @@ interface ConnectManagerRepository {
     fun getPayments(lastMessageDate: Long, limit: Int)
 //    suspend fun getChatIdByEncryptedChild(child: String): Flow<ChatId?>
     fun getTagsByChatId(chatId: ChatId)
-//    suspend fun payContactPaymentRequest(paymentRequest: LightningPaymentRequest?)
+    suspend fun payContactPaymentRequest(paymentRequest: LightningPaymentRequest?)
     suspend fun payInvoice(
     paymentRequest: LightningPaymentRequest,
     endHops: String?,
