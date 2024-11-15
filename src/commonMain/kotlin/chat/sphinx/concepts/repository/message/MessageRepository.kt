@@ -131,7 +131,7 @@ interface MessageRepository {
     )
 
     suspend fun sendNewPaymentRequest(
-        requestPayment: SendPaymentRequest
+        requestPayment: SendPayment
     )
 
 

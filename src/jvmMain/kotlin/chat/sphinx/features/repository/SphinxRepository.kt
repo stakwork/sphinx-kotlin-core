@@ -7934,7 +7934,7 @@ abstract class SphinxRepository(
         }
     }
 
-    override suspend fun sendNewPaymentRequest(requestPayment: SendPaymentRequest) {
+    override suspend fun sendNewPaymentRequest(requestPayment: SendPayment) {
         applicationScope.launch(mainImmediate) {
             val queries = coreDB.getSphinxDatabaseQueries()
             val chatId = requestPayment.chatId ?: return@launch
@@ -7946,7 +7946,7 @@ abstract class SphinxRepository(
             }
             val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
 
-            val invoiceAndHash = connectManager.createInvoice(requestPayment.amount, requestPayment.memo ?: "")
+            val invoiceAndHash = connectManager.createInvoice(requestPayment.amount, requestPayment.text ?: "")
 
             val newPaymentRequest = NewMessage(
                 id = provisionalId,
@@ -7973,7 +7973,7 @@ abstract class SphinxRepository(
                 person = null,
                 threadUUID = null,
                 errorMessage = null,
-                messageContentDecrypted = requestPayment.memo?.toMessageContentDecrypted(),
+                messageContentDecrypted = requestPayment.text?.toMessageContentDecrypted(),
                 messageDecryptionError = false,
                 messageDecryptionException = null,
                 messageMedia = null,
@@ -7988,7 +7988,7 @@ abstract class SphinxRepository(
             )
 
             val newPaymentRequestMessage = chat.sphinx.wrapper.mqtt.Message(
-                requestPayment.memo,
+                requestPayment.text,
                 null,
                 null,
                 null,
@@ -8030,9 +8030,6 @@ abstract class SphinxRepository(
             }
         }
     }
-
-
-
 
     suspend fun getOwner() : Contact? {
         var owner: Contact? = accountOwner.value
