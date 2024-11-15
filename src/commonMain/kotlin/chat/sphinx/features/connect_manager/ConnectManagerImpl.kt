@@ -589,6 +589,7 @@ class ConnectManagerImpl(
                 notifyListeners { onRestoreFinished() }
             }
 
+            notifyListeners { updatePaidInvoices() }
             getReadMessages()
             getMutedChats()
             getPings()

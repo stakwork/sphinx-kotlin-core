@@ -363,6 +363,9 @@ inline val Message.isPaidInvoice: Boolean
 inline val Message.isFlagged: Boolean
     get() = flagged.isTrue()
 
+inline fun Message.isPaymentConfirmed(): Boolean =
+    (this.type.isDirectPayment() || this.type.isInvoicePayment()) && this.status is MessageStatus.Confirmed
+
 abstract class Message {
     abstract val id: MessageId
     abstract val uuid: MessageUUID?

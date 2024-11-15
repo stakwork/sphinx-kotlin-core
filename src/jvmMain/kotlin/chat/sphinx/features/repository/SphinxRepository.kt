@@ -1050,6 +1050,17 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun updatePaidInvoices() {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            queries.messageGetAllPayments().executeAsList().forEach { message ->
+                messageLock.withLock {
+                    queries.messageUpdateInvoiceAsPaidByPaymentHash(message.payment_hash)
+                }
+            }
+        }
+    }
+
     // Messaging Callbacks
     override fun onMessage(
         msg: String,

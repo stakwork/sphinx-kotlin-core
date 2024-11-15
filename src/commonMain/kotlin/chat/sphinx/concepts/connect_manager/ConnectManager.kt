@@ -210,6 +210,7 @@ interface ConnectManagerListener {
     fun onConnectManagerError(error: ConnectManagerError)
     fun onRestoreProgress(progress: Int)
     fun onRestoreFinished()
+    fun updatePaidInvoices()
 
     // Messaging Callbacks
     fun onMessage(
