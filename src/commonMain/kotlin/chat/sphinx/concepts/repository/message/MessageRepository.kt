@@ -36,7 +36,6 @@ interface MessageRepository {
     fun getPaymentsTotalFor(feedId: FeedId): Flow<Sat?>
     fun getSentConfirmedMessagesByChatId(chatId: ChatId): Flow<List<Message>>
 
-
     suspend fun getAllMessagesByUUID(messageUUIDs: List<MessageUUID>): List<Message>
 
     fun updateMessageContentDecrypted(messageId: MessageId, messageContentDecrypted: MessageContentDecrypted)
@@ -120,7 +119,6 @@ interface MessageRepository {
 
     suspend fun deleteMqttMessage(messageUuid: MessageUUID)
 
-
     fun getMaxIdMessage(): Flow<Long?>
     fun getLastMessage(): Flow<Message?>
 
@@ -133,6 +131,4 @@ interface MessageRepository {
     suspend fun sendNewPaymentRequest(
         requestPayment: SendPayment
     )
-
-
 }
