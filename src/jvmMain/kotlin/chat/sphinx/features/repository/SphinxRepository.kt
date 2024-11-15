@@ -7722,9 +7722,9 @@ abstract class SphinxRepository(
             val hasPaymentRequest = paymentRequest != null || existingMessage?.payment_request != null
 
             val status = when {
-                fromMe && existingMessage?.payment_request != null -> MessageStatus.Pending
-                fromMe && existingMessage?.payment_request == null -> MessageStatus.Confirmed
-                !fromMe && existingMessage?.payment_request != null -> MessageStatus.Pending
+                fromMe && hasPaymentRequest -> MessageStatus.Pending
+                fromMe && !hasPaymentRequest -> MessageStatus.Confirmed
+                !fromMe && hasPaymentRequest -> MessageStatus.Pending
                 else -> MessageStatus.Received
             }
 
