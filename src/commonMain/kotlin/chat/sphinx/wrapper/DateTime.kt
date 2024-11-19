@@ -28,6 +28,10 @@ inline fun Long.toDateTime(): DateTime =
     DateTime(DateTimeTz.fromUnixLocal(this))
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun Long.toDateTimeUTC(): DateTime =
+    DateTime(DateTimeTz.fromUnix(this))
+
+@Suppress("NOTHING_TO_INLINE")
 inline fun Long.secondsToDateTime(): DateTime =
     DateTime(DateTimeTz.fromUnix(this * 1000))
 
