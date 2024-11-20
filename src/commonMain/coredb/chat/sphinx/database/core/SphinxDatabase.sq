@@ -347,6 +347,11 @@ WHERE node_pub_key = ?
 ORDER BY id
 LIMIT 1;
 
+contactGetAllByPubKeys:
+SELECT *
+FROM contactDbo
+WHERE node_pub_key IN :node_pub_key;
+
 contactGetOwner:
 SELECT *
 FROM contactDbo

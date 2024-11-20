@@ -97,7 +97,9 @@ import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
 import chat.sphinx.wrapper.mqtt.*
+import chat.sphinx.wrapper.mqtt.LastReadMessages.Companion.toLastReadMap
 import chat.sphinx.wrapper.mqtt.MsgsCounts.Companion.toMsgsCounts
+import chat.sphinx.wrapper.mqtt.MuteLevels.Companion.toMuteLevelsMap
 import chat.sphinx.wrapper.mqtt.NewCreateTribe.Companion.toNewCreateTribe
 import chat.sphinx.wrapper.mqtt.NewSentStatus.Companion.toNewSentStatus
 import chat.sphinx.wrapper.mqtt.Payment.Companion.toPaymentsList
@@ -914,96 +916,96 @@ abstract class SphinxRepository(
 
 
     override fun onLastReadMessages(lastReadMessages: String) {
-//        applicationScope.launch(io) {
-//            val queries = coreDB.getSphinxDatabaseQueries()
-//
-//            val lastReadMessagesMap = lastReadMessages.toLastReadMap(moshi)
-//            val pubKeys = lastReadMessagesMap?.keys
-//
-//            val contactPubkey = pubKeys?.map { it.toLightningNodePubKey() }
-//            val tribePubKey = pubKeys?.map { it.toChatUUID() }
-//
-//            val contacts = contactPubkey?.filterNotNull()?.let { queries.contactGetAllByPubKeys(it).executeAsList() }
-//            val tribes = tribePubKey?.filterNotNull()?.let { queries.chatGetAllByUUIDS(it).executeAsList() }
-//
-//            // Create a new map for mapping chatId to lastMsgIndex
-//            val chatIdToLastMsgIndexMap = mutableMapOf<ChatId, MessageId>()
-//
-//            contacts?.forEach { contact ->
-//                val lastMsgIndex = lastReadMessagesMap.get(contact.node_pub_key?.value)
-//                if (lastMsgIndex != null) {
-//                    chatIdToLastMsgIndexMap[ChatId(contact.id.value)] = MessageId(lastMsgIndex)
-//                }
-//            }
-//
-//            tribes?.forEach { tribe ->
-//                val lastMsgIndex = lastReadMessagesMap.get(tribe.uuid.value)
-//                if (lastMsgIndex != null) {
-//                    chatIdToLastMsgIndexMap[tribe.id] = MessageId(lastMsgIndex)
-//                }
-//            }
-//
-//            messageLock.withLock {
-//                queries.transaction {
-//                    chatIdToLastMsgIndexMap.forEach { (chatId, lastMsgIndex) ->
-//                        queries.messageUpdateSeenByChatIdAndId(chatId, lastMsgIndex)
-//                    }
-//                }
-//            }
-//
-//            chatLock.withLock {
-//                chatIdToLastMsgIndexMap.forEach { (chatId, lastMsgIndex) ->
-//                    queries.chatUpdateSeenByLastMessage(chatId, lastMsgIndex)
-//                }
-//            }
-//        }
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            val lastReadMessagesMap = lastReadMessages.toLastReadMap()
+            val pubKeys = lastReadMessagesMap?.keys
+
+            val contactPubkey = pubKeys?.map { it.toLightningNodePubKey() }
+            val tribePubKey = pubKeys?.map { it.toChatUUID() }
+
+            val contacts = contactPubkey?.filterNotNull()?.let { queries.contactGetAllByPubKeys(it).executeAsList() }
+            val tribes = tribePubKey?.filterNotNull()?.let { queries.chatGetAllByUUIDS(it).executeAsList() }
+
+            // Create a new map for mapping chatId to lastMsgIndex
+            val chatIdToLastMsgIndexMap = mutableMapOf<ChatId, MessageId>()
+
+            contacts?.forEach { contact ->
+                val lastMsgIndex = lastReadMessagesMap.get(contact.node_pub_key?.value)
+                if (lastMsgIndex != null) {
+                    chatIdToLastMsgIndexMap[ChatId(contact.id.value)] = MessageId(lastMsgIndex)
+                }
+            }
+
+            tribes?.forEach { tribe ->
+                val lastMsgIndex = lastReadMessagesMap.get(tribe.uuid.value)
+                if (lastMsgIndex != null) {
+                    chatIdToLastMsgIndexMap[tribe.id] = MessageId(lastMsgIndex)
+                }
+            }
+
+            messageLock.withLock {
+                queries.transaction {
+                    chatIdToLastMsgIndexMap.forEach { (chatId, lastMsgIndex) ->
+                        queries.messageUpdateSeenByChatIdAndId(chatId, lastMsgIndex)
+                    }
+                }
+            }
+
+            chatLock.withLock {
+                chatIdToLastMsgIndexMap.forEach { (chatId, lastMsgIndex) ->
+                    queries.chatUpdateSeenByLastMessage(chatId, lastMsgIndex)
+                }
+            }
+        }
     }
 
     override fun onUpdateMutes(mutes: String) {
-//        applicationScope.launch(io) {
-//            val queries = coreDB.getSphinxDatabaseQueries()
-//
-//            val mutesMap = mutes.toMuteLevelsMap(moshi)
-//            val pubKeys = mutesMap?.keys
-//
-//            val contactPubkey = pubKeys?.map { it.toLightningNodePubKey() }
-//            val tribePubKey = pubKeys?.map { it.toChatUUID() }
-//
-//            val contacts = contactPubkey?.filterNotNull()?.let { queries.contactGetAllByPubKeys(it).executeAsList() }
-//            val tribes = tribePubKey?.filterNotNull()?.let { queries.chatGetAllByUUIDS(it).executeAsList() }
-//
-//            val notificationMap = mutableMapOf<ChatId, NotificationLevel>()
-//
-//            contacts?.forEach { contact ->
-//                mutesMap[contact.node_pub_key?.value]?.let { level ->
-//                    notificationMap[ChatId(contact.id.value)] = when (level) {
-//                        NotificationLevel.SEE_ALL -> NotificationLevel.SeeAll
-//                        NotificationLevel.ONLY_MENTIONS -> NotificationLevel.OnlyMentions
-//                        NotificationLevel.MUTE_CHAT -> NotificationLevel.MuteChat
-//                        else -> NotificationLevel.Unknown(level)
-//                    }
-//                }
-//            }
-//
-//            tribes?.forEach { tribe ->
-//                mutesMap[tribe.uuid.value]?.let { level ->
-//                    notificationMap[ChatId(tribe.id.value)] = when (level) {
-//                        NotificationLevel.SEE_ALL -> NotificationLevel.SeeAll
-//                        NotificationLevel.ONLY_MENTIONS -> NotificationLevel.OnlyMentions
-//                        NotificationLevel.MUTE_CHAT -> NotificationLevel.MuteChat
-//                        else -> NotificationLevel.Unknown(level)
-//                    }
-//                }
-//            }
-//
-//            chatLock.withLock {
-//                queries.transaction {
-//                    notificationMap.forEach { (chatId, level) ->
-//                        queries.chatUpdateNotificationLevel(level, chatId)
-//                    }
-//                }
-//            }
-//        }
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            val mutesMap = mutes.toMuteLevelsMap()
+            val pubKeys = mutesMap?.keys
+
+            val contactPubkey = pubKeys?.map { it.toLightningNodePubKey() }
+            val tribePubKey = pubKeys?.map { it.toChatUUID() }
+
+            val contacts = contactPubkey?.filterNotNull()?.let { queries.contactGetAllByPubKeys(it).executeAsList() }
+            val tribes = tribePubKey?.filterNotNull()?.let { queries.chatGetAllByUUIDS(it).executeAsList() }
+
+            val notificationMap = mutableMapOf<ChatId, NotificationLevel>()
+
+            contacts?.forEach { contact ->
+                mutesMap[contact.node_pub_key?.value]?.let { level ->
+                    notificationMap[ChatId(contact.id.value)] = when (level) {
+                        NotificationLevel.SEE_ALL -> NotificationLevel.SeeAll
+                        NotificationLevel.ONLY_MENTIONS -> NotificationLevel.OnlyMentions
+                        NotificationLevel.MUTE_CHAT -> NotificationLevel.MuteChat
+                        else -> NotificationLevel.Unknown(level)
+                    }
+                }
+            }
+
+            tribes?.forEach { tribe ->
+                mutesMap[tribe.uuid.value]?.let { level ->
+                    notificationMap[ChatId(tribe.id.value)] = when (level) {
+                        NotificationLevel.SEE_ALL -> NotificationLevel.SeeAll
+                        NotificationLevel.ONLY_MENTIONS -> NotificationLevel.OnlyMentions
+                        NotificationLevel.MUTE_CHAT -> NotificationLevel.MuteChat
+                        else -> NotificationLevel.Unknown(level)
+                    }
+                }
+            }
+
+            chatLock.withLock {
+                queries.transaction {
+                    notificationMap.forEach { (chatId, level) ->
+                        queries.chatUpdateNotificationLevel(level, chatId)
+                    }
+                }
+            }
+        }
     }
 
     override fun onGetNodes() {
@@ -3841,29 +3843,40 @@ abstract class SphinxRepository(
         queries: SphinxDatabaseQueries,
         executeNetworkRequest: Boolean
     ) {
-        val wasMarkedSeen: Boolean =
-            chatLock.withLock {
-                messageLock.withLock {
-                    withContext(io) {
-                        chatSeenMap.withLock { map ->
+        chatLock.withLock {
+            messageLock.withLock {
+                withContext(io) {
+                    chatSeenMap.withLock { map ->
 
-                            if (map[chatId]?.isTrue() != true) {
+                        if (map[chatId]?.isTrue() != true) {
 
-                                queries.updateSeen(chatId)
-                                LOG.d(TAG, "Chat [$chatId] marked as Seen")
-                                map[chatId] = Seen.True
+                            queries.updateSeen(chatId)
+                            LOG.d(TAG, "Chat [$chatId] marked as Seen")
+                            map[chatId] = Seen.True
 
-                                true
-                            } else {
-                                false
-                            }
+                            true
+                        } else {
+                            false
                         }
                     }
                 }
             }
 
-        if (executeNetworkRequest && wasMarkedSeen) {
-            // TODO V2 readMessages
+            val message = queries.messageGetMaxIdByChatId(chatId).executeAsOneOrNull()
+            val contact = queries.contactGetById(ContactId(chatId.value)).executeAsOneOrNull()
+            val chat = queries.chatGetById(chatId).executeAsOneOrNull()
+
+            if (message != null) {
+                if (contact != null) {
+                    contact.node_pub_key?.value?.let { pubKey ->
+                        connectManager.setReadMessage(pubKey, message.id.value)
+                    }
+                } else {
+                    chat?.uuid?.value?.let { pubKey ->
+                        connectManager.setReadMessage(pubKey, message.id.value)
+                    }
+                }
+            }
         }
     }
 
@@ -5543,7 +5556,15 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             val queries = coreDB.getSphinxDatabaseQueries()
-            val currentNotificationLevel = chat.notifyActualValue()
+            val contact = queries.contactGetById(ContactId(chat.id.value)).executeAsOneOrNull()
+
+            if (contact != null) {
+                contact.node_pub_key?.value?.let { pubKey ->
+                    connectManager.setMute(level.value, pubKey)
+                }
+            } else {
+                connectManager.setMute(level.value, chat.uuid.value)
+            }
 
             chatLock.withLock {
                 withContext(io) {
@@ -5556,42 +5577,6 @@ abstract class SphinxRepository(
                     }
                 }
             }
-            // TODO V2 setNotificationLevel
-
-//            networkQueryChat.setNotificationLevel(chat.id, level).collect { loadResponse ->
-//                when (loadResponse) {
-//                    is LoadResponse.Loading -> {}
-//                    is Response.Success -> {
-//                        chatLock.withLock {
-//                            withContext(io) {
-//                                queries.transaction {
-//                                    upsertChat(
-//                                        loadResponse.value,
-//                                        chatSeenMap,
-//                                        queries,
-//                                        null
-//                                    )
-//                                }
-//                            }
-//                        }
-//                    }
-//                    is Response.Error -> {
-//                        response = loadResponse
-//
-//                        chatLock.withLock {
-//                            withContext(io) {
-//                                queries.transaction {
-//                                    updateChatNotificationLevel(
-//                                        chat.id,
-//                                        currentNotificationLevel,
-//                                        queries
-//                                    )
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
         }.join()
 
         return response
