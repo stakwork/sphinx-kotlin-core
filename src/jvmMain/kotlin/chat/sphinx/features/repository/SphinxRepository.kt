@@ -335,7 +335,8 @@ abstract class SphinxRepository(
                 pendingContactIds = emptyList(),
                 latestMessageId = null,
                 contentSeenAt = null,
-                notify = NotificationLevel.SeeAll
+                notify = NotificationLevel.SeeAll,
+                secondBrainUrl = null
             )
 
             chatLock.withLock {
@@ -816,7 +817,8 @@ abstract class SphinxRepository(
                                 pendingContactIds = emptyList(),
                                 latestMessageId = null,
                                 contentSeenAt = null,
-                                notify = NotificationLevel.SeeAll
+                                notify = NotificationLevel.SeeAll,
+                                secondBrainUrl = null
                             )
 
                             chatLock.withLock {
@@ -888,7 +890,8 @@ abstract class SphinxRepository(
                                 pendingContactIds = emptyList(),
                                 latestMessageId = null,
                                 contentSeenAt = null,
-                                notify = NotificationLevel.SeeAll
+                                notify = NotificationLevel.SeeAll,
+                                secondBrainUrl = loadResponse.value.second_brain_url?.toSecondBrainUrl()
                             )
 
                             messageLock.withLock {
@@ -1297,7 +1300,8 @@ abstract class SphinxRepository(
                     pendingContactIds = emptyList(),
                     latestMessageId = existingTribe?.latestMessageId,
                     contentSeenAt = existingTribe?.contentSeenAt,
-                    notify = NotificationLevel.SeeAll
+                    notify = NotificationLevel.SeeAll,
+                    secondBrainUrl = existingTribe?.secondBrainUrl
                 )
 
                 chatLock.withLock {
@@ -1775,66 +1779,6 @@ abstract class SphinxRepository(
 //                }
 //
 //            }
-        }
-    }
-
-    private suspend fun processChatDtos(
-        chats: List<ChatDto>,
-        contacts: Map<ContactId, ContactDto>? = null
-    ): Response<Boolean, ResponseError> {
-        val queries = coreDB.getSphinxDatabaseQueries()
-        try {
-
-            var error: Throwable? = null
-            val handler = CoroutineExceptionHandler { _, throwable ->
-                error = throwable
-            }
-
-            applicationScope.launch(io + handler) {
-                chatLock.withLock {
-
-                    messageLock.withLock {
-
-                        queries.transaction {
-                            for (dto in chats) {
-                                if (dto.deletedActual) {
-                                    LOG.d(TAG, "Removing Chats/Messages for ${ChatId(dto.id)}")
-                                    deleteChatById(ChatId(dto.id), queries, latestMessageUpdatedTimeMap)
-                                } else {
-                                    val contactDto: ContactDto? =
-                                        if (dto.type == ChatType.CONVERSATION) {
-                                            dto.contact_ids.elementAtOrNull(1)?.let { contactId ->
-                                                contacts?.get(ContactId(contactId))
-                                            }
-                                        } else {
-                                            null
-                                        }
-
-                                    upsertChat(dto, chatSeenMap, queries, contactDto)
-                                }
-
-                            }
-                        }
-
-                    }
-
-                }
-            }.join()
-
-            error?.let {
-                throw it
-            }
-
-            return Response.Success(true)
-
-        } catch (e: IllegalArgumentException) {
-            val msg = "Failed to convert Json from Relay while processing Chats"
-            LOG.e(TAG, msg, e)
-            return Response.Error(ResponseError(msg, e))
-        } catch (e: ParseException) {
-            val msg = "Failed to convert date/time from Relay while processing Chats"
-            LOG.e(TAG, msg, e)
-            return Response.Error(ResponseError(msg, e))
         }
     }
 
@@ -3283,7 +3227,8 @@ abstract class SphinxRepository(
                 pendingContactIds = emptyList(),
                 latestMessageId = null,
                 contentSeenAt = null,
-                notify = NotificationLevel.SeeAll
+                notify = NotificationLevel.SeeAll,
+                secondBrainUrl = null
             )
 
             withContext(dispatchers.io) {

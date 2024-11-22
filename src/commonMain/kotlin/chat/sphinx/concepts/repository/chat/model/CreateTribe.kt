@@ -2,12 +2,14 @@ package chat.sphinx.concepts.repository.chat.model
 
 import chat.sphinx.concepts.network.query.chat.model.PostGroupDto
 import chat.sphinx.concepts.network.query.chat.model.TribeDto
+import chat.sphinx.wrapper.SecondBrainUrl
 import chat.sphinx.wrapper.chat.AppUrl
 import chat.sphinx.wrapper.chat.toAppUrl
 import chat.sphinx.wrapper.feed.FeedType
 import chat.sphinx.wrapper.feed.FeedUrl
 import chat.sphinx.wrapper.feed.toFeedType
 import chat.sphinx.wrapper.feed.toFeedUrl
+import chat.sphinx.wrapper.toSecondBrainUrl
 import okio.Path
 import kotlin.jvm.Synchronized
 
@@ -25,6 +27,7 @@ class CreateTribe private constructor(
     val unlisted: Boolean?,
     val private: Boolean?,
     val appUrl: AppUrl?,
+    val secondBrainUrl: SecondBrainUrl?,
     val feedUrl: FeedUrl?,
     val feedType: FeedType?,
 ) {
@@ -54,6 +57,7 @@ class CreateTribe private constructor(
         private var unlisted: Boolean? = false
         private var private: Boolean? = false
         private var appUrl: AppUrl? = null
+        private var secondBrainUrl: SecondBrainUrl? = null
         private var feedUrl: FeedUrl? = null
         private var feedType: FeedType? = null
 
@@ -157,6 +161,12 @@ class CreateTribe private constructor(
         }
 
         @Synchronized
+        fun setSecondBrainUrl(secondBrainUrl: String?): Builder {
+            this.secondBrainUrl = secondBrainUrl?.toSecondBrainUrl()
+            return this
+        }
+
+        @Synchronized
         fun setFeedUrl(feedUrl: String?): Builder {
             this.feedUrl = feedUrl?.toFeedUrl()
             return this
@@ -182,6 +192,7 @@ class CreateTribe private constructor(
             escrowAmount = tribeDto.escrow_amount
             escrowMillis = tribeDto.escrow_millis
             appUrl = tribeDto.app_url?.toAppUrl()
+            secondBrainUrl = tribeDto.second_brain_url?.toSecondBrainUrl()
             feedUrl = tribeDto.feed_url?.toFeedUrl()
             feedType = tribeDto.feed_type?.toFeedType()
             unlisted = tribeDto.unlisted?.value
@@ -208,6 +219,7 @@ class CreateTribe private constructor(
                     unlisted = unlisted,
                     private = private,
                     appUrl = appUrl,
+                    secondBrainUrl = secondBrainUrl,
                     feedUrl = feedUrl,
                     feedType = feedType
                 )
@@ -228,6 +240,7 @@ class CreateTribe private constructor(
             unlisted = unlisted,
             private = private,
             app_url = appUrl?.value,
+            second_brain_url = secondBrainUrl?.value,
             feed_url = feedUrl?.value,
             feed_type = feedType?.value?.toLong()
         )

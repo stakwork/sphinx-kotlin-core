@@ -1,5 +1,6 @@
 package chat.sphinx.features.coredb.adapters.chat
 
+import chat.sphinx.wrapper.SecondBrainUrl
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.toNotificationLevel
@@ -135,4 +136,15 @@ internal class NotifyAdapter: ColumnAdapter<NotificationLevel, Long> {
         return value.value.toLong()
     }
 }
+
+internal class SecondBrainUrlAdapter: ColumnAdapter<SecondBrainUrl, String> {
+    override fun decode(databaseValue: String): SecondBrainUrl {
+        return SecondBrainUrl(databaseValue)
+    }
+
+    override fun encode(value: SecondBrainUrl): String {
+        return value.value
+    }
+}
+
 

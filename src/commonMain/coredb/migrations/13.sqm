@@ -1,3 +1,4 @@
+import chat.sphinx.wrapper.SecondBrainUrl;
 import chat.sphinx.wrapper.invite.InviteCode;
 import chat.sphinx.wrapper.message.ErrorMessage;
 import chat.sphinx.wrapper.message.TagMessage;

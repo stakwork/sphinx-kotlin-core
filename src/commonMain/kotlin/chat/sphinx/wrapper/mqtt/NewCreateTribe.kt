@@ -19,6 +19,7 @@ data class NewCreateTribe(
     val unlisted: Boolean? = null,
     val private: Boolean? = null,
     val app_url: String? = null,
+    val second_brain_url: String? = null,
     val feed_url: String? = null,
     val feed_type: Int? = null,
     val created: Long? = null,

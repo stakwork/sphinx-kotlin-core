@@ -1,5 +1,6 @@
 package chat.sphinx.wrapper.chat
 
+import chat.sphinx.wrapper.SecondBrainUrl
 import chat.sphinx.wrapper.feed.FeedType
 import chat.sphinx.wrapper.feed.FeedUrl
 
@@ -9,4 +10,5 @@ data class TribeData(
     val appUrl: AppUrl?,
     val feedUrl : FeedUrl?,
     val feedType: FeedType,
-)
+    val secondBrainUrl: SecondBrainUrl?
+    )

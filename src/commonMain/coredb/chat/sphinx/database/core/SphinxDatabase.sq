@@ -1,5 +1,6 @@
 import chat.sphinx.wrapper.DateTime;
 import chat.sphinx.wrapper.PhotoUrl;
+import chat.sphinx.wrapper.SecondBrainUrl;
 import chat.sphinx.wrapper.Seen;
 import chat.sphinx.wrapper.chat.ChatAlias;
 import chat.sphinx.wrapper.chat.ChatGroupKey;
@@ -105,7 +106,8 @@ CREATE TABLE chatDbo(
     pending_contact_ids         TEXT            AS List<ContactId>,
     latest_message_id           INTEGER         AS MessageId DEFAULT NULL,
     content_seen_at             INTEGER         AS DateTime,
-    notify                      INTEGER         AS NotificationLevel
+    notify                      INTEGER         AS NotificationLevel,
+    second_brain_url            TEXT            AS SecondBrainUrl DEFAULT NULL
 
 );
 
@@ -184,6 +186,11 @@ SELECT MIN(id) FROM chatDbo
 WHERE type = 2
 AND id > 10000;
 
+chatGetSecondBrainTribes:
+SELECT *
+FROM chatDbo
+WHERE second_brain_url != '';
+
 chatUpsert {
     UPDATE chatDbo
     SET name = :name,
@@ -226,7 +233,8 @@ chatUpsert {
         my_photo_url,
         my_alias,
         pending_contact_ids,
-        notify
+        notify,
+        second_brain_url
     )
     VALUES (
         :id,
@@ -250,7 +258,8 @@ chatUpsert {
         :my_photo_url,
         :my_alias,
         :pending_contact_ids,
-        :notify
+        :notify,
+        :second_brain_url
     );
 }
 
@@ -279,7 +288,8 @@ UPDATE chatDbo
 SET price_per_message = :price_per_message,
     escrow_amount = :escrow_amount,
     name = :name,
-    photo_url = :photo_url
+    photo_url = :photo_url,
+    second_brain_url = :second_brain_url
 WHERE id = ?;
 
 chatUpdateSeenByLastMessage:

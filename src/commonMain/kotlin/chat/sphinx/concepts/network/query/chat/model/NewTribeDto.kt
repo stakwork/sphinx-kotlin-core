@@ -28,6 +28,7 @@ data class NewTribeDto(
     val unique_name: String? = null,
     val pin: String? = null,
     val app_url: String? = null,
+    val second_brain_url: String? = null,
     val feed_url: String? = null,
     val feed_type: Int? = null
 ) {

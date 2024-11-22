@@ -21,7 +21,8 @@ data class TransactionDto(
     val payment_request: String? = null,
     val date: Long? = null,
     val reply_uuid: String? = null,
-    val error_message: String? = null
+    val error_message: String? = null,
+    val message_content: String? = null
 ) {
 
     fun isIncomingWithSender(ownerId: ContactId): Boolean {
@@ -66,5 +67,9 @@ data class TransactionDto(
 
     fun isFailedPayment(): Boolean {
         return error_message?.isNotEmpty() == true
+    }
+
+    fun isBountyPayment(): Boolean {
+        return (message_content ?: "").isNotEmpty() && sender == -1L && receiver == 0L
     }
 }

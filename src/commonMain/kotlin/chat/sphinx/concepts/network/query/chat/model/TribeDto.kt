@@ -2,8 +2,6 @@ package chat.sphinx.concepts.network.query.chat.model
 
 import chat.sphinx.serialization.SphinxBoolean
 import chat.sphinx.utils.platform.getFileSystem
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.SerialName
@@ -27,6 +25,7 @@ data class TribeDto(
     val unlisted: SphinxBoolean,
     val private: SphinxBoolean,
     val deleted: SphinxBoolean,
+    val second_brain_url: String? = null,
     val app_url: String? = null,
     val feed_url: String? = null,
     val feed_type: Int? = null,

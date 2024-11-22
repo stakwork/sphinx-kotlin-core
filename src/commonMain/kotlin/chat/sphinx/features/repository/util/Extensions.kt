@@ -171,12 +171,14 @@ inline fun TransactionCallbacks.updateNewChatTribeData(
     val name = tribe.name.toChatName()
     val photoUrl = tribe.img?.toPhotoUrl()
     val pinMessage = tribe.pin?.toMessageUUID()
+    val secondBrainUrl = tribe.second_brain_url?.toSecondBrainUrl()
 
     queries.chatUpdateTribeData(
         pricePerMessage,
         escrowAmount,
         name,
         photoUrl,
+        secondBrainUrl,
         chatId
     )
 
@@ -197,12 +199,14 @@ inline fun TransactionCallbacks.updateChatTribeData(
     val escrowAmount = tribe.escrow_amount.toSat()
     val name = tribe.name.toChatName()
     val photoUrl = tribe.img?.toPhotoUrl()
+    val secondBrainUrl = tribe.second_brain_url?.toSecondBrainUrl()
 
     queries.chatUpdateTribeData(
         pricePerMessage,
         escrowAmount,
         name,
         photoUrl,
+        secondBrainUrl,
         chatId,
     )
 
@@ -254,7 +258,8 @@ inline fun TransactionCallbacks.upsertNewChat(
         chatType,
         createdAt,
         pricePerMessage,
-        escrowAmount
+        escrowAmount,
+        null
     )
 
     if (
@@ -267,6 +272,7 @@ inline fun TransactionCallbacks.upsertNewChat(
             escrowAmount,
             chatName,
             chatPhotoUrl,
+            null,
             chatId
         )
     }
@@ -299,86 +305,6 @@ inline fun TransactionCallbacks.upsertNewChat(
     )
 
     chatSeenMap.withLock { it[ChatId(chat.id.value)] = seen }
-}
-
-
-@Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
-inline fun TransactionCallbacks.upsertChat(
-    dto: chat.sphinx.concepts.network.query.chat.model.ChatDto,
-    chatSeenMap: SynchronizedMap<ChatId, Seen>,
-    queries: SphinxDatabaseQueries,
-    contactDto: ContactDto? = null,
-    ownerPubKey: LightningNodePubKey? = null
-) {
-    val seen = dto.seenActual.toSeen()
-    val chatId = ChatId(dto.id)
-    val chatType = dto.type.toChatType()
-    val createdAt = dto.created_at.toDateTime()
-    val contactIds = dto.contact_ids.map { ContactId(it) }
-    val muted = dto.isMutedActual().toChatMuted()
-    val chatPhotoUrl = dto.photo_url?.toPhotoUrl()
-    val pricePerMessage = dto.price_per_message?.toSat()
-    val escrowAmount = dto.escrow_amount?.toSat()
-    val chatName = dto.name?.toChatName()
-    val adminPubKey = dto.owner_pub_key?.toLightningNodePubKey()
-
-    queries.chatUpsert(
-        chatName,
-        chatPhotoUrl,
-        dto.status.toChatStatus(),
-        contactIds,
-        muted,
-        dto.group_key?.toChatGroupKey(),
-        dto.host?.toChatHost(),
-        dto.unlistedActual.toChatUnlisted(),
-        dto.privateActual.toChatPrivate(),
-        dto.owner_pub_key?.toLightningNodePubKey(),
-        seen,
-        dto.meta?.toChatMetaDataOrNull(),
-        dto.my_photo_url?.toPhotoUrl(),
-        dto.my_alias?.toChatAlias(),
-        dto.pending_contact_ids?.map { ContactId(it) },
-        dto.notify?.toNotificationLevel(),
-        chatId,
-        ChatUUID(dto.uuid),
-        chatType,
-        createdAt,
-        pricePerMessage,
-        escrowAmount,
-    )
-
-    if (chatType.isTribe() && (ownerPubKey == adminPubKey) && (pricePerMessage != null || escrowAmount != null)) {
-        queries.chatUpdateTribeData(pricePerMessage, escrowAmount, chatName, chatPhotoUrl, chatId)
-    }
-
-    val conversationContactId: ContactId? = if (chatType.isConversation()) {
-        contactIds.elementAtOrNull(1)?.let { contactId ->
-            queries.dashboardUpdateIncludeInReturn(false, contactId)
-            contactId
-        }
-    } else {
-        null
-    }
-
-    queries.dashboardUpsert(
-        if (conversationContactId != null && contactDto != null) {
-            contactDto.alias
-        } else {
-            dto.name ?: " "
-        },
-        muted,
-        seen,
-        if (conversationContactId != null && contactDto != null) {
-            contactDto.photo_url?.toPhotoUrl()
-        } else {
-            chatPhotoUrl
-        },
-        chatId,
-        conversationContactId,
-        createdAt
-    )
-
-    chatSeenMap.withLock { it[ChatId(dto.id)] = seen }
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")

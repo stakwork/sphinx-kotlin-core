@@ -1,11 +1,8 @@
 package chat.sphinx.wrapper.chat
 
-import chat.sphinx.wrapper.DateTime
-import chat.sphinx.wrapper.PhotoUrl
-import chat.sphinx.wrapper.Seen
+import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
-import chat.sphinx.wrapper.isTrue
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
@@ -95,4 +92,5 @@ data class Chat(
     val latestMessageId: MessageId?,
     val contentSeenAt: DateTime?,
     val notify: NotificationLevel?,
-)
+    val secondBrainUrl: SecondBrainUrl?,
+    )

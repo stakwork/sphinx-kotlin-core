@@ -406,6 +406,17 @@ data class SendAuthMessage(
     val password: String,
 )
 
+@Throws(AssertionError::class)
+fun SendAuthMessage.toJson(): String =
+    Json.encodeToString(
+        SendAuthMessage(
+            pubkey,
+            type,
+            application,
+            password
+        )
+    )
+
 @Serializable
 data class SendAuthMessageWithSignature(
     val pubkey: String,
@@ -775,3 +786,34 @@ fun SendPersonDataFailedMessage.toJson(): String =
             success
         )
     )
+
+// SEND SECOND BRAIN LIST DATA
+@Serializable
+data class SendSecondBrainListData(
+    val type: String,
+    val application: String,
+    val password: String,
+    val secondBrainList: List<String>
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toSendSecondBrainListDataOrNull(): SendSecondBrainListData? =
+    try {
+        this.toSendSecondBrainListData()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toSendSecondBrainListData(): SendSecondBrainListData =
+    Json.decodeFromString<SendSecondBrainListData>(this).let {
+        SendSecondBrainListData(
+            it.type,
+            it.application,
+            it.password,
+            it.secondBrainList
+        )
+    }
+
+@Throws(AssertionError::class)
+fun SendSecondBrainListData.toJson(): String =
+    Json.encodeToString(this)

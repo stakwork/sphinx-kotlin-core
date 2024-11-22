@@ -142,7 +142,8 @@ abstract class CoreDBImpl: CoreDB() {
                     pending_contact_idsAdapter = ContactIdsAdapter.getInstance(),
                     latest_message_idAdapter = MessageIdAdapter.getInstance(),
                     content_seen_atAdapter = DateTimeAdapter.getInstance(),
-                    notifyAdapter = NotifyAdapter()
+                    notifyAdapter = NotifyAdapter(),
+                    second_brain_urlAdapter = SecondBrainUrlAdapter()
                 ),
                 contactDboAdapter = ContactDbo.Adapter(
                     idAdapter = ContactIdAdapter.getInstance(),
