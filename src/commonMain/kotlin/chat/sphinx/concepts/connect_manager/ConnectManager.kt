@@ -134,6 +134,9 @@ abstract class ConnectManager {
     abstract fun processInvoicePayment(
         paymentRequest: String,
         milliSatAmount: Long,
+    ): String?
+    abstract fun payInvoiceFromLSP(
+        paymentRequest: String
     )
     abstract fun retrievePaymentHash(paymentRequest: String): String?
     abstract fun getPayments(

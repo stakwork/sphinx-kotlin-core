@@ -1756,7 +1756,7 @@ class ConnectManagerImpl(
     override fun processInvoicePayment(
         paymentRequest: String,
         milliSatAmount: Long
-    ) {
+    ): String? {
         try {
             val invoice = payInvoice(
                 ownerSeed!!,
@@ -1766,13 +1766,33 @@ class ConnectManagerImpl(
                 milliSatAmount.toULong()
             )
             handleRunReturn(invoice)
+            return invoice.msgs.first().tag
         } catch (e: Exception) {
             notifyListeners {
                 onConnectManagerError(ConnectManagerError.PayInvoiceError)
             }
             LOG.d("MQTT_MESSAGES", "processInvoicePayment ${e.message}")
+            return null
         }
     }
+
+    override fun payInvoiceFromLSP(paymentRequest: String) {
+        try {
+            val invoice = pay(
+                ownerSeed!!,
+                getTimestampInMilliseconds(),
+                getCurrentUserState(),
+                paymentRequest
+            )
+            handleRunReturn(invoice)
+        } catch (e: Exception) {
+            notifyListeners {
+                onConnectManagerError(ConnectManagerError.PayInvoiceError)
+            }
+            LOG.d("MQTT_MESSAGES", "payInvoiceFromLSP ${e.message}")
+        }
+    }
+
 
     override fun retrievePaymentHash(paymentRequest: String): String? {
         return try {

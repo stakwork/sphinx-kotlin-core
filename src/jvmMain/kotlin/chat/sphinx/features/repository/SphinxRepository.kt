@@ -123,7 +123,6 @@ import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
-import io.ktor.http.parsing.*
 import io.matthewnelson.component.base64.encodeBase64
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -232,6 +231,10 @@ abstract class SphinxRepository(
     }
 
     override val webViewPaymentHash: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val processingInvoice: MutableStateFlow<Pair<String, String>?> by lazy {
         MutableStateFlow(null)
     }
 
@@ -390,7 +393,9 @@ abstract class SphinxRepository(
         endHops: String?,
         routerPubKey: String?,
         milliSatAmount: Long,
-        paymentHash: String?
+        isSphinxInvoice: Boolean,
+        paymentHash: String?,
+        callback: (() -> Unit)?
     ) {
         if (paymentHash != null) {
             webViewPaymentHash.value = paymentHash
@@ -403,12 +408,28 @@ abstract class SphinxRepository(
                 milliSatAmount
             )
         }
-        connectManager.processInvoicePayment(
+        val tag = connectManager.processInvoicePayment(
             paymentRequest.value,
             milliSatAmount
         )
+        if (!isSphinxInvoice) {
+            tag?.let {
+                callback?.invoke()
+                processingInvoice.value = Pair(paymentRequest.value, it)
+
+                val timer = Timer("OneTimeTimer", true)
+                timer.schedule(object : TimerTask() {
+                    override fun run() {
+                        processingInvoice.value = null
+                    }
+                }, 60000)
+            }
+        }
     }
 
+    override suspend fun payInvoiceFromLSP(paymentRequest: LightningPaymentRequest) {
+        connectManager.payInvoiceFromLSP(paymentRequest.value)
+    }
 
     override fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean {
         return connectManager.isRouteAvailable(pubKey, routeHint, milliSat)
@@ -1216,25 +1237,34 @@ abstract class SphinxRepository(
             val newSentStatus = sentStatus.toNewSentStatus()
             val queries = coreDB.getSphinxDatabaseQueries()
 
-            if (newSentStatus.isFailedMessage()) {
-                queries.messageUpdateStatusAndPaymentHashByTag(
-                    MessageStatus.Failed,
-                    newSentStatus.payment_hash?.toLightningPaymentHash(),
-                    newSentStatus.message?.toErrorMessage(),
-                    newSentStatus.tag?.toTagMessage()
-                )
+            if (newSentStatus.tag == processingInvoice.value?.second) {
+                if (newSentStatus.isFailedMessage()) {
+                    processingInvoice.value?.first?.toLightningPaymentRequestOrNull()?.let {
+                        payInvoiceFromLSP(it)
+                    }
+                }
+                processingInvoice.value = null
             } else {
-                queries.messageUpdateStatusAndPaymentHashByTag(
-                    MessageStatus.Received,
-                    newSentStatus.payment_hash?.toLightningPaymentHash(),
-                    newSentStatus.message?.toErrorMessage(),
-                    newSentStatus.tag?.toTagMessage()
-                )
+                if (newSentStatus.isFailedMessage()) {
+                    queries.messageUpdateStatusAndPaymentHashByTag(
+                        MessageStatus.Failed,
+                        newSentStatus.payment_hash?.toLightningPaymentHash(),
+                        newSentStatus.message?.toErrorMessage(),
+                        newSentStatus.tag?.toTagMessage()
+                    )
+                } else {
+                    queries.messageUpdateStatusAndPaymentHashByTag(
+                        MessageStatus.Received,
+                        newSentStatus.payment_hash?.toLightningPaymentHash(),
+                        newSentStatus.message?.toErrorMessage(),
+                        newSentStatus.tag?.toTagMessage()
+                    )
 
-                // Check if web view payment hash matches
-                if (newSentStatus.payment_hash == webViewPaymentHash.value) {
-                    webViewPreImage.value = newSentStatus.preimage
-                    webViewPaymentHash.value = null
+                    // Check if web view payment hash matches
+                    if (newSentStatus.payment_hash == webViewPaymentHash.value) {
+                        webViewPreImage.value = newSentStatus.preimage
+                        webViewPaymentHash.value = null
+                    }
                 }
             }
         }
@@ -2978,7 +3008,8 @@ abstract class SphinxRepository(
 
     override suspend fun processLightningPaymentRequest(
         lightningPaymentRequest: LightningPaymentRequest,
-        invoiceBolt11: InvoiceBolt11
+        invoiceBolt11: InvoiceBolt11,
+        callback: ((String) -> Unit)?
     ) {
         if (payInvoiceJob?.isActive == true) {
             return
@@ -3002,6 +3033,10 @@ abstract class SphinxRepository(
             var payeeLspPubKey = invoiceBolt11.hop_hints?.getOrNull(0)?.substringBefore('_')
             val ownerLsp = getOwner()?.routeHint?.getLspPubKey()
 
+            var payeeRouteHint = invoiceBolt11.hop_hints?.getOrNull((invoiceBolt11.hop_hints?.size ?: 1) - 1)
+            var payeeHasRouteHint = payeeRouteHint != null
+
+
             if (payeeLspPubKey == null) {
                 val contact = getContactByPubKey(invoicePayeePubKey).firstOrNull()
                 payeeLspPubKey = contact?.routeHint?.getLspPubKey()
@@ -3020,7 +3055,10 @@ abstract class SphinxRepository(
                         lightningPaymentRequest,
                         null,
                         null,
-                        invoiceAmountMilliSat
+                        invoiceAmountMilliSat,
+                        callback = {
+                            callback?.invoke("Processing payment: This process could take up to 60 seconds. Please be patient")
+                        }
                     )
                 } else {
                     val routerUrl = serversUrls.getRouterUrl()
@@ -3036,7 +3074,13 @@ abstract class SphinxRepository(
                     ).collect { response ->
                         when (response) {
                             is LoadResponse.Loading -> {}
-                            is Response.Error -> {}
+                            is Response.Error -> {
+                                if (payeeHasRouteHint) {
+                                    callback?.invoke("Error getting route")
+                                } else {
+                                    payInvoiceFromLSP(lightningPaymentRequest)
+                                }
+                            }
 
                             is Response.Success -> {
                                 try {
@@ -3059,7 +3103,12 @@ abstract class SphinxRepository(
                     lightningPaymentRequest,
                     null,
                     null,
-                    invoiceAmountMilliSat
+                    invoiceAmountMilliSat,
+                    isSphinxInvoice = payeeHasRouteHint,
+                    callback = {
+                        callback?.invoke("Processing payment: This process could take up to 60 seconds. Please be patient")
+                    }
+
                 )
             }
         }

@@ -41,6 +41,7 @@ interface LightningRepository {
 
     suspend fun processLightningPaymentRequest(
         lightningPaymentRequest: LightningPaymentRequest,
-        invoiceBolt11: InvoiceBolt11
+        invoiceBolt11: InvoiceBolt11,
+        callback: ((String) -> Unit)? = null
     )
 }
