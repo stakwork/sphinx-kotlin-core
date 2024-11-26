@@ -102,6 +102,7 @@ interface MessageRepository {
     suspend fun upsertMqttMessage(
         msg: Msg,
         msgSender: MsgSender,
+        contactTribePubKey: String,
         msgType: MessageType,
         msgUuid: MessageUUID,
         msgIndex: MessageId,

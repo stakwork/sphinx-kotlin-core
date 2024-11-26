@@ -715,6 +715,10 @@ class ConnectManagerImpl(
     }
 
     // Account Management Methods
+    override fun setOwnerInfo(ownerInfo: OwnerInfo) {
+        _ownerInfoStateFlow.value = ownerInfo
+    }
+
     override fun createAccount(userAlias: String) {
         ownerUserName = userAlias
         if (isRestoreAccount()) {

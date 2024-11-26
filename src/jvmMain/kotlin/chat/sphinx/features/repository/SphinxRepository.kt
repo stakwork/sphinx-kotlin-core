@@ -555,13 +555,13 @@ abstract class SphinxRepository(
         serversUrls.storeUserState(userState)
     }
 
-    override fun onMnemonicWords(words: String, isRestoreAccount: Boolean) {
+    override fun onMnemonicWords(words: String, isRestore: Boolean) {
         applicationScope.launch(io) {
             words.toWalletMnemonic()?.let {
                 relayDataHandler.persistWalletMnemonic(it)
             }
         }
-        if (!isRestoreAccount) {
+        if (!isRestore) {
             mnemonicWords.value = words
         }
     }
@@ -1072,6 +1072,10 @@ abstract class SphinxRepository(
                         restoreMinIndex.value = null
                     }
                 }
+                val owner = getOwner()
+                if (owner?.alias?.value?.trim().isNullOrEmpty()) {
+                    //            viewModel.finishSettingUpPersonalInfo()
+                }
             }
         }
     }
@@ -1105,87 +1109,79 @@ abstract class SphinxRepository(
         applicationScope.launch(io) {
             try {
                 val messageType = msgType.toMessageType()
-
                 val messageSender = if (msgSender.isNotEmpty()) msgSender.toMsgSender() else null
 
-                val contactInfo = if (fromMe == false) {
-                    messageSender
-                } else {
-                    // Add
-                    MsgSender(
-                        sentTo,
-                        messageSender?.route_hint,
-                        messageSender?.alias,
-                        messageSender?.photo_url,
-                        messageSender?.person,
-                        messageSender?.confirmed ?: false,
-                        messageSender?.code,
-                        messageSender?.host,
-                        messageSender?.role
-                    )
-                }
+                if (messageSender != null ) {
 
-                when (messageType) {
-                    is MessageType.ContactKeyRecord -> {
-                        saveNewContactRegistered(msgSender, date, isRestore)
+                    val contactTribePubKey = if (fromMe == true) {
+                        sentTo
+                    } else {
+                        messageSender.pubkey
                     }
-                    else -> {
-                        val message = if (msg.isNotEmpty()) msg.toMsg() else Msg(
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null
-                        )
 
-                        when (messageType) {
-                            is MessageType.Purchase.Processing -> {
-                                amount?.toSat()?.let { paidAmount ->
-                                    if (contactInfo != null) {
+                    when (messageType) {
+                        is MessageType.ContactKeyRecord -> {
+                            saveNewContactRegistered(msgSender, date, isRestore)
+                        }
+                        else -> {
+                            val message = if (msg.isNotEmpty()) msg.toMsg() else Msg(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                            )
+
+                            when (messageType) {
+                                is MessageType.Purchase.Processing -> {
+                                    amount?.toSat()?.let { paidAmount ->
                                         sendMediaKeyOnPaidPurchase(
                                             message,
-                                            contactInfo,
+                                            messageSender,
                                             paidAmount
                                         )
                                     }
                                 }
-                            }
-                            is MessageType.ContactKeyConfirmation -> {
-                                saveNewContactRegistered(msgSender, date, isRestore)
-                            }
-                            is MessageType.ContactKey -> {
-                                saveNewContactRegistered(msgSender, date, isRestore)
-                            }
-                            is MessageType.Delete -> {
-                                msg.toMsg().replyUuid?.toMessageUUID()?.let { replyUuid ->
-                                    deleteMqttMessage(replyUuid)
+
+                                is MessageType.ContactKeyConfirmation -> {
+                                    saveNewContactRegistered(msgSender, date, isRestore)
                                 }
+
+                                is MessageType.ContactKey -> {
+                                    saveNewContactRegistered(msgSender, date, isRestore)
+                                }
+
+                                is MessageType.Delete -> {
+                                    msg.toMsg().replyUuid?.toMessageUUID()?.let { replyUuid ->
+                                        deleteMqttMessage(replyUuid)
+                                    }
+                                }
+
+                                else -> {}
                             }
-                            else -> {}
-                        }
 
-                        val messageId = if (msgIndex.isNotEmpty()) MessageId(msgIndex.toLong()) else return@launch
-                        val messageUuid = msgUuid.toMessageUUID() ?: return@launch
-                        val originalUUID = message.originalUuid?.toMessageUUID()
-                        val timestamp = msgTimestamp?.toDateTime()
-                        val date = message.date?.toDateTime()
-                        val paymentRequest = message.invoice?.toLightningPaymentRequestOrNull()
-                        val bolt11 = paymentRequest?.let { Bolt11.decode(it) }
-                        val paymentHash = paymentRequest?.let {
-                            connectManager.retrievePaymentHash(it.value)?.toLightningPaymentHash()
-                        }
-                        val msgTag = tag?.toTagMessage()
+                            val messageId = if (msgIndex.isNotEmpty()) MessageId(msgIndex.toLong()) else return@launch
+                            val messageUuid = msgUuid.toMessageUUID() ?: return@launch
+                            val originalUUID = message.originalUuid?.toMessageUUID()
+                            val timestamp = msgTimestamp?.toDateTime()
+                            val date = message.date?.toDateTime()
+                            val paymentRequest = message.invoice?.toLightningPaymentRequestOrNull()
+                            val bolt11 = paymentRequest?.let { Bolt11.decode(it) }
+                            val paymentHash = paymentRequest?.let {
+                                connectManager.retrievePaymentHash(it.value)?.toLightningPaymentHash()
+                            }
+                            val msgTag = tag?.toTagMessage()
 
-                        if (contactInfo != null) {
                             upsertMqttMessage(
                                 message,
-                                contactInfo,
+                                messageSender,
+                                contactTribePubKey,
                                 messageType,
                                 messageUuid,
                                 messageId,
@@ -1201,6 +1197,33 @@ abstract class SphinxRepository(
                                 msgTag
                             )
                         }
+                    }
+                } else {
+                    val message = if (msg.isNotEmpty()) msg.toMsg() else Msg(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    )
+
+                    if (msgIndex.isNotEmpty() && message.content?.isNotEmpty() == true) {
+                        val messageId = MessageId(msgIndex.toLong())
+
+                        upsertGenericPaymentMsg(
+                            msg = message,
+                            msgType = msgType.toMessageType(),
+                            msgIndex = messageId,
+                            msgAmount = amount?.toSat(),
+                            timestamp = msgTimestamp?.toDateTime(),
+                            paymentHash = message.paymentHash?.toLightningPaymentHash()
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -2392,18 +2415,22 @@ abstract class SphinxRepository(
         alias: String?, privatePhoto: PrivatePhoto, tipAmount: Sat
     ): Response<Any, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
-        var response: Response<Any, ResponseError> = Response.Success(Any())
-        val newAlias = alias?.toContactAlias()
 
-        if (newAlias != null) {
-            queries.contactUpdateOwnerDetails(
-                alias = newAlias,
-                private_photo = privatePhoto,
-                tip_amount = tipAmount
+        contactLock.withLock {
+            queries.contactUpdateOwnerInfo(
+                alias?.toContactAlias(),
+                privatePhoto ?: PrivatePhoto.False,
+                tipAmount
             )
         }
 
-        return response
+        connectManager.ownerInfoStateFlow.value?.let {
+            connectManager.setOwnerInfo(
+                it.copy(alias = alias)
+            )
+        }
+
+        return Response.Success(Any())
     }
 
     override suspend fun updateContact(
@@ -2646,6 +2673,13 @@ abstract class SphinxRepository(
                                     )
                                 }
                             }
+
+                            connectManager.ownerInfoStateFlow.value?.let {
+                                connectManager.setOwnerInfo(
+                                    it.copy(picture = newUrl.value)
+                                )
+                            }
+
                         } ?: throw IllegalStateException("Failed to retrieve account owner")
                     }
                 }
@@ -3328,6 +3362,12 @@ abstract class SphinxRepository(
             alias = alias,
             updatedAt = now
         )
+
+        connectManager.ownerInfoStateFlow.value?.let { ownerInfo ->
+            connectManager.setOwnerInfo(
+                ownerInfo.copy(alias = alias.value)
+            )
+        }
 
         if (updatedOwner != null) {
             applicationScope.launch(mainImmediate) {
@@ -7639,6 +7679,7 @@ abstract class SphinxRepository(
     override suspend fun upsertMqttMessage(
         msg: Msg,
         msgSender: MsgSender,
+        contactTribePubKey: String,
         msgType: MessageType,
         msgUuid: MessageUUID,
         msgIndex: MessageId,
@@ -7654,8 +7695,9 @@ abstract class SphinxRepository(
         tag: TagMessage?
     ) {
         val queries = coreDB.getSphinxDatabaseQueries()
-        val contact = msgSender.pubkey.toLightningNodePubKey()?.let { getContactByPubKey(it).firstOrNull() }
-        val chatTribe = msgSender.pubkey.toChatUUID()?.let { getChatByUUID(it).firstOrNull() }
+        val contact = contactTribePubKey.toLightningNodePubKey()?.let { getContactByPubKey(it).firstOrNull() }
+        val owner = accountOwner.value
+        val chatTribe = contactTribePubKey.toChatUUID()?.let { getChatByUUID(it).firstOrNull() }
         var messageMedia: MessageMediaDbo? = null
         val isTribe = contact == null
 
@@ -7763,9 +7805,8 @@ abstract class SphinxRepository(
                 replyMessage = null,
                 thread = null
             )
-
-            if (!fromMe) {
-                contact?.id?.let { contactId ->
+            contact?.id?.let { contactId ->
+                if (!fromMe) {
                     val lastMessageIndex = getLastMessage().firstOrNull()?.id?.value
                     val newMessageIndex = msgIndex.value
 
@@ -7781,8 +7822,39 @@ abstract class SphinxRepository(
                             }
                         }
                     }
+                } else {
+                    contactLock.withLock {
+                        if (owner != null) {
+                            if (owner.alias?.value == null) {
+                                msgSender.alias?.takeIf { it.isNotEmpty() && it != owner.alias?.value }
+                                    ?.let {
+                                        queries.contactUpdateAlias(it.toContactAlias(), owner.id)
+
+                                        connectManager.ownerInfoStateFlow.value?.let { ownerInfo ->
+                                            connectManager.setOwnerInfo(
+                                                ownerInfo.copy(alias = it)
+                                            )
+                                        }
+                                    }
+                            }
+
+                            if (owner.photoUrl?.value == null) {
+                                msgSender.photo_url?.takeIf { it.isNotEmpty() && it != owner.photoUrl?.value }
+                                    ?.let {
+                                        queries.contactUpdatePhotoUrl(it.toPhotoUrl(), owner.id)
+
+                                        connectManager.ownerInfoStateFlow.value?.let { ownerInfo ->
+                                            connectManager.setOwnerInfo(
+                                                ownerInfo.copy(picture = it)
+                                            )
+                                        }
+                                    }
+                            }
+                        }
+                    }
                 }
             }
+
             if (msgType is MessageType.Payment) {
                 queries.messageUpdateInvoiceAsPaidByPaymentHash(
                     msg.paymentHash?.toLightningPaymentHash()
@@ -7807,6 +7879,40 @@ abstract class SphinxRepository(
             }
         }
     }
+
+    private suspend fun upsertGenericPaymentMsg(
+        msg: Msg,
+        msgType: MessageType,
+        msgIndex: MessageId,
+        msgAmount: Sat?,
+        timestamp: DateTime?,
+        paymentHash: LightningPaymentHash?,
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        val newMessage = NewMessage(
+            id = msgIndex,
+            chatId = ChatId(ChatId.NULL_CHAT_ID.toLong()),
+            type = msgType,
+            sender = ContactId(-1),
+            receiver = ContactId(0),
+            amount = msgAmount ?: Sat(0L),
+            paymentHash = paymentHash,
+            date = timestamp ?: DateTime.nowUTC().toDateTime(),
+            status = MessageStatus.Received,
+            seen = Seen.False,
+            flagged = Flagged.False,
+            messageContentDecrypted = if (msg.content?.isNotEmpty() == true) MessageContentDecrypted(msg.content) else null,
+            messageDecryptionError = false,
+        )
+
+        messageLock.withLock {
+            queries.transaction {
+                upsertNewMessage(newMessage, queries, null)
+            }
+        }
+    }
+
 
     override suspend fun deleteMqttMessage(messageUuid: MessageUUID) {
         val queries = coreDB.getSphinxDatabaseQueries()

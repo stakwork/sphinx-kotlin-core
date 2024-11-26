@@ -483,6 +483,13 @@ contactDeleteById:
 DELETE FROM contactDbo
 WHERE id = ?;
 
+contactUpdateOwnerInfo:
+UPDATE contactDbo
+SET alias = :alias,
+    private_photo = :private_photo,
+    tip_amount = :tip_amount
+WHERE owner = 1;
+
 contactDeleteAll:
 DELETE FROM contactDbo;
 
