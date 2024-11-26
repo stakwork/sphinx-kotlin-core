@@ -10,7 +10,8 @@ data class Payment(
     val rhash: String? = null,
     val ts: Long? = null,
     val remote: Boolean? = null,
-    val msg_idx: Long? = null
+    val msg_idx: Long? = null,
+    val error: String? = null
 ) {
     companion object {
         fun String.toPaymentsList(): List<Payment>? {

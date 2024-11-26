@@ -1426,7 +1426,7 @@ abstract class SphinxRepository(
                         payment_request = null,
                         date = payment.ts,
                         reply_uuid = null,
-                        error_message = null
+                        error_message = payment.error
                     )
                 }
             }.orEmpty()
