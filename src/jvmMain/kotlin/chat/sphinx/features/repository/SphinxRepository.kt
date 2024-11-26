@@ -581,8 +581,9 @@ abstract class SphinxRepository(
         applicationScope.launch(mainImmediate) {
             val scid = routeHint.toLightningRouteHint()?.getScid()
 
-            if (scid != null && ownerAlias != null) {
-                createOwner(okKey, routeHint, scid, ownerAlias ?: "unknown")
+            if (scid != null) {
+                val alias = if(!isRestoreAccount) ownerAlias else null
+                createOwner(okKey, routeHint, scid, alias)
 
                 mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
                 defaultTribe?.let { serversUrls.storeDefaultTribe(it) }
@@ -591,7 +592,13 @@ abstract class SphinxRepository(
                 val needsToFetchConfig = routerUrl.isNullOrEmpty() || tribeServerHost.isNullOrEmpty()
 
                 if (needsToFetchConfig) {
-                    fetchMissingAccountConfig(isProductionEnvironment, routerUrl, tribeServerHost, defaultTribe)
+
+                    fetchMissingAccountConfig(
+                        isProductionEnvironment,
+                        routerUrl,
+                        tribeServerHost,
+                        defaultTribe
+                    )
                 }
 
                 delay(1000L)
@@ -626,14 +633,12 @@ abstract class SphinxRepository(
                             serversUrls.storeDefaultTribe(it)
                         }
                         delay(100L)
-                        // Navigate to the next screen or perform the next action
                     }
 
                     is Response.Error -> {
                         // Handle the error, e.g., show a notification or log the error
                         // Navigate to the next screen or perform the next action
                     }
-
                     LoadResponse.Loading -> {}
                 }
             }
@@ -3177,7 +3182,7 @@ abstract class SphinxRepository(
         okKey: String,
         routeHint: String,
         shortChannelId: String,
-        ownerAlias: String
+        ownerAlias: String?
     ) {
         val queries = coreDB.getSphinxDatabaseQueries()
         val now = DateTime.nowUTC()
@@ -3187,7 +3192,7 @@ abstract class SphinxRepository(
             routeHint = routeHint.toLightningRouteHint(),
             nodePubKey = okKey.toLightningNodePubKey(),
             nodeAlias = null,
-            alias = ownerAlias.toContactAlias(),
+            alias = ownerAlias?.toContactAlias(),
             photoUrl = null,
             privatePhoto = PrivatePhoto.False,
             isOwner = Owner.True,

@@ -99,7 +99,7 @@ interface ContactRepository {
         okKey: String,
         routeHint: String,
         shortChannelId: String,
-        ownerAlias: String
+        ownerAlias: String?
     )
 
     suspend fun createNewContact(contact: NewContact)
