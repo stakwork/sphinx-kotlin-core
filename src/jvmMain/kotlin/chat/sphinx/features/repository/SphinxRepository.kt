@@ -250,6 +250,10 @@ abstract class SphinxRepository(
         MutableStateFlow(null)
     }
 
+    override val profileSetInfoRestore: MutableStateFlow<Boolean?> by lazy {
+        MutableStateFlow(null)
+    }
+
     override fun setInviteCode(inviteString: String) {
         connectManager.setInviteCode(inviteString)
     }
@@ -441,6 +445,10 @@ abstract class SphinxRepository(
 
     override fun getInvoiceInfo(invoice: String): String? {
         return connectManager.getInvoiceInfo(invoice)
+    }
+
+    override fun cancelRestore() {
+        onRestoreFinished(isRestoreCancelled = true)
     }
 
     override fun reconnectMqtt() {
@@ -1066,21 +1074,21 @@ abstract class SphinxRepository(
         }
     }
 
-    override fun onRestoreFinished() {
-        restoreProgress.value = RestoreProgress(false, 100)
-        val messageId = restoreMinIndex.value?.let { MessageId(it) }
-        if (messageId != null) {
-            applicationScope.launch(io) {
-                getMessageById(messageId).collect { message ->
-                    if (message != null) {
-                        connectManager.getReadMessages()
-                        restoreMinIndex.value = null
-                    }
+    override fun onRestoreFinished(isRestoreCancelled: Boolean) {
+        restoreProgress.value = if (isRestoreCancelled) null else RestoreProgress(false, 100)
+        applicationScope.launch(io) {
+            val messageId = restoreMinIndex.value?.let { MessageId(it) }
+
+            if (messageId != null) {
+                val message = getMessageById(messageId).firstOrNull()
+                if (message != null) {
+                    connectManager.getReadMessages()
+                    restoreMinIndex.value = null
                 }
-                val owner = getOwner()
-                if (owner?.alias?.value?.trim().isNullOrEmpty()) {
-                    //            viewModel.finishSettingUpPersonalInfo()
-                }
+            }
+            val owner = getOwner()
+            if (owner?.alias?.value?.trim().isNullOrEmpty()) {
+                profileSetInfoRestore.value = true
             }
         }
     }

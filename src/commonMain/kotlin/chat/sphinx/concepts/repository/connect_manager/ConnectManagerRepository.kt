@@ -36,6 +36,7 @@ interface ConnectManagerRepository {
     val webViewPreImage: MutableStateFlow<String?>
     val restoreMinIndex: MutableStateFlow<Long?>
     val mnemonicWords: MutableStateFlow<String?>
+    val profileSetInfoRestore: MutableStateFlow<Boolean?>
 
     fun connectAndSubscribeToMqtt()
     fun createOwnerAccount(ownerAlias: String)
@@ -120,6 +121,7 @@ interface ConnectManagerRepository {
 //    fun getIdFromMacaroon(macaroon: String): String?
 //    fun attemptReconnectOnResume()
 //
+    fun cancelRestore()
     fun reconnectMqtt()
     fun cleanMnemonic()
     fun disconnectMqtt()
