@@ -591,7 +591,10 @@ abstract class SphinxRepository(
 
             if (scid != null) {
                 val alias = if(!isRestoreAccount) ownerAlias else null
-                createOwner(okKey, routeHint, scid, alias)
+
+                if (accountOwner.value?.nodePubKey == null) {
+                    createOwner(okKey, routeHint, scid, alias)
+                }
 
                 mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
                 defaultTribe?.let { serversUrls.storeDefaultTribe(it) }
