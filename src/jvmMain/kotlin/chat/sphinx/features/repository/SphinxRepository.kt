@@ -6861,9 +6861,7 @@ abstract class SphinxRepository(
         return response ?: Response.Error(ResponseError(("Failed to exit tribe")))
     }
 
-    override suspend fun createTribe(createTribe: CreateTribe): Response<Any, ResponseError> {
-        var response: Response<Any, ResponseError> =
-            Response.Error(ResponseError(("Failed to exit tribe")))
+    override suspend fun storeTribe(createTribe: CreateTribe, chatId: ChatId?) {
         val memeServerHost = MediaHost.DEFAULT
 
         applicationScope.launch(mainImmediate) {
@@ -6886,7 +6884,6 @@ abstract class SphinxRepository(
                     when (networkResponse) {
                         is Response.Error -> {
                             LOG.e(TAG, "Failed to upload image: ", networkResponse.exception)
-                            response = networkResponse
                             null
                         }
                         is Response.Success -> {
@@ -6895,66 +6892,21 @@ abstract class SphinxRepository(
                     }
                 }
 
-            // TODO V2 createTribe
+                val ownerAlias = accountOwner.value?.alias?.value ?: "unknown"
 
-//                networkQueryChat.createTribe(
-//                    createTribe.toPostGroupDto(imgUrl)
-//                ).collect { loadResponse ->
-//                    when (loadResponse) {
-//                        is LoadResponse.Loading -> {
-//                        }
-//
-//                        is Response.Error -> {
-//                            response = loadResponse
-//                            LOG.e(TAG, "Failed to create tribe: ", loadResponse.exception)
-//                        }
-//                        is Response.Success -> {
-//                            loadResponse.value?.let { chatDto ->
-//                                response = Response.Success(chatDto)
-//                                val queries = coreDB.getSphinxDatabaseQueries()
-//
-//                                var owner: Contact? = accountOwner.value
-//
-//                                if (owner == null) {
-//                                    try {
-//                                        accountOwner.collect {
-//                                            if (it != null) {
-//                                                owner = it
-//                                                throw Exception()
-//                                            }
-//                                        }
-//                                    } catch (e: Exception) {
-//                                    }
-//                                    delay(25L)
-//                                }
-//
-//                                chatLock.withLock {
-//                                    messageLock.withLock {
-//                                        withContext(io) {
-//                                            queries.transaction {
-//                                                upsertChat(
-//                                                    chatDto,
-//                                                    chatSeenMap,
-//                                                    queries,
-//                                                    null,
-//                                                    owner?.nodePubKey
-//                                                )
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-            } catch (e: Exception) {
-                response = Response.Error(
-                    ResponseError("Failed to update Chat Profile", e)
-                )
-            }
-        }.join()
+                if (chatId == null) {
+                    val newTribeJson = createTribe.toNewCreateTribe(ownerAlias, imgUrl, null).toJson()
+                    connectManager.createTribe(newTribeJson)
+                } else {
+                    val tribe = getChatById(chatId)
+                    if (tribe != null) {
+                        val updatedTribeJson = createTribe.toNewCreateTribe(ownerAlias, imgUrl, tribe.uuid.value).toJson()
+                        tribe.ownerPubKey?.value?.let { connectManager.editTribe(updatedTribeJson) }
+                    }
+                }
 
-        return response
+            } catch (e: Exception) { }
+        }
     }
 
     override suspend fun updateTribe(

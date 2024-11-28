@@ -2,7 +2,6 @@ package chat.sphinx.concepts.repository.chat
 
 import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.chat.model.NewTribeDto
-import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
@@ -10,7 +9,6 @@ import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.chat.ChatAlias
 import chat.sphinx.wrapper.chat.ChatUUID
-import chat.sphinx.wrapper.chat.TribeData
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
@@ -27,6 +25,8 @@ interface ChatRepository {
     fun getChatByIdFlow(chatId: ChatId): Flow<Chat?>
     fun getChatByUUID(chatUUID: ChatUUID): Flow<Chat?>
     fun getPodcastByChatId(chatId: ChatId): Flow<Podcast?>
+
+
 
     val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>>
 
@@ -45,8 +45,9 @@ interface ChatRepository {
     suspend fun updateChatContentSeenAt(chatId: ChatId)
 
     suspend fun updateTribeInfo(chat: Chat, isProductionEnvironment: Boolean): NewTribeDto?
-    suspend fun createTribe(createTribe: CreateTribe): Response<Any, ResponseError>
+    suspend fun storeTribe(createTribe: CreateTribe, chatId: ChatId?)
     suspend fun updateTribe(chatId: ChatId, createTribe: CreateTribe): Response<Any, ResponseError>
+
     suspend fun exitAndDeleteTribe(chat: Chat): Response<Boolean, ResponseError>
 
     suspend fun updateChatProfileInfo(

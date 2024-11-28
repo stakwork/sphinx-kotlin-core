@@ -9,6 +9,7 @@ import chat.sphinx.wrapper.feed.FeedType
 import chat.sphinx.wrapper.feed.FeedUrl
 import chat.sphinx.wrapper.feed.toFeedType
 import chat.sphinx.wrapper.feed.toFeedUrl
+import chat.sphinx.wrapper.mqtt.NewCreateTribe
 import chat.sphinx.wrapper.toSecondBrainUrl
 import okio.Path
 import kotlin.jvm.Synchronized
@@ -245,4 +246,30 @@ class CreateTribe private constructor(
             feed_type = feedType?.value?.toLong()
         )
     }
+    fun toNewCreateTribe(ownerAlias: String, image: String?, tribePubKey: String?): NewCreateTribe {
+        return NewCreateTribe(
+            pubkey = tribePubKey,
+            route_hint = null,
+            name = this.name,
+            description = this.description,
+            tags = this.tags.toList(),
+            img = image ?: this.imgUrl,
+            price_per_message = (this.pricePerMessage ?: 0L) * 1000,  // Convert Sats to milliSats
+            price_to_join = (this.priceToJoin ?: 0L) * 1000,  // Convert Sats to milliSats
+            escrow_amount = (this.escrowAmount ?: 0L) * 1000,  // Convert Sats to milliSats
+            escrow_millis = this.escrowMillis,
+            unlisted = this.unlisted,
+            private = this.private,
+            app_url = this.appUrl?.value,
+            second_brain_url = this.secondBrainUrl?.value,
+            feed_url = this.feedUrl?.value,
+            feed_type = this.feedType?.value,
+            created = null,
+            updated = null,
+            member_count = null,
+            last_active = null,
+            owner_alias = ownerAlias
+        )
+    }
+
 }
