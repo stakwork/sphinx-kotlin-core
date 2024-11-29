@@ -5682,12 +5682,9 @@ abstract class SphinxRepository(
                             is Response.Success -> {
                                 tribeData = loadResponse.value
 
-                                if (owner?.nodePubKey != chat.ownerPubKey) {
-
-                                    chatLock.withLock {
-                                        queries.transaction {
-                                            updateNewChatTribeData(loadResponse.value, chat.id, queries)
-                                        }
+                                chatLock.withLock {
+                                    queries.transaction {
+                                        updateNewChatTribeData(loadResponse.value, chat.id, queries)
                                     }
                                 }
                             }

@@ -1,5 +1,6 @@
 package chat.sphinx.concepts.repository.chat.model
 
+import chat.sphinx.concepts.network.query.chat.model.NewTribeDto
 import chat.sphinx.concepts.network.query.chat.model.PostGroupDto
 import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.wrapper.SecondBrainUrl
@@ -197,6 +198,27 @@ class CreateTribe private constructor(
             feedUrl = tribeDto.feed_url?.toFeedUrl()
             feedType = tribeDto.feed_type?.toFeedType()
             unlisted = tribeDto.unlisted?.value
+        }
+
+        @Synchronized
+        fun newLoad(newTribeDto: NewTribeDto) {
+            name = newTribeDto.name
+            imgUrl = newTribeDto.img
+            img = null
+            description = newTribeDto.description
+            tags.forEach { tag ->
+                tag.isSelected = newTribeDto.tags.contains(tag.name)
+            }
+            priceToJoin = newTribeDto.getPriceToJoinInSats()
+            pricePerMessage = newTribeDto.getPricePerMessageInSats()
+            escrowAmount = newTribeDto.getEscrowAmountInSats()
+            escrowMillis = newTribeDto.escrow_millis
+            appUrl = newTribeDto.app_url?.toAppUrl()
+            secondBrainUrl = newTribeDto.second_brain_url?.toSecondBrainUrl()
+            feedUrl = newTribeDto.feed_url?.toFeedUrl()
+            feedType = newTribeDto.feed_type?.toFeedType()
+            unlisted = newTribeDto.unlisted
+            private = newTribeDto.private
         }
 
         @Synchronized
