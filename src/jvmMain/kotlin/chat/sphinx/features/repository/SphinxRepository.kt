@@ -603,16 +603,18 @@ abstract class SphinxRepository(
                 val needsToFetchConfig = routerUrl.isNullOrEmpty() || tribeServerHost.isNullOrEmpty()
 
                 if (needsToFetchConfig) {
-
                     fetchMissingAccountConfig(
                         isProductionEnvironment,
                         routerUrl,
                         tribeServerHost,
                         defaultTribe
                     )
+                } else {
+                    serversUrls.storeRouterUrl(routerUrl)
+                    serversUrls.storeTribeServerIp(tribeServerHost)
                 }
 
-                delay(1000L)
+                delay(100L)
 
                 if (isRestoreAccount) {
                     startRestoreProcess()
