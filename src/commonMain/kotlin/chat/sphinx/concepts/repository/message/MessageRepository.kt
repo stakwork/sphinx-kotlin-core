@@ -15,10 +15,7 @@ import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.feed.FeedId
-import chat.sphinx.wrapper.lightning.Bolt11
-import chat.sphinx.wrapper.lightning.LightningPaymentHash
-import chat.sphinx.wrapper.lightning.LightningPaymentRequest
-import chat.sphinx.wrapper.lightning.Sat
+import chat.sphinx.wrapper.lightning.*
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import chat.sphinx.wrapper_message.ThreadUUID
@@ -91,11 +88,13 @@ interface MessageRepository {
         text: String,
     )
 
-    suspend fun processMemberRequest(
-        contactId: ContactId,
-        messageId: MessageId,
-        type: MessageType,
-    ): LoadResponse<Any, ResponseError>
+    fun processMemberRequest(
+        chatId: ChatId,
+        messageUuid: MessageUUID?,
+        memberPubKey: LightningNodePubKey?,
+        type: MessageType.GroupAction,
+        alias: SenderAlias?,
+    )
 
     suspend fun messageMediaUpdateLocalFile(message: Message, filepath: Path)
 
@@ -122,6 +121,7 @@ interface MessageRepository {
 
     fun getMaxIdMessage(): Flow<Long?>
     fun getLastMessage(): Flow<Message?>
+    fun getTribeLastMemberRequestBySenderAlias(alias: SenderAlias, chatId: ChatId): Flow<Message?>
 
     fun sendMediaKeyOnPaidPurchase(
         msg: Msg,

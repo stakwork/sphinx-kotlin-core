@@ -11,7 +11,9 @@ import chat.sphinx.wrapper.chat.ChatAlias
 import chat.sphinx.wrapper.chat.ChatUUID
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
+import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
+import chat.sphinx.wrapper.message.SenderAlias
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper_chat.NotificationLevel
 import kotlinx.coroutines.flow.Flow
@@ -56,5 +58,5 @@ interface ChatRepository {
         profilePic: PublicAttachmentInfo? = null,
     ): Response<ChatDto, ResponseError>
 
-    suspend fun kickMemberFromTribe(chatId: ChatId, contactId: ContactId): Response<Any, ResponseError>
+    suspend fun kickMemberFromTribe(memberPubKey: LightningNodePubKey, alias: SenderAlias?)
 }

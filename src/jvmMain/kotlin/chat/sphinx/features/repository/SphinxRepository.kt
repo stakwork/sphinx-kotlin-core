@@ -4006,10 +4006,6 @@ abstract class SphinxRepository(
             val isPaidMessage: Boolean = (sendMessage.paidMessagePrice?.value ?: 0) > 0
             val media: AttachmentInfo? = sendMessage.attachmentInfo
 
-//            if (message == null && media == null && !sendMessage.isTribePayment) {
-//                return@launch
-//            }
-
             val pricePerMessage = chat?.pricePerMessage?.value ?: 0
             val escrowAmount = chat?.escrowAmount?.value ?: 0
             val priceToMeet = sendMessage.priceToMeet?.value ?: 0
@@ -4018,6 +4014,9 @@ abstract class SphinxRepository(
             val messageType = when {
                 (media != null) -> {
                     MessageType.Attachment
+                }
+                (sendMessage.groupAction != null) -> {
+                    sendMessage.groupAction
                 }
                 (sendMessage.isBoost) -> {
                     MessageType.Boost
@@ -7007,109 +7006,50 @@ abstract class SphinxRepository(
         return response
     }
 
-    override suspend fun processMemberRequest(
-        contactId: ContactId,
-        messageId: MessageId,
-        type: MessageType,
-    ): Response<Any, ResponseError> {
-        var response: Response<Any, ResponseError> = Response.Error(ResponseError(("")))
+    override fun processMemberRequest(
+        chatId: ChatId,
+        messageUuid: MessageUUID?,
+        memberPubKey: LightningNodePubKey?,
+        type: MessageType.GroupAction,
+        alias: SenderAlias?,
+    ) {
+        val messageBuilder = SendMessage.Builder()
+        messageBuilder.setChatId(chatId)
+        messageBuilder.setGroupAction(type)
 
-        applicationScope.launch(mainImmediate) {
-            // TODO V2 processMemberRequest
-//            networkQueryMessage.processMemberRequest(
-//                contactId,
-//                messageId,
-//                type
-//            ).collect { loadResponse ->
-//
-//                when (loadResponse) {
-//                    is LoadResponse.Loading -> {
-//                    }
-//
-//                    is Response.Error -> {
-//                        response = loadResponse
-//                    }
-//                    is Response.Success -> {
-//                        response = loadResponse
-//                        val queries = coreDB.getSphinxDatabaseQueries()
-//
-//                        chatLock.withLock {
-//                            messageLock.withLock {
-//                                withContext(io) {
-//                                    queries.transaction {
-//                                        upsertChat(
-//                                            loadResponse.value.chat,
-//                                            chatSeenMap,
-//                                            queries,
-//                                            null
-//                                        )
-//
-//                                        upsertMessage(loadResponse.value.message, queries)
-//
-//                                        updateChatDboLatestMessage(
-//                                            loadResponse.value.message,
-//                                            ChatId(loadResponse.value.chat.id),
-//                                            latestMessageUpdatedTimeMap,
-//                                            queries,
-//                                        )
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-        }.join()
+        // Accept or Reject member
+        messageUuid?.value?.let { nnMessageUuid ->
+            messageBuilder.setReplyUUID(ReplyUUID(nnMessageUuid))
+        }
 
-        return response
+        // Kick Member
+        memberPubKey?.let { nnContactKey ->
+            messageBuilder.setMemberPubKey(nnContactKey)
+        }
+
+        alias?.let { senderAlias ->
+            messageBuilder.setSenderAlias(senderAlias)
+        }
+
+        sendMessage(messageBuilder.build().first)
     }
 
     override suspend fun kickMemberFromTribe(
-        chatId: ChatId,
-        contactId: ContactId
-    ): Response<Any, ResponseError> {
+        memberPubKey: LightningNodePubKey,
+        alias: SenderAlias?
+    ) {
         var response: Response<Any, ResponseError> =
             Response.Error(ResponseError(("Failed to kick member from tribe")))
 
         // TODO V2 kickMemberFromChat
 
-//        applicationScope.launch(mainImmediate) {
-//            networkQueryChat.kickMemberFromChat(
-//                chatId,
-//                contactId
-//            ).collect { loadResponse ->
-//
-//                when (loadResponse) {
-//                    is LoadResponse.Loading -> {
-//                    }
-//
-//                    is Response.Error -> {
-//                        response = loadResponse
-//                    }
-//                    is Response.Success -> {
-//                        response = loadResponse
-//                        val queries = coreDB.getSphinxDatabaseQueries()
-//
-//                        chatLock.withLock {
-//                            messageLock.withLock {
-//                                withContext(io) {
-//                                    queries.transaction {
-//                                        upsertChat(
-//                                            loadResponse.value,
-//                                            chatSeenMap,
-//                                            queries,
-//                                            null
-//                                        )
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }.join()
-
-        return response
+//        messageRepository.processMemberRequest(
+//            ChatId(args.argChatId),
+//            null,
+//            memberPubKey,
+//            MessageType.GroupAction.Kick,
+//            alias
+//        )
     }
 
     /***
@@ -7904,6 +7844,21 @@ abstract class SphinxRepository(
         val queries = coreDB.getSphinxDatabaseQueries()
         emitAll(
             queries.messageGetLastMessage()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map {
+                    it?.let { messageDbo ->
+                        mapMessageDboAndDecryptContentIfNeeded(queries, messageDbo)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getTribeLastMemberRequestBySenderAlias(alias: SenderAlias, chatId: ChatId): Flow<Message?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.messageLastMemberRequestGetBySenderAlias(alias, chatId)
                 .asFlow()
                 .mapToOneOrNull(io)
                 .map {
