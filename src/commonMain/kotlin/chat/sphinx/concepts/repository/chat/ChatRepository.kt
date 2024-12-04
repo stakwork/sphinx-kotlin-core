@@ -10,7 +10,6 @@ import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.chat.ChatAlias
 import chat.sphinx.wrapper.chat.ChatUUID
 import chat.sphinx.wrapper.dashboard.ChatId
-import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.SenderAlias
@@ -50,7 +49,7 @@ interface ChatRepository {
     suspend fun storeTribe(createTribe: CreateTribe, chatId: ChatId?)
     suspend fun updateTribe(chatId: ChatId, createTribe: CreateTribe): Response<Any, ResponseError>
 
-    suspend fun exitAndDeleteTribe(chat: Chat): Response<Boolean, ResponseError>
+    suspend fun exitAndDeleteTribe(tribe: Chat)
 
     suspend fun updateChatProfileInfo(
         chatId: ChatId,

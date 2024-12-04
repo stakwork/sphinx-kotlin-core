@@ -27,6 +27,7 @@ interface MessageRepository {
     fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long, chatThreadUUID: ThreadUUID? = null): Flow<List<Message>>
     fun getMessageById(messageId: MessageId): Flow<Message?>
     fun getMessagesByIds(messagesIds: List<MessageId>): Flow<List<Message?>>
+    fun messageGetOkKeysByChatId(chatId: ChatId): Flow<List<MessageId>>
     fun getMessagesByPaymentHashes(paymentHashes: List<LightningPaymentHash>): Flow<List<Message?>>
     fun getTribeLastMemberRequestByContactId(contactId: ContactId, chatId: ChatId, ): Flow<Message?>
     fun getMessageByUUID(messageUUID: MessageUUID): Flow<Message?>
@@ -59,6 +60,8 @@ interface MessageRepository {
     )
 
     suspend fun deleteMessage(message: Message)
+
+    suspend fun deleteAllMessagesAndPubKey(pubKey: String, chatId: ChatId)
 
     suspend fun getPaymentTemplates() : Response<List<PaymentTemplate>, ResponseError>
 

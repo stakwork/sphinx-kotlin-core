@@ -5,7 +5,6 @@ import chat.sphinx.concepts.link_preview.LinkPreviewHandler
 import chat.sphinx.concepts.link_preview.model.HtmlPreviewData
 import chat.sphinx.concepts.link_preview.model.TribePreviewData
 import chat.sphinx.concepts.network.client.NetworkClient
-import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.wrapper.tribe.TribeJoinLink
 
 class LinkPreviewHandlerImpl(
@@ -20,9 +19,12 @@ class LinkPreviewHandlerImpl(
            ?.getHtmlPreview(dispatchers, networkClient.getClient())
     }
 
-    override suspend fun retrieveTribeLinkPreview(tribeJoinLink: TribeJoinLink): TribePreviewData? {
+    override suspend fun retrieveTribeLinkPreview(
+        tribeJoinLink: TribeJoinLink,
+        isProductionEnvironment: Boolean
+    ): TribePreviewData? {
         return LinkPreviewCache.getInstance()
             .getTribePreviewDataRetriever(tribeJoinLink)
-            ?.getTribePreview(networkQueryChat)
+            ?.getTribePreview(networkQueryChat, isProductionEnvironment)
     }
 }

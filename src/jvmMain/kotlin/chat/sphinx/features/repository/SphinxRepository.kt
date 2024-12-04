@@ -3785,6 +3785,16 @@ abstract class SphinxRepository(
         )
     }
 
+    override fun messageGetOkKeysByChatId(chatId: ChatId): Flow<List<MessageId>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetOkKeysByChatId(chatId)
+                .asFlow()
+                .mapToList(io)
+                .distinctUntilChanged()
+        )
+    }
+
     override fun getMessagesByPaymentHashes(paymentHashes: List<LightningPaymentHash>): Flow<List<Message?>> = flow {
         emitAll(
             coreDB.getSphinxDatabaseQueries()
@@ -4899,6 +4909,14 @@ abstract class SphinxRepository(
                     )
                 }
             }
+        }
+    }
+
+    override suspend fun deleteAllMessagesAndPubKey(pubKey: String, chatId: ChatId) {
+        val messagesIds = messageGetOkKeysByChatId(chatId).firstOrNull()
+        if (messagesIds != null) {
+            connectManager.deleteContactMessages(messagesIds.map { it.value })
+            connectManager.deletePubKeyMessages(pubKey)
         }
     }
 
@@ -6818,45 +6836,56 @@ abstract class SphinxRepository(
 
 
 
-    override suspend fun exitAndDeleteTribe(chat: Chat): Response<Boolean, ResponseError> {
-        var response: Response<Boolean, ResponseError>? = null
+    override suspend fun exitAndDeleteTribe(tribe: Chat) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        applicationScope.launch(io) {
 
-        // TODO V2 deleteChat
+            val currentProvisionalId: MessageId? = withContext(io) {
+                queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+            }
+            val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
+            val isDeleteTribe = tribe.isTribeOwnedByAccount(accountOwner.value?.nodePubKey)
+            val messageType = if(isDeleteTribe) MessageType.TRIBE_DELETE else MessageType.GROUP_LEAVE
 
-//        applicationScope.launch(mainImmediate) {
-//            networkQueryChat.deleteChat(chat.id).collect { loadResponse ->
-//                when (loadResponse) {
-//                    is LoadResponse.Loading -> {
-//                    }
-//
-//                    is Response.Error -> {
-//                        response = loadResponse
-//                    }
-//
-//                    is Response.Success -> {
-//                        response = Response.Success(true)
-//                        val queries = coreDB.getSphinxDatabaseQueries()
-//
-//                        chatLock.withLock {
-//                            messageLock.withLock {
-//                                withContext(io) {
-//                                    queries.transaction {
-//                                        deleteChatById(
-//                                            loadResponse.value["chat_id"]?.toChatId()
-//                                                ?: chat.id,
-//                                            queries,
-//                                            latestMessageUpdatedTimeMap
-//                                        )
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }.join()
+            val newMessage = chat.sphinx.wrapper.mqtt.Message(
+                "",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ).toJson()
 
-        return response ?: Response.Error(ResponseError(("Failed to exit tribe")))
+            tribe.uuid.value.let { pubKey ->
+                deleteAllMessagesAndPubKey(pubKey, tribe.id)
+
+                connectManager.sendMessage(
+                    newMessage,
+                    pubKey,
+                    provisionalId.value,
+                    messageType,
+                    null,
+                    true
+                )
+            }
+
+            chatLock.withLock {
+                messageLock.withLock {
+                    withContext(io) {
+                        queries.transaction {
+                            deleteChatById(
+                                tribe.id,
+                                queries,
+                                latestMessageUpdatedTimeMap
+                            )
+                        }
+                    }
+                }
+            }
+        }.join()
     }
 
     override suspend fun storeTribe(createTribe: CreateTribe, chatId: ChatId?) {
