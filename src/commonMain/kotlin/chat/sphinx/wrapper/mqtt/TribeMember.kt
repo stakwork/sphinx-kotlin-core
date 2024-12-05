@@ -15,14 +15,16 @@ data class TribeMember(
 
 @Serializable
 data class TribeMembersResponse(
+    val pubkey: String? = null,
     val confirmed: List<TribeMember>? = null,
     val pending: List<TribeMember>? = null
 ) {
     companion object {
         fun String.toTribeMembersList(): TribeMembersResponse? {
             return try {
-                Json.decodeFromString<TribeMembersResponse>(this)
+                Json { ignoreUnknownKeys = true }.decodeFromString<TribeMembersResponse>(this)
             } catch (e: Exception) {
+                e.printStackTrace()
                 null
             }
         }

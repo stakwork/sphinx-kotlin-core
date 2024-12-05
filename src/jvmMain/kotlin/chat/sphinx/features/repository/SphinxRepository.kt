@@ -361,6 +361,14 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun getTribeMembers(tribeServerPubKey: String, tribePubKey: String) {
+        connectManager.retrieveTribeMembersList(tribeServerPubKey, tribePubKey)
+    }
+
+    override fun getTribeServerPubKey(): String? {
+        return connectManager.getTribeServerPubKey()
+    }
+
     override fun getPayments(lastMessageDate: Long, limit: Int) {
         connectManager.getPayments(
             lastMessageDate,
@@ -7062,25 +7070,9 @@ abstract class SphinxRepository(
             messageBuilder.setSenderAlias(senderAlias)
         }
 
+//        val test = messageBuilder.build().first
+
         sendMessage(messageBuilder.build().first)
-    }
-
-    override suspend fun kickMemberFromTribe(
-        memberPubKey: LightningNodePubKey,
-        alias: SenderAlias?
-    ) {
-        var response: Response<Any, ResponseError> =
-            Response.Error(ResponseError(("Failed to kick member from tribe")))
-
-        // TODO V2 kickMemberFromChat
-
-//        messageRepository.processMemberRequest(
-//            ChatId(args.argChatId),
-//            null,
-//            memberPubKey,
-//            MessageType.GroupAction.Kick,
-//            alias
-//        )
     }
 
     /***

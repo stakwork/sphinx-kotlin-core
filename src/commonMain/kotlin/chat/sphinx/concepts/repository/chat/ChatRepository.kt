@@ -57,5 +57,4 @@ interface ChatRepository {
         profilePic: PublicAttachmentInfo? = null,
     ): Response<ChatDto, ResponseError>
 
-    suspend fun kickMemberFromTribe(memberPubKey: LightningNodePubKey, alias: SenderAlias?)
 }

@@ -65,12 +65,12 @@ interface ConnectManagerRepository {
         escrowAmount: Long,
         priceToJoin: Long,
     )
-//
-//    fun getTribeMembers(
-//        tribeServerPubKey: String,
-//        tribePubKey: String
-//    )
-//    fun getTribeServerPubKey(): String?
+
+    fun getTribeMembers(
+        tribeServerPubKey: String,
+        tribePubKey: String
+    )
+    fun getTribeServerPubKey(): String?
     fun getPayments(lastMessageDate: Long, limit: Int)
 //    suspend fun getChatIdByEncryptedChild(child: String): Flow<ChatId?>
     fun getTagsByChatId(chatId: ChatId)
