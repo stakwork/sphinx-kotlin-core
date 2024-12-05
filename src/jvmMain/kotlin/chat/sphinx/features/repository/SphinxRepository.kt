@@ -105,6 +105,7 @@ import chat.sphinx.wrapper.mqtt.NewSentStatus.Companion.toNewSentStatus
 import chat.sphinx.wrapper.mqtt.Payment.Companion.toPaymentsList
 import chat.sphinx.wrapper.mqtt.TagMessageList.Companion.toTagsList
 import chat.sphinx.wrapper.mqtt.TransactionDto
+import chat.sphinx.wrapper.mqtt.TribeMembersResponse.Companion.toTribeMembersList
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
@@ -1391,14 +1392,15 @@ abstract class SphinxRepository(
     }
 
     override fun onTribeMembersList(tribeMembers: String) {
-//        applicationScope.launch(mainImmediate) {
-//            try {
-//                tribeMembers.toTribeMembersList(moshi)?.let { members ->
-//                    tribeMembersState.value = members
-//                }
-//            } catch (e: Exception) {
-//            }
-//        }
+        applicationScope.launch(mainImmediate) {
+            try {
+                tribeMembers.toTribeMembersList()?.let { members ->
+                    tribeMembersState.value = members
+                }
+            } catch (e: Exception) {
+
+            }
+        }
     }
 
     // Invoice and Payment Management Callbacks
