@@ -7070,8 +7070,6 @@ abstract class SphinxRepository(
             messageBuilder.setSenderAlias(senderAlias)
         }
 
-//        val test = messageBuilder.build().first
-
         sendMessage(messageBuilder.build().first)
     }
 
