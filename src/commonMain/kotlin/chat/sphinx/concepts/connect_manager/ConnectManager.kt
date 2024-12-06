@@ -61,7 +61,6 @@ abstract class ConnectManager {
         tribeServerIp: String?,
         mixerIp: String?,
     )
-
     abstract fun deleteInvite(inviteString: String)
     abstract fun deleteContact(pubKey: String)
     abstract fun setReadMessage(contactPubKey: String, messageIndex: Long)
@@ -157,7 +156,6 @@ abstract class ConnectManager {
         amount: Long?
     ): String?
     abstract fun getInvoiceInfo(invoice: String): String?
-
     abstract fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean
 
     // Utility Methods
