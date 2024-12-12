@@ -14,6 +14,13 @@ inline fun String.toSphinxCallLink(): SphinxCallLink? =
 inline val String.isValidSphinxCallLink: Boolean
     get() = isNotEmpty() && matches("^${SphinxCallLink.REGEX}\$".toRegex())
 
+inline val String.isValidJitsiCallLink: Boolean
+    get() = isNotEmpty() && startsWith(SphinxCallLink.DEFAULT_CALL_SERVER_URL)
+
+inline val String.isValidLiveKitCallLink: Boolean
+    get() = isNotEmpty() && startsWith(SphinxCallLink.NEW_CALL_SERVER_URL)
+
+
 @JvmInline
 value class SphinxCallLink(val value: String) {
 
@@ -22,6 +29,7 @@ value class SphinxCallLink(val value: String) {
 
         const val CALL_SERVER_URL_KEY = "meeting-server-url"
         const val DEFAULT_CALL_SERVER_URL = "https://jitsi.sphinx.chat"
+        const val NEW_CALL_SERVER_URL = "https://chat.sphinx.chat/rooms"
         private const val CALL_ROOM_NAME = "sphinx.call"
 
         const val AUDIO_ONLY_PARAM = "config.startAudioOnly"
@@ -31,8 +39,7 @@ value class SphinxCallLink(val value: String) {
             startAudioOnly: Boolean
         ): String? {
             val currentTime = getCurrentTimeInMillis()
-            val audioOnlyParam = if (startAudioOnly) "#$AUDIO_ONLY_PARAM=true" else ""
-            val linkString = "${customServerUrl ?: DEFAULT_CALL_SERVER_URL}/$CALL_ROOM_NAME.$currentTime$audioOnlyParam"
+            val linkString = "${customServerUrl ?: NEW_CALL_SERVER_URL}/$CALL_ROOM_NAME.$currentTime"
 
             return linkString.toSphinxCallLink()?.value
         }
@@ -42,8 +49,7 @@ value class SphinxCallLink(val value: String) {
             startAudioOnly: Boolean,
         ): String? {
             val currentTime = System.currentTimeMillis()
-            val audioOnlyParam = if (startAudioOnly) "#${AUDIO_ONLY_PARAM}=true" else ""
-            val linkString = "${customServerUrl ?: DEFAULT_CALL_SERVER_URL}/$CALL_ROOM_NAME.$currentTime$audioOnlyParam"
+            val linkString = "${customServerUrl ?: NEW_CALL_SERVER_URL}/$CALL_ROOM_NAME.$currentTime"
 
             linkString.toSphinxCallLink()?.let { sphinxCallLink ->
                 val callLinkMessage = CallLinkMessage(
@@ -61,7 +67,7 @@ value class SphinxCallLink(val value: String) {
     }
 
     init {
-        require(value.isValidSphinxCallLink) {
+        require(value.isValidSphinxCallLink || value.isValidJitsiCallLink || value.isValidLiveKitCallLink) {
             "Invalid Sphinx Call Link"
         }
     }
@@ -83,8 +89,11 @@ value class SphinxCallLink(val value: String) {
     inline val callServer : String
         get() = value.substringBefore("sphinx.call")
 
+    inline val isJitsiLink: Boolean
+        get() = value.isValidJitsiCallLink
+
     inline val callRoom : String
-        get() = "sphinx.call." + value.substringAfter("sphinx.call.").substringBefore("#")
+        get() = "sphinx.call." + value.substringAfter("sphinx.call.").substringBefore("#").substringBefore("?")
 
     fun getParameter(k: String): String? {
         val parameters = value.substringAfter("#").split("&")
