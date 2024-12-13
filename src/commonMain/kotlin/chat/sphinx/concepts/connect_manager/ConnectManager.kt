@@ -26,6 +26,7 @@ abstract class ConnectManager {
 
     // Account Management Methods
     abstract fun setOwnerInfo(ownerInfo: OwnerInfo)
+    abstract fun updateOwnerInfoUserState(userState: String)
     abstract fun createAccount(userAlias: String)
     abstract fun restoreAccount(
         defaultTribe: String?,
@@ -62,7 +63,7 @@ abstract class ConnectManager {
         mixerIp: String?,
     )
     abstract fun deleteInvite(inviteString: String)
-    abstract fun deleteContact(pubKey: String)
+//    abstract fun deleteContact(pubKey: String) This should be implemented on SphinxRepository
     abstract fun setReadMessage(contactPubKey: String, messageIndex: Long)
     abstract fun getReadMessages()
     abstract fun setMute(muteLevel: Int, contactPubKey: String)
@@ -178,7 +179,8 @@ abstract class ConnectManager {
 interface ConnectManagerListener {
 
     // Account Management Callbacks
-    fun onUpdateUserState(userState: String)
+    fun onUpdateUserState(userState: ByteArray)
+    fun onRemoveKeysFromUserState(userState: List<String>)
     fun onMnemonicWords(words: String, isRestore: Boolean)
     fun onOwnerRegistered(
         okKey: String,

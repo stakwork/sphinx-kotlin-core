@@ -119,6 +119,8 @@ import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_message.ThreadUUID
 import chat.sphinx.wrapper_message.toThreadUUID
+import com.ensarsarajcic.kotlinx.serialization.msgpack.MsgPack
+import com.ensarsarajcic.kotlinx.serialization.msgpack.MsgPackDynamicSerializer
 import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
@@ -132,6 +134,8 @@ import kotlinx.coroutines.sync.withLock
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
+import org.json.JSONException
+import org.json.JSONObject
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.LinkedHashMap
@@ -568,8 +572,87 @@ abstract class SphinxRepository(
     }
 
     // Account Management
-    override fun onUpdateUserState(userState: String) {
-        serversUrls.storeUserState(userState)
+    override fun onUpdateUserState(userState: ByteArray) {
+        storeUserState(userState)
+    }
+
+    override fun onRemoveKeysFromUserState(userState: List<String>) {
+        val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
+
+        for (key in userState) {
+            existingUserState.remove(key)
+        }
+
+        val encodedString = encodeMapToBase64(existingUserState)
+
+        serversUrls.storeUserState(encodedString)
+        connectManager.updateOwnerInfoUserState(encodedString)
+    }
+
+    private fun storeUserState(state: ByteArray) {
+        try {
+            val decoded = MsgPack.decodeFromByteArray(MsgPackDynamicSerializer, state)
+            (decoded as? MutableMap<String, ByteArray>)?.let {
+                storeUserStateOnSharedPreferences(it)
+            }
+
+        } catch (e: Exception) {
+        }
+    }
+
+    private fun encodeMapToBase64(map: MutableMap<String, ByteArray>): String {
+        val encodedMap = mutableMapOf<String, String>()
+
+        for ((key, value) in map) {
+            encodedMap[key] = Base64.getEncoder().withoutPadding().encodeToString(value)
+        }
+
+        val result = (encodedMap as Map<*, *>?)?.let { JSONObject(it).toString() } ?: ""
+
+
+        return result
+    }
+
+
+    private fun retrieveUserStateMap(encodedString: String?): MutableMap<String, ByteArray> {
+        val result = encodedString?.let {
+            decodeBase64ToMap(it)
+        } ?: mutableMapOf()
+
+        return result
+    }
+
+    private fun decodeBase64ToMap(encodedString: String): MutableMap<String, ByteArray> {
+        if (encodedString.isEmpty()) {
+            return mutableMapOf()
+        }
+
+        val decodedMap = mutableMapOf<String, ByteArray>()
+
+        try {
+            val jsonObject = JSONObject(encodedString)
+            val keys = jsonObject.keys()
+
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val encodedValue = jsonObject.getString(key.toString())
+                val decodedValue = Base64.getDecoder().decode(encodedValue)
+                decodedMap[key.toString()] = decodedValue
+            }
+        } catch (e: JSONException) {
+        }
+
+        return decodedMap
+    }
+
+    private fun storeUserStateOnSharedPreferences(newUserState: MutableMap<String, ByteArray>) {
+        val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
+        existingUserState.putAll(newUserState)
+
+        val encodedString = encodeMapToBase64(existingUserState)
+
+        serversUrls.storeUserState(encodedString)
+        connectManager.updateOwnerInfoUserState(encodedString)
     }
 
     override fun onMnemonicWords(words: String, isRestore: Boolean) {

@@ -284,12 +284,12 @@ class ConnectManagerImpl(
         if (mqttClient != null) {
             // Set updated state into db
             rr.stateMp?.let {
-                storeUserState(it)
+                notifyListeners { onUpdateUserState(it) }
                 LOG.d("MQTT_MESSAGES", "=> stateMp $it")
             }
 
             if (rr.stateToDelete.isNotEmpty()) {
-                removeKeysFromUserState(rr.stateToDelete)
+                notifyListeners { onRemoveKeysFromUserState(rr.stateToDelete) }
                     LOG.d("MQTT_MESSAGES", "=> stateToDelete ${rr.stateToDelete}")
                 }
 
@@ -717,6 +717,12 @@ class ConnectManagerImpl(
     // Account Management Methods
     override fun setOwnerInfo(ownerInfo: OwnerInfo) {
         _ownerInfoStateFlow.value = ownerInfo
+    }
+
+    override fun updateOwnerInfoUserState(userState: String) {
+        _ownerInfoStateFlow.value = ownerInfoStateFlow.value.copy(
+            userState = userState
+        )
     }
 
     override fun createAccount(userAlias: String) {
@@ -1271,10 +1277,6 @@ class ConnectManagerImpl(
             handleRunReturn(cancelInvite)
         } catch (e: Exception) {
         }
-    }
-
-    override fun deleteContact(pubKey: String) {
-        removeKeysFromUserState(listOf(pubKey))
     }
 
     override fun setReadMessage(contactPubKey: String, messageIndex: Long) {
@@ -2083,17 +2085,6 @@ class ConnectManagerImpl(
         }
     }
 
-    private fun storeUserState(state: ByteArray) {
-        try {
-            val decoded = MsgPack.decodeFromByteArray(MsgPackDynamicSerializer, state)
-            (decoded as? MutableMap<String, ByteArray>)?.let {
-                storeUserStateOnSharedPreferences(it)
-            }
-
-        } catch (e: Exception) {
-        }
-    }
-
     private fun storeUserStateOnSharedPreferences(newUserState: MutableMap<String, ByteArray>) {
         val existingUserState = retrieveUserStateMap(ownerInfoStateFlow.value.userState)
         existingUserState.putAll(newUserState)
@@ -2105,30 +2096,7 @@ class ConnectManagerImpl(
             userState = encodedString
         )
 
-        // Update SharedPreferences
-        notifyListeners {
-            onUpdateUserState(encodedString)
-        }
-    }
-
-    private fun removeKeysFromUserState(keys: List<String>) {
-        val existingUserState = retrieveUserStateMap(ownerInfoStateFlow.value.userState)
-
-        for (key in keys) {
-            existingUserState.remove(key)
-        }
-
-        val encodedString = encodeMapToBase64(existingUserState)
-
-        // Update class var
-        _ownerInfoStateFlow.value = ownerInfoStateFlow.value.copy(
-            userState = encodedString
-        )
-
-        // Update SharedPreferences
-        notifyListeners {
-            onUpdateUserState(encodedString)
-        }
+        // Store on serverURl
     }
 
     private fun retrieveUserStateMap(encodedString: String?): MutableMap<String, ByteArray> {
