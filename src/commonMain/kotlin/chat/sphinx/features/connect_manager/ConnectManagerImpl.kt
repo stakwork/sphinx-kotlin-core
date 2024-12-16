@@ -818,6 +818,10 @@ class ConnectManagerImpl(
         }
     }
 
+    override fun cancelRestore() {
+        _restoreStateFlow.value = null
+    }
+
     override fun setInviteCode(inviteString: String) {
         this.inviteCode = inviteString
     }

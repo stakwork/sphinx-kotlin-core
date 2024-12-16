@@ -461,6 +461,7 @@ abstract class SphinxRepository(
     }
 
     override fun cancelRestore() {
+        connectManager.cancelRestore()
         onRestoreFinished(isRestoreCancelled = true)
     }
 
@@ -2352,6 +2353,8 @@ abstract class SphinxRepository(
 
     override suspend fun deleteContactById(contactId: ContactId): Response<Any, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
+        val contact = queries.contactGetById(contactId).executeAsOneOrNull()
+        val pubKeyToDelete = "c/${contact?.node_pub_key?.value}"
 
         var owner: Contact? = accountOwner.value
 
@@ -2374,34 +2377,28 @@ abstract class SphinxRepository(
             return Response.Error(ResponseError(msg))
         }
 
+        if (contact != null) {
+            //delete all messages
+            contact.id.value.toChatId()?.let { chatId ->
+                contact.node_pub_key?.value?.let { pubKey -> deleteAllMessagesAndPubKey(pubKey, chatId) }
+            }
+
+            contactLock.withLock {
+                queries.transaction {
+                    deleteContactById(contactId, queries)
+                }
+            }
+
+            chatLock.withLock {
+                queries.transaction {
+                    deleteChatById(contactId.value.toChatId(), queries, null)
+                }
+            }
+            onRemoveKeysFromUserState(listOf(pubKeyToDelete))
+        }
+
+
         var deleteContactResponse: Response<Any, ResponseError> = Response.Success(Any())
-
-        applicationScope.launch(mainImmediate) {
-            // TODO V2 deleteContact
-
-//            val response = networkQueryContact.deleteContact(contactId)
-//            deleteContactResponse = response
-//
-//            if (response is Response.Success) {
-//
-//                chatLock.withLock {
-//                    messageLock.withLock {
-//                        contactLock.withLock {
-//
-//                            val chat: ChatDbo? =
-//                                queries.chatGetConversationForContact(listOf(owner!!.id, contactId))
-//                                    .executeAsOneOrNull()
-//
-//                            queries.transaction {
-//                                deleteChatById(chat?.id, queries, latestMessageUpdatedTimeMap)
-//                                deleteContactById(contactId, queries)
-//                            }
-//
-//                        }
-//                    }
-//                }
-//            }
-        }.join()
 
         return deleteContactResponse
     }
