@@ -586,8 +586,8 @@ abstract class SphinxRepository(
 
         val encodedString = encodeMapToBase64(existingUserState)
 
-        serversUrls.storeUserState(encodedString)
         connectManager.updateOwnerInfoUserState(encodedString)
+        serversUrls.storeUserState(encodedString)
     }
 
     private fun storeUserState(state: ByteArray) {
@@ -652,8 +652,8 @@ abstract class SphinxRepository(
 
         val encodedString = encodeMapToBase64(existingUserState)
 
-        serversUrls.storeUserState(encodedString)
         connectManager.updateOwnerInfoUserState(encodedString)
+        serversUrls.storeUserState(encodedString)
     }
 
     override fun onMnemonicWords(words: String, isRestore: Boolean) {
