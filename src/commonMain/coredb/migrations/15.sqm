@@ -1,0 +1,7 @@
+import chat.sphinx.wrapper.user.UserState;
+import chat.sphinx.wrapper.user.UserStateId;
+
+CREATE TABLE userStateDbo (
+    id          INTEGER         AS UserStateId NOT NULL PRIMARY KEY,
+    user_state  TEXT            AS UserState NOT NULL
+);

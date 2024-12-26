@@ -77,6 +77,8 @@ import chat.sphinx.wrapper.subscription.Cron;
 import chat.sphinx.wrapper.subscription.EndNumber;
 import chat.sphinx.wrapper.subscription.SubscriptionCount;
 import chat.sphinx.wrapper.subscription.SubscriptionId;
+import chat.sphinx.wrapper.user.UserState;
+import chat.sphinx.wrapper.user.UserStateId;
 import chat.sphinx.wrapper_chat.NotificationLevel;
 import chat.sphinx.wrapper_message.ThreadUUID;
 import kotlin.collections.List;
@@ -1634,3 +1636,23 @@ WHERE feed_id = ?;
 
 feedDestinationDeleteAll:
 DELETE FROM feedDestinationDbo;
+
+CREATE TABLE userStateDbo (
+    id          INTEGER         AS UserStateId NOT NULL PRIMARY KEY,
+    user_state  TEXT            AS UserState NOT NULL
+);
+
+userStateUpsert {
+    UPDATE userStateDbo
+    SET user_state = :user_state
+    WHERE id = :id;
+
+    INSERT OR IGNORE INTO userStateDbo(
+        id,
+        user_state
+    )
+    VALUES (
+        :id,
+        :user_state
+    );
+}
