@@ -1656,3 +1656,8 @@ userStateUpsert {
         :user_state
     );
 }
+
+userStateGet:
+SELECT *
+FROM userStateDbo
+LIMIT 1;

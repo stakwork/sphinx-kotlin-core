@@ -44,16 +44,6 @@ class ServersUrlsHelper {
         return m.matches()
     }
 
-    fun getUserState(): String? {
-        return settings.getString(ONION_STATE_KEY, "")
-    }
-
-    fun storeUserState(value: String?) {
-        if (value != null) {
-            settings.putString(ONION_STATE_KEY, value)
-        }
-    }
-
     fun getNetworkMixerIp(): String? {
         return settings.getString(NETWORK_MIXER_IP, "")
     }

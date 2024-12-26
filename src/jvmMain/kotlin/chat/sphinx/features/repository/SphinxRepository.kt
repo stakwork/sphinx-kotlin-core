@@ -115,6 +115,8 @@ import chat.sphinx.wrapper.rsa.RsaPublicKey
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper.user.UserState
+import chat.sphinx.wrapper.user.UserStateId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_message.ThreadUUID
@@ -476,13 +478,24 @@ abstract class SphinxRepository(
         mnemonicWords.value = null
     }
 
+    fun getUserStateFromDb(): Flow<UserState?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.userStateGet()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it?.user_state }
+                .distinctUntilChanged()
+        )
+    }
+
     override fun disconnectMqtt() {
         connectManager.disconnectMqtt()
     }
 
     override fun connectAndSubscribeToMqtt() {
         applicationScope.launch(mainImmediate) {
-            val userState = serversUrls.getUserState()
+            val userState = getUserStateFromDb().firstOrNull() ?: return@launch
             val mixerIp = serversUrls.getNetworkMixerIp()
             val queries = coreDB.getSphinxDatabaseQueries()
             val mnemonic = relayDataHandler.retrieveWalletMnemonic()
@@ -507,7 +520,7 @@ abstract class SphinxRepository(
             val ownerInfo = OwnerInfo(
                 owner?.alias?.value ?: "",
                 owner?.photoUrl?.value ?: "",
-                userState,
+                userState.value,
                 lastMessageIndex
             )
 
@@ -572,22 +585,39 @@ abstract class SphinxRepository(
         memeServerTokenHandler.addListener(this)
     }
 
+    private val userStateLock = Mutex()
+
     // Account Management
     override fun onUpdateUserState(userState: ByteArray) {
         storeUserState(userState)
     }
 
     override fun onRemoveKeysFromUserState(userState: List<String>) {
-        val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
+        applicationScope.launch {
+            val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
 
-        for (key in userState) {
-            existingUserState.remove(key)
+            for (key in userState) {
+                existingUserState.remove(key)
+            }
+
+            val encodedString = encodeMapToBase64(existingUserState)
+
+            connectManager.updateOwnerInfoUserState(encodedString)
+
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            userStateLock.withLock {
+                withContext(io) {
+                    queries.transaction {
+                        upsertUserState(
+                            UserStateId(1L),
+                            UserState(encodedString),
+                            queries
+                        )
+                    }
+                }
+            }
         }
-
-        val encodedString = encodeMapToBase64(existingUserState)
-
-        connectManager.updateOwnerInfoUserState(encodedString)
-        serversUrls.storeUserState(encodedString)
     }
 
     private fun storeUserState(state: ByteArray) {
@@ -647,13 +677,28 @@ abstract class SphinxRepository(
     }
 
     private fun storeUserStateOnSharedPreferences(newUserState: MutableMap<String, ByteArray>) {
-        val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
-        existingUserState.putAll(newUserState)
+        applicationScope.launch {
+            val queries = coreDB.getSphinxDatabaseQueries()
 
-        val encodedString = encodeMapToBase64(existingUserState)
+            val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
+            existingUserState.putAll(newUserState)
 
-        connectManager.updateOwnerInfoUserState(encodedString)
-        serversUrls.storeUserState(encodedString)
+            val encodedString = encodeMapToBase64(existingUserState)
+
+            connectManager.updateOwnerInfoUserState(encodedString)
+
+            userStateLock.withLock {
+                withContext(io) {
+                    queries.transaction {
+                        upsertUserState(
+                            UserStateId(1L),
+                            UserState(encodedString),
+                            queries
+                        )
+                    }
+                }
+            }
+        }
     }
 
     override fun onMnemonicWords(words: String, isRestore: Boolean) {

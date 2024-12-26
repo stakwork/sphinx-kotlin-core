@@ -25,6 +25,8 @@ import chat.sphinx.wrapper.subscription.Cron
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.SubscriptionCount
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper.user.UserState
+import chat.sphinx.wrapper.user.UserStateId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.toNotificationLevel
 import chat.sphinx.wrapper_message.toThreadUUID
@@ -859,4 +861,16 @@ fun TransactionCallbacks.deleteAll(
     queries.feedItemDeleteAll()
     queries.feedModelDeleteAll()
     queries.feedDestinationDeleteAll()
+}
+
+@Suppress("NOTHING_TO_INLINE")
+fun TransactionCallbacks.upsertUserState(
+    id: UserStateId,
+    userState: UserState,
+    queries: SphinxDatabaseQueries,
+) {
+    queries.userStateUpsert(
+        id = id,
+        user_state = userState,
+    )
 }
