@@ -84,6 +84,7 @@ import chat.sphinx.features.coredb.adapters.message.MessageUUIDAdapter
 import chat.sphinx.features.coredb.adapters.message.RecipientAliasAdapter
 import chat.sphinx.features.coredb.adapters.message.ReplyUUIDAdapter
 import chat.sphinx.features.coredb.adapters.message.SenderAliasAdapter
+import chat.sphinx.features.coredb.adapters.user.UserStateAdapter
 import com.squareup.sqldelight.db.SqlDriver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -284,6 +285,10 @@ abstract class CoreDBImpl: CoreDB() {
                     splitAdapter = FeedDestinationSplitAdapter(),
                     typeAdapter = FeedDestinationTypeAdapter(),
                     feed_idAdapter = FeedIdAdapter()
+                ),
+                userStateDboAdapter = UserStateDbo.Adapter(
+                    idAdapter = UserStateIdAdapter.getInstance(),
+                    user_stateAdapter = UserStateAdapter()
                 )
             ).sphinxDatabaseQueries
         }

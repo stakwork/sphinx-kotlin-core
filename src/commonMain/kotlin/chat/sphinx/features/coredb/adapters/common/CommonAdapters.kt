@@ -10,6 +10,7 @@ import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper.user.UserStateId
 import com.squareup.sqldelight.ColumnAdapter
 import okio.Path
 import okio.Path.Companion.toPath
@@ -359,6 +360,28 @@ internal class SubscriptionIdAdapter private constructor(): ColumnAdapter<Subscr
     }
 
     override fun encode(value: SubscriptionId): Long {
+        return value.value
+    }
+}
+
+internal class UserStateIdAdapter private constructor() : ColumnAdapter<UserStateId, Long> {
+
+    companion object {
+        @Volatile
+        private var instance: UserStateIdAdapter? = null
+
+        fun getInstance(): UserStateIdAdapter =
+            instance ?: synchronized(this) {
+                instance ?: UserStateIdAdapter()
+                    .also { instance = it }
+            }
+    }
+
+    override fun decode(databaseValue: Long): UserStateId {
+        return UserStateId(databaseValue)
+    }
+
+    override fun encode(value: UserStateId): Long {
         return value.value
     }
 }
