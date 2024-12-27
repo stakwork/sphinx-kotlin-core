@@ -10,6 +10,7 @@ import chat.sphinx.wrapper.contact.*
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.dashboard.InviteId
 import chat.sphinx.wrapper.invite.Invite
+import chat.sphinx.wrapper.invite.InviteString
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.LightningRouteHint
 import chat.sphinx.wrapper.lightning.Sat
@@ -54,6 +55,7 @@ interface ContactRepository {
 
     fun getInviteByContactId(contactId: ContactId): Flow<Invite?>
     fun getInviteById(inviteId: InviteId): Flow<Invite?>
+    fun getInviteByString(inviteString: InviteString): Flow<Invite?>
 
     fun createNewInvite(nickname: String, welcomeMessage: String): Flow<LoadResponse<Any, ResponseError>>
 

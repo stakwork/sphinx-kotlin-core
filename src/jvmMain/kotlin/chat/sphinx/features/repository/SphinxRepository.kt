@@ -2185,6 +2185,16 @@ abstract class SphinxRepository(
         )
     }
 
+    override fun getInviteByString(inviteString: InviteString): Flow<Invite?> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries().inviteGetByInviteString(inviteString)
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it?.let { inviteDboPresenterMapper.mapFrom(it) } }
+                .distinctUntilChanged()
+        )
+    }
+
     override val networkRefreshContacts: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
         flow {
             // TODO V2 getContacts
@@ -6610,6 +6620,23 @@ abstract class SphinxRepository(
         )
 
         authenticationStorage.removeString(REPOSITORY_LAST_SEEN_MESSAGE_RESTORE_PAGE)
+    }
+
+    override suspend fun deleteInviteAndContact(inviteString: String) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val invite = getInviteByString(InviteString(inviteString)).firstOrNull()
+        val inviteCode = invite?.inviteCode?.value
+
+        if (inviteCode != null) {
+            withContext(io) {
+                queries.inviteDeleteById(invite.id)
+                queries.contactDeleteById(invite.contactId)
+            }
+
+            connectManager.deleteInvite(inviteCode)
+        } else {
+            onConnectManagerError(ConnectManagerError.DeleteInviteError)
+        }
     }
 
     @OptIn(UnencryptedDataAccess::class)

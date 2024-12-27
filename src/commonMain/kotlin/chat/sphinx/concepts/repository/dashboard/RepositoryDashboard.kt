@@ -71,5 +71,6 @@ interface RepositoryDashboard {
     val networkRefreshMessages: Flow<LoadResponse<RestoreProgress, ResponseError>>
 
     suspend fun didCancelRestore()
+    suspend fun deleteInviteAndContact(inviteString: String)
 
 }
