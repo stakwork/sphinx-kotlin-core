@@ -263,6 +263,26 @@ inline fun Message.shouldAvoidGrouping(): Boolean {
             flagged.isTrue()
 }
 
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isPinAllowed(chatPinnedMessage: MessageUUID?): Boolean {
+    chatPinnedMessage?.let {
+        if (it == this.uuid) {
+            return false
+        }
+    }
+    return true
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isUnPinAllowed(chatPinnedMessage: MessageUUID?): Boolean {
+    chatPinnedMessage?.let {
+        if (it == this.uuid) {
+            return true
+        }
+    }
+    return false
+}
+
 //Message Actions
 inline val Message.isBoostAllowed: Boolean
     get() = status.isReceived() &&

@@ -12,6 +12,7 @@ import chat.sphinx.wrapper.chat.ChatUUID
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
+import chat.sphinx.wrapper.message.Message
 import chat.sphinx.wrapper.message.SenderAlias
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper_chat.NotificationLevel
@@ -26,8 +27,6 @@ interface ChatRepository {
     fun getChatByIdFlow(chatId: ChatId): Flow<Chat?>
     fun getChatByUUID(chatUUID: ChatUUID): Flow<Chat?>
     fun getPodcastByChatId(chatId: ChatId): Flow<Podcast?>
-
-
 
     val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>>
 
@@ -56,5 +55,13 @@ interface ChatRepository {
         alias: ChatAlias? = null,
         profilePic: PublicAttachmentInfo? = null,
     ): Response<ChatDto, ResponseError>
+
+    suspend fun togglePinMessage(
+        chatId: ChatId,
+        message: Message,
+        isUnpinMessage: Boolean,
+        errorMessage: String,
+        isProductionEnvironment: Boolean
+    ): Response<Any, ResponseError>
 
 }

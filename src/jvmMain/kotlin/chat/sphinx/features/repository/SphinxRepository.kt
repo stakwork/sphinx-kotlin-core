@@ -2936,6 +2936,60 @@ abstract class SphinxRepository(
 
         return response
     }
+    override suspend fun togglePinMessage(
+        chatId: ChatId,
+        message: Message,
+        isUnpinMessage: Boolean,
+        errorMessage: String,
+        isProductionEnvironment: Boolean
+    ): Response<Any, ResponseError> {
+        var response: Response<Any, ResponseError> = Response.Error(ResponseError(errorMessage))
+
+        applicationScope.launch(mainImmediate) {
+            val tribe = getChatById(chatId)
+            val host = tribe?.host
+            val pubKey = tribe?.uuid?.value?.toLightningNodePubKey()
+
+            if (host != null && pubKey != null) {
+
+                networkQueryChat.getTribeInfo(host, pubKey, isProductionEnvironment).collect { loadResponse ->
+                    when (loadResponse) {
+                        is LoadResponse.Loading -> {}
+                        is Response.Error -> {
+                            response = loadResponse
+                        }
+                        is Response.Success -> {
+                            val pinUpdatedTribeInfo = if (isUnpinMessage) {
+                                loadResponse.value.copy(pin = null).toJsonString()
+                            } else {
+                                loadResponse.value.copy(pin = message.uuid?.value).toJsonString()
+                            }
+
+                            connectManager.editTribe(pinUpdatedTribeInfo)
+
+                            val queries = coreDB.getSphinxDatabaseQueries()
+                            response = Response.Success(loadResponse)
+
+                            chatLock.withLock {
+                                messageLock.withLock {
+                                    withContext(io) {
+                                        // TODO v2 chatUpdatePinMessage
+//                                        queries.chatUpdatePinMessage(
+//                                            if (isUnpinMessage) null else message.uuid,
+//                                            chatId
+//                                        )
+                                        queries.messageUpdateStatus(message.status, message.id)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }.join()
+
+        return response
+    }
 
     suspend fun updateChatProfilePic(
         chatId: ChatId,
