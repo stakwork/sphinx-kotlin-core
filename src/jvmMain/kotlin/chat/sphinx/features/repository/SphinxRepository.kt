@@ -350,7 +350,8 @@ abstract class SphinxRepository(
                 latestMessageId = null,
                 contentSeenAt = null,
                 notify = NotificationLevel.SeeAll,
-                secondBrainUrl = null
+                secondBrainUrl = null,
+                pinedMessage = null
             )
 
             chatLock.withLock {
@@ -995,7 +996,8 @@ abstract class SphinxRepository(
                                 latestMessageId = null,
                                 contentSeenAt = null,
                                 notify = NotificationLevel.SeeAll,
-                                secondBrainUrl = null
+                                secondBrainUrl = null,
+                                pinedMessage = loadResponse.value.pin?.toMessageUUID()
                             )
 
                             chatLock.withLock {
@@ -1068,7 +1070,8 @@ abstract class SphinxRepository(
                                 latestMessageId = null,
                                 contentSeenAt = null,
                                 notify = NotificationLevel.SeeAll,
-                                secondBrainUrl = loadResponse.value.second_brain_url?.toSecondBrainUrl()
+                                secondBrainUrl = loadResponse.value.second_brain_url?.toSecondBrainUrl(),
+                                pinedMessage = loadResponse.value.pin?.toMessageUUID()
                             )
 
                             messageLock.withLock {
@@ -1510,7 +1513,8 @@ abstract class SphinxRepository(
                     latestMessageId = existingTribe?.latestMessageId,
                     contentSeenAt = existingTribe?.contentSeenAt,
                     notify = NotificationLevel.SeeAll,
-                    secondBrainUrl = existingTribe?.secondBrainUrl
+                    secondBrainUrl = existingTribe?.secondBrainUrl,
+                    pinedMessage = existingTribe?.pinedMessage
                 )
 
                 chatLock.withLock {
@@ -2973,11 +2977,10 @@ abstract class SphinxRepository(
                             chatLock.withLock {
                                 messageLock.withLock {
                                     withContext(io) {
-                                        // TODO v2 chatUpdatePinMessage
-//                                        queries.chatUpdatePinMessage(
-//                                            if (isUnpinMessage) null else message.uuid,
-//                                            chatId
-//                                        )
+                                        queries.chatUpdatePinMessage(
+                                            if (isUnpinMessage) null else message.uuid,
+                                            chatId
+                                        )
                                         queries.messageUpdateStatus(message.status, message.id)
                                     }
                                 }
@@ -3529,7 +3532,8 @@ abstract class SphinxRepository(
                     latestMessageId = null,
                     contentSeenAt = null,
                     notify = NotificationLevel.SeeAll,
-                    secondBrainUrl = null
+                    secondBrainUrl = null,
+                    pinedMessage = null
                 )
 
                 withContext(dispatchers.io) {

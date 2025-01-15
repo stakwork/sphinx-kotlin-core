@@ -35,8 +35,9 @@ internal class ChatDboPresenterMapper(
             latestMessageId = value.latest_message_id,
             contentSeenAt = value.content_seen_at,
             notify = value.notify,
-            secondBrainUrl = value.second_brain_url
-            )
+            secondBrainUrl = value.second_brain_url,
+            pinedMessage = value.pin_message
+        )
     }
 
     override suspend fun mapTo(value: Chat): ChatDbo {
@@ -65,7 +66,8 @@ internal class ChatDboPresenterMapper(
             latest_message_id = value.latestMessageId,
             content_seen_at = value.contentSeenAt,
             notify = value.notify,
-            second_brain_url = value.secondBrainUrl
+            second_brain_url = value.secondBrainUrl,
+            pin_message = value.pinedMessage
         )
     }
 }

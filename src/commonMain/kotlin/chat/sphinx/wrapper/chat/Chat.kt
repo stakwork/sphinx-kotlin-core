@@ -6,6 +6,7 @@ import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
+import chat.sphinx.wrapper.message.MessageUUID
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_chat.isOnlyMentions
@@ -93,4 +94,5 @@ data class Chat(
     val contentSeenAt: DateTime?,
     val notify: NotificationLevel?,
     val secondBrainUrl: SecondBrainUrl?,
+    val pinedMessage: MessageUUID?,
     )

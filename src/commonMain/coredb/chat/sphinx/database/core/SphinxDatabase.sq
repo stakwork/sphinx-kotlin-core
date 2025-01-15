@@ -109,8 +109,8 @@ CREATE TABLE chatDbo(
     latest_message_id           INTEGER         AS MessageId DEFAULT NULL,
     content_seen_at             INTEGER         AS DateTime,
     notify                      INTEGER         AS NotificationLevel,
-    second_brain_url            TEXT            AS SecondBrainUrl DEFAULT NULL
-
+    second_brain_url            TEXT            AS SecondBrainUrl DEFAULT NULL,
+    pin_message                 TEXT            AS MessageUUID DEFAULT NULL
 );
 
 chatUpdateNameAndStatus:
@@ -210,7 +210,8 @@ chatUpsert {
         my_photo_url = :my_photo_url,
         my_alias = :my_alias,
         pending_contact_ids = :pending_contact_ids,
-        notify = :notify
+        notify = :notify,
+        pin_message = :pin_message
     WHERE id = :id;
 
     INSERT OR IGNORE INTO chatDbo(
@@ -236,7 +237,8 @@ chatUpsert {
         my_alias,
         pending_contact_ids,
         notify,
-        second_brain_url
+        second_brain_url,
+        pin_message
     )
     VALUES (
         :id,
@@ -261,7 +263,8 @@ chatUpsert {
         :my_alias,
         :pending_contact_ids,
         :notify,
-        :second_brain_url
+        :second_brain_url,
+        :pin_message
     );
 }
 
@@ -279,6 +282,11 @@ UPDATE chatDbo
 SET seen = :seen
 WHERE id = ?;
 
+chatUpdatePinMessage:
+UPDATE chatDbo
+SET pin_message = :pin_message
+WHERE id = ?;
+
 chatUpdateDetails:
 UPDATE chatDbo
 SET photo_url = :photo_url,
@@ -291,7 +299,8 @@ SET price_per_message = :price_per_message,
     escrow_amount = :escrow_amount,
     name = :name,
     photo_url = :photo_url,
-    second_brain_url = :second_brain_url
+    second_brain_url = :second_brain_url,
+    pin_message = :pin_message
 WHERE id = ?;
 
 chatUpdateSeenByLastMessage:

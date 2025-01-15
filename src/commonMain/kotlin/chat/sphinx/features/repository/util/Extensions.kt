@@ -181,6 +181,7 @@ inline fun TransactionCallbacks.updateNewChatTribeData(
         name,
         photoUrl,
         secondBrainUrl,
+        pinMessage,
         chatId
     )
 
@@ -202,6 +203,7 @@ inline fun TransactionCallbacks.updateChatTribeData(
     val name = tribe.name.toChatName()
     val photoUrl = tribe.img?.toPhotoUrl()
     val secondBrainUrl = tribe.second_brain_url?.toSecondBrainUrl()
+    val pinMessage = tribe.pin?.toMessageUUID()
 
     queries.chatUpdateTribeData(
         pricePerMessage,
@@ -209,6 +211,7 @@ inline fun TransactionCallbacks.updateChatTribeData(
         name,
         photoUrl,
         secondBrainUrl,
+        pinMessage,
         chatId,
     )
 
@@ -237,6 +240,7 @@ inline fun TransactionCallbacks.upsertNewChat(
     val escrowAmount = chat.escrowAmount
     val chatName = chat.name
     val adminPubKey = chat.ownerPubKey
+    val pinedMessage = chat.pinedMessage
 
     queries.chatUpsert(
         chatName,
@@ -255,6 +259,7 @@ inline fun TransactionCallbacks.upsertNewChat(
         chat.myAlias,
         chat.pendingContactIds,
         chat.notify,
+        pinedMessage,
         chatId,
         chat.uuid,
         chatType,
@@ -275,6 +280,7 @@ inline fun TransactionCallbacks.upsertNewChat(
             chatName,
             chatPhotoUrl,
             null,
+            pinedMessage,
             chatId
         )
     }

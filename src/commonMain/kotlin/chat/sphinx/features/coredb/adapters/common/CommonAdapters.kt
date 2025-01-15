@@ -9,6 +9,8 @@ import chat.sphinx.wrapper.lightning.LightningPaymentHash
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
+import chat.sphinx.wrapper.message.MessageUUID
+import chat.sphinx.wrapper.message.toPinnedMessageUUID
 import chat.sphinx.wrapper.subscription.SubscriptionId
 import chat.sphinx.wrapper.user.UserStateId
 import com.squareup.sqldelight.ColumnAdapter
@@ -384,4 +386,25 @@ internal class UserStateIdAdapter private constructor() : ColumnAdapter<UserStat
     override fun encode(value: UserStateId): Long {
         return value.value
     }
+}
+
+internal class PinMessageAdapter: ColumnAdapter<MessageUUID, String> {
+
+    companion object {
+        @Volatile
+        private var instance: PinMessageAdapter? = null
+        fun getInstance(): PinMessageAdapter =
+            instance ?: synchronized(this) {
+                instance ?: PinMessageAdapter()
+                    .also { instance = it }
+            }
+    }
+    override fun decode(databaseValue: String): MessageUUID {
+        return databaseValue.toPinnedMessageUUID()
+    }
+
+    override fun encode(value: MessageUUID): String {
+        return value.value
+    }
+
 }
