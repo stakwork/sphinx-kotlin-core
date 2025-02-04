@@ -1974,6 +1974,39 @@ abstract class SphinxRepository(
         )
     }
 
+    override fun getThreadUUIDMessagesByChatId(chatId: ChatId): Flow<List<Message>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messagesGetAllThreadUUIDByChatId(chatId, ::MessageDbo)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getThreadUUIDMessagesByUUID(
+        chatId: ChatId,
+        threadUUID: ThreadUUID
+    ): Flow<List<Message>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetAllMessagesByThreadUUID(chatId, listOf(threadUUID))
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
     override val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
         flow {
             // TODO V2 getChats
