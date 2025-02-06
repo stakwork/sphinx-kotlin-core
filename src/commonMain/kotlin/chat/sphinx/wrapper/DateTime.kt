@@ -8,6 +8,7 @@ import java.util.*
 import java.util.Date
 import kotlin.jvm.JvmInline
 import kotlin.jvm.Volatile
+import kotlin.math.roundToInt
 
 /**
  * Will always format to [DateTime.formatRelay] which is:
@@ -146,6 +147,46 @@ inline fun DateTime.getDayOfYear(): Int {
 inline fun DateTime.isDifferentDayThan(dateTime: DateTime): Boolean {
     return this.getDayOfYear() != dateTime.getDayOfYear()
 }
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun DateTime.timeAgo(): String {
+    val currentTime = System.currentTimeMillis()
+    val time = this.time
+
+    if (time > currentTime || time <= 0) return ""
+    val timeDiff = currentTime - time
+
+    val seconds = (timeDiff / 1000)
+    val minutes = (timeDiff / 60000).toDouble().roundToInt()
+    val hours = (timeDiff / 3600000).toDouble().roundToInt()
+    val days = (timeDiff / 86400000).toDouble().roundToInt()
+    val weeks = (timeDiff / 604800000).toDouble().roundToInt()
+
+    if (seconds <= 60) {
+        return "just now"
+    } else if (minutes <= 60) {
+        return if (minutes == 1) {
+            "one minute ago"
+        } else {
+            "$minutes minutes ago"
+        }
+    } else if (hours <= 24) {
+        return if (hours == 1) {
+            "an hour ago"
+        } else {
+            "$hours hrs ago"
+        }
+    } else if (days <= 7) {
+        return "$days days ago"
+    } else {
+        return if (weeks == 1) {
+            "a week ago"
+        } else {
+            "$weeks weeks ago"
+        }
+    }
+}
+
 
 /**
  * DateTime format from Relay: 2021-02-26T10:48:20.025Z
