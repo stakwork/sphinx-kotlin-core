@@ -1242,7 +1242,9 @@ class ConnectManagerImpl(
                 convertSatsToMillisats(sats),
                 ownerInfoStateFlow.value.alias ?: "",
                 tribeServerIp,
-                serverDefaultTribe
+                serverDefaultTribe,
+                null, // needs to implement
+                null // needs to implement
             )
 
             if (createInvite.newInvite != null) {
