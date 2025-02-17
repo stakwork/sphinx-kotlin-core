@@ -4240,37 +4240,20 @@ abstract class SphinxRepository(
         queries: SphinxDatabaseQueries,
         executeNetworkRequest: Boolean
     ) {
+        withContext(io) {
+            queries.updateSeen(chatId)
+        }
+
         chatLock.withLock {
             messageLock.withLock {
-                withContext(io) {
-                    chatSeenMap.withLock { map ->
+                val message = queries.messageGetMaxIdByChatId(chatId).executeAsOneOrNull()
+                val contact = queries.contactGetById(ContactId(chatId.value)).executeAsOneOrNull()
+                val chat = queries.chatGetById(chatId).executeAsOneOrNull()
 
-                        if (map[chatId]?.isTrue() != true) {
-
-                            queries.updateSeen(chatId)
-                            LOG.d(TAG, "Chat [$chatId] marked as Seen")
-                            map[chatId] = Seen.True
-
-                            true
-                        } else {
-                            false
-                        }
-                    }
-                }
-            }
-
-            val message = queries.messageGetMaxIdByChatId(chatId).executeAsOneOrNull()
-            val contact = queries.contactGetById(ContactId(chatId.value)).executeAsOneOrNull()
-            val chat = queries.chatGetById(chatId).executeAsOneOrNull()
-
-            if (message != null) {
-                if (contact != null) {
-                    contact.node_pub_key?.value?.let { pubKey ->
-                        connectManager.setReadMessage(pubKey, message.id.value)
-                    }
-                } else {
-                    chat?.uuid?.value?.let { pubKey ->
-                        connectManager.setReadMessage(pubKey, message.id.value)
+                if (message != null) {
+                    val pubKey = contact?.node_pub_key?.value ?: chat?.uuid?.value
+                    pubKey?.let {
+                        connectManager.setReadMessage(it, message.id.value)
                     }
                 }
             }
