@@ -1464,6 +1464,9 @@ class ConnectManagerImpl(
             isTribe -> amount ?: 1L
             else -> amount ?: 0L
         }
+
+        val myAlias = if (isTribe) (ownerInfoStateFlow.value.alias ?: "").replace(" ", "_") else (ownerInfoStateFlow.value.alias ?: "")
+
         try {
             val message = send(
                 ownerSeed!!,
@@ -1472,7 +1475,7 @@ class ConnectManagerImpl(
                 messageType.toUByte(),
                 sphinxMessage,
                 getCurrentUserState(),
-                ownerInfoStateFlow.value.alias ?: "",
+                myAlias,
                 ownerInfoStateFlow.value.picture ?: "",
                 convertSatsToMillisats(nnAmount),
                 isTribe
@@ -1504,6 +1507,7 @@ class ConnectManagerImpl(
 
         // Have to include al least 1 sat for tribe messages
         val nnAmount = if (isTribe) 1L else 0L
+        val myAlias = if (isTribe) (ownerInfoStateFlow.value.alias ?: "").replace(" ", "_") else (ownerInfoStateFlow.value.alias ?: "")
 
         try {
             val message = send(
@@ -1513,7 +1517,7 @@ class ConnectManagerImpl(
                 17.toUByte(), // Fix this hardcoded value
                 sphinxMessage,
                 getCurrentUserState(),
-                ownerInfoStateFlow.value.alias ?: "",
+                myAlias,
                 ownerInfoStateFlow.value.picture ?: "",
                 convertSatsToMillisats(nnAmount),
                 isTribe
