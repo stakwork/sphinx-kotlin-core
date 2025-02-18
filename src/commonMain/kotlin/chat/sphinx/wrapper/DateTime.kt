@@ -211,6 +211,8 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         private const val FORMAT_MMM_DD_YYYY = "MMM dd, yyyy"
 
         private const val SIX_DAYS_IN_MILLISECONDS = 518_400_000L
+        private const val THREE_MONTHS_IN_MILLISECONDS = 7_776_000_000L
+
 
         @Volatile
         private var formatRelay: DateFormat? = null
@@ -255,6 +257,9 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
          * */
         fun getSixDaysAgo(): DateTime =
             DateTime(DateTimeTz.fromUnix(getCurrentTimeInMillis() - SIX_DAYS_IN_MILLISECONDS))
+
+        fun getThreeMonthsAgo(): DateTime =
+            DateTime(DateTimeTz.fromUnix(getCurrentTimeInMillis() - THREE_MONTHS_IN_MILLISECONDS))
 
         @Volatile
         private var formateeemmddhmma: DateFormat? = null
