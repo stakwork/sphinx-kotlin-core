@@ -130,7 +130,7 @@ data class MessageDto(
                 "The admin declined your request"
             }
             this.type.toMessageType().isMemberApprove() -> {
-                "Welcome! You’re now a member"
+                "${this.sender_alias} has joined the tribe"
             }
             this.type.toMessageType().isGroupKick() -> {
                 "The admin has removed you from this group"
