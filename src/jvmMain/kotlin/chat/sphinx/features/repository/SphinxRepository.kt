@@ -3901,8 +3901,7 @@ abstract class SphinxRepository(
             }
                else {
                    queries.messageGetAllToShowByChatId(chatId, limit)
-               }
-                    )
+               })
                 .asFlow()
                 .mapToList(io)
                 .map { listMessageDbo ->
@@ -3980,7 +3979,7 @@ abstract class SphinxRepository(
                                             threadMap[MessageUUID(uuid.value)]?.add(
                                                 mapMessageDboAndDecryptContentIfNeeded(
                                                     queries,
-                                                    dbo
+                                                    dbo,
                                                 )
                                             )
                                         }
@@ -4119,17 +4118,23 @@ abstract class SphinxRepository(
 
     override fun getMessageByUUID(messageUUID: MessageUUID): Flow<Message?> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
-        emitAll(
-            queries.messageGetByUUID(messageUUID)
-                .asFlow()
-                .mapToOneOrNull(io)
-                .map {
-                    it?.let { messageDbo ->
-                        mapMessageDboAndDecryptContentIfNeeded(queries, messageDbo)
-                    }
-                }
-                .distinctUntilChanged()
-        )
+
+        val messageDbo = queries.messageGetByUUID(messageUUID)
+            .executeAsOneOrNull()
+
+        messageDbo?.let { dbo ->
+            val reactions = queries.messageGetAllReactionsByUUID(dbo.chat_id, listOf(ReplyUUID(dbo.uuid!!.value)))
+                .executeAsList()
+                .map { reactionDbo -> mapMessageDboAndDecryptContentIfNeeded(queries, reactionDbo) }
+
+            emit(
+                mapMessageDboAndDecryptContentIfNeeded(
+                    queries,
+                    dbo,
+                    reactions = reactions
+                )
+            )
+        } ?: emit(null)
     }
 
     override suspend fun getAllMessagesByUUID(messageUUIDs: List<MessageUUID>): List<Message> {
@@ -4140,99 +4145,6 @@ abstract class SphinxRepository(
             .executeAsList()
             .map { mapMessageDboAndDecryptContentIfNeeded(queries, it) }
     }
-
-    @OptIn(UnencryptedDataAccess::class)
-    private suspend fun mapMessageDboAndDecryptContentIfNeeded(
-        queries: SphinxDatabaseQueries,
-        messageDbo: MessageDbo,
-        // Add optional parameters if you need them (reactions, thread, etc.)
-    ): MessageDboWrapper {
-        // 1) Start by mapping to a wrapper (like Android does at the end)
-        val messageWrapper: MessageDboWrapper = messageDboPresenterMapper.mapFrom(messageDbo)
-
-        // 2) Decrypt message content if needed
-        if (messageDbo.type !is MessageType.KeySend && messageDbo.message_content_decrypted == null) {
-            val encryptedContent = messageDbo.message_content
-            if (encryptedContent != null) {
-                // Attempt to decrypt
-                val response = decryptMessageContent(encryptedContent)
-                when (response) {
-                    is Response.Error -> {
-                        // Mark decryption error in your messageWrapper
-                        messageWrapper._messageDecryptionException = response.exception
-                        messageWrapper._messageDecryptionError = true
-                    }
-                    is Response.Success -> {
-                        val decryptedString = response.value
-                            .toUnencryptedString(trim = false)
-                            .value
-                        decryptedString.toMessageContentDecrypted()?.let { decryptedContent ->
-                            // Update DB with the decrypted content
-                            queries.transaction {
-                                queries.messageUpdateContentDecrypted(
-                                    decryptedContent,
-                                    messageDbo.id
-                                )
-                            }
-                            // Also set in the wrapper
-                            messageWrapper._messageContentDecrypted = decryptedContent
-                        } ?: run {
-                            messageWrapper._messageDecryptionError = true
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3) If message can contain media, fetch & attempt to decrypt
-        if (messageWrapper.type.canContainMedia) {
-            val mediaDbo = queries.messageMediaGetById(messageWrapper.id).executeAsOneOrNull()
-            if (mediaDbo != null) {
-                val mediaWrapper = MessageMediaDboWrapper(mediaDbo)
-                val mediaKey = mediaDbo.media_key
-                if (mediaKey != null) {
-                    if (mediaDbo.media_key_decrypted == null) {
-                        val response = decryptMediaKey(MediaKey(mediaKey.value))
-                        when (response) {
-                            is Response.Error -> {
-                                // Mark error
-                                mediaWrapper._mediaKeyDecryptionException = response.exception
-                                mediaWrapper._mediaKeyDecryptionError = true
-                            }
-                            is Response.Success -> {
-                                val decryptedStr = response.value
-                                    .toUnencryptedString(trim = false)
-                                    .value
-                                val decryptedKey = decryptedStr.toMediaKeyDecrypted()
-
-                                if (decryptedKey == null) {
-                                    mediaWrapper._mediaKeyDecryptionError = true
-                                } else {
-                                    // Update DB with decrypted key
-                                    queries.transaction {
-                                        queries.messageMediaUpdateMediaKeyDecrypted(
-                                            decryptedKey,
-                                            mediaDbo.id
-                                        )
-                                    }
-                                    mediaWrapper._mediaKeyDecrypted = decryptedKey
-                                }
-                            }
-                        }
-                    } else {
-                        // Already decrypted, just set in the wrapper
-                        mediaWrapper._mediaKeyDecrypted = mediaDbo.media_key_decrypted
-                    }
-                }
-                // Finally attach to the message
-                messageWrapper._messageMedia = mediaWrapper
-            }
-        }
-
-        // 4) Return the fully mapped & possibly decrypted message
-        return messageWrapper
-    }
-
 
     override fun updateMessageContentDecrypted(
         messageId: MessageId,
