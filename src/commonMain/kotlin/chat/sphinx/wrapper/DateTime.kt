@@ -148,6 +148,14 @@ inline fun DateTime.isDifferentDayThan(dateTime: DateTime): Boolean {
     return this.getDayOfYear() != dateTime.getDayOfYear()
 }
 
+@Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
+inline fun DateTime.fullDateFormat(): String {
+    val offset: Int = TimeZone.getDefault().rawOffset
+    val localDateTime = value.addOffset(TimeSpan(offset.toDouble()))
+    val formatFullDate = DateFormat("MMMM dd, yyyy")
+    return formatFullDate.format(localDateTime)
+}
+
 @Suppress("NOTHING_TO_INLINE")
 inline fun DateTime.timeAgo(): String {
     val currentTime = System.currentTimeMillis()
