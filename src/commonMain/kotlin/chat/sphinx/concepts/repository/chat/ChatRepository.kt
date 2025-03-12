@@ -1,6 +1,5 @@
 package chat.sphinx.concepts.repository.chat
 
-import chat.sphinx.concepts.network.query.chat.model.ChatDto
 import chat.sphinx.concepts.network.query.chat.model.NewTribeDto
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
 import chat.sphinx.response.LoadResponse
@@ -10,10 +9,8 @@ import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.chat.ChatAlias
 import chat.sphinx.wrapper.chat.ChatUUID
 import chat.sphinx.wrapper.dashboard.ChatId
-import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.Message
-import chat.sphinx.wrapper.message.SenderAlias
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper_chat.NotificationLevel
 import kotlinx.coroutines.flow.Flow
@@ -54,7 +51,7 @@ interface ChatRepository {
         chatId: ChatId,
         alias: ChatAlias? = null,
         profilePic: PublicAttachmentInfo? = null,
-    ): Response<ChatDto, ResponseError>
+    )
 
     suspend fun togglePinMessage(
         chatId: ChatId,

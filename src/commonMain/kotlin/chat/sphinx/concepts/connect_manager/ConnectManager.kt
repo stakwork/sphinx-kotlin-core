@@ -87,7 +87,9 @@ abstract class ConnectManager {
         provisionalId: Long,
         messageType: Int,
         amount: Long?,
-        isTribe: Boolean = false
+        isTribe: Boolean = false,
+        tribeAlias: String? = null,
+        tribeProfilePic: String? = null
     )
     abstract fun deleteMessage(
         sphinxMessage: String,

@@ -2954,15 +2954,12 @@ abstract class SphinxRepository(
         chatId: ChatId,
         alias: ChatAlias?,
         profilePic: PublicAttachmentInfo?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
-            ResponseError("updateChatProfileInfo failed to execute")
-        )
-
+    ) {
         if (alias != null) {
-            response = updateChatProfileAlias(chatId, alias)
-        } else if (profilePic != null) {
-            response = updateChatProfilePic(
+            updateChatProfileAlias(chatId, alias)
+        }
+        if (profilePic != null) {
+            updateChatProfilePic(
                 chatId,
                 profilePic.path,
                 profilePic.mediaType,
@@ -2970,9 +2967,8 @@ abstract class SphinxRepository(
                 profilePic.contentLength
             )
         }
-
-        return response
     }
+
     override suspend fun togglePinMessage(
         chatId: ChatId,
         message: Message,
@@ -3033,10 +3029,7 @@ abstract class SphinxRepository(
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
-            ResponseError("updateChatProfilePic failed to execute")
-        )
+    ) {
         val memeServerHost = MediaHost.DEFAULT
 
         applicationScope.launch(mainImmediate) {
@@ -3055,108 +3048,38 @@ abstract class SphinxRepository(
 
                 Exhaustive@
                 when (networkResponse) {
-                    is Response.Error -> {
-                        response = networkResponse
-                    }
+                    is Response.Error -> {}
+
                     is Response.Success -> {
                         val newUrl = PhotoUrl(
                             "https://${memeServerHost.value}/public/${networkResponse.value.muid}"
                         )
-                    // TODO V2 updateChat
+                        // TODO V2 updateChat
+                        val queries = coreDB.getSphinxDatabaseQueries()
 
-//                        networkQueryChat.updateChat(
-//                            chatId,
-//                            PutChatDto(
-//                                my_photo_url = newUrl.value,
-//                            )
-//                        ).collect { loadResponse ->
-//
-//                            Exhaustive@
-//                            when (loadResponse) {
-//                                is LoadResponse.Loading -> {
-//                                }
-//                                is Response.Error -> {
-//                                    response = loadResponse
-//                                }
-//                                is Response.Success -> {
-//                                    response = loadResponse
-//                                    val queries = coreDB.getSphinxDatabaseQueries()
-//
-//                                    chatLock.withLock {
-//                                        withContext(io) {
-//                                            queries.transaction {
-//                                                upsertChat(
-//                                                    loadResponse.value,
-//                                                    chatSeenMap,
-//                                                    queries,
-//                                                    null
-//                                                )
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
+                        chatLock.withLock {
+                            withContext(io) {
+                                queries.chatUpdateMyPhotoUrl(newUrl, chatId)
+                            }
+                        }
                     }
                 }
-            } catch (e: Exception) {
-                response = Response.Error(
-                    ResponseError("Failed to update Chat Profile", e)
-                )
-            }
-        }.join()
-
-        LOG.d(TAG, "Completed Upload Returning: $response")
-        return response
+            }catch (e: Exception) {}
+        }
     }
 
     private suspend fun updateChatProfileAlias(
         chatId: ChatId,
         alias: ChatAlias?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
-            ResponseError("updateChatProfilePic failed to execute")
-        )
-
+    ) {
         // TODO V2 updateChat
+        val queries = coreDB.getSphinxDatabaseQueries()
 
-//        applicationScope.launch(mainImmediate) {
-//            networkQueryChat.updateChat(
-//                chatId,
-//                PutChatDto(
-//                    my_alias = alias?.value
-//                )
-//            ).collect { loadResponse ->
-//                Exhaustive@
-//                when (loadResponse) {
-//                    is LoadResponse.Loading -> {
-//                    }
-//                    is Response.Error -> {
-//                        response = loadResponse
-//                    }
-//                    is Response.Success -> {
-//                        response = loadResponse
-//                        val queries = coreDB.getSphinxDatabaseQueries()
-//
-//                        chatLock.withLock {
-//                            withContext(io) {
-//                                queries.transaction {
-//                                    upsertChat(
-//                                        loadResponse.value,
-//                                        chatSeenMap,
-//                                        queries,
-//                                        null
-//                                    )
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }.join()
-
-        LOG.d(TAG, "Completed Upload Returning: $response")
-        return response
+        chatLock.withLock {
+            withContext(io) {
+                queries.chatUpdateMyAlias(alias, chatId)
+            }
+        }
     }
 
     /////////////////
@@ -4441,7 +4364,9 @@ abstract class SphinxRepository(
                                     replyUUID,
                                     threadUUID,
                                     chat?.isTribe() ?: false,
-                                    sendMessage.memberPubKey
+                                    sendMessage.memberPubKey,
+                                    chat?.myAlias,
+                                    chat?.myPhotoUrl
                                 )
 
                                 LOG.d("MQTT_MESSAGES", "Media Message was sent. mediatoken=$mediaTokenValue mediakey$mediaKey" )
@@ -4461,7 +4386,9 @@ abstract class SphinxRepository(
                         replyUUID,
                         threadUUID,
                         chat?.isTribe() ?: false,
-                        sendMessage.memberPubKey
+                        sendMessage.memberPubKey,
+                        chat?.myAlias,
+                        chat?.myPhotoUrl
                     )
                 }
             }
@@ -4480,7 +4407,9 @@ abstract class SphinxRepository(
         replyUUID: ReplyUUID?,
         threadUUID: ThreadUUID?,
         isTribe: Boolean,
-        memberPubKey: LightningNodePubKey?
+        memberPubKey: LightningNodePubKey?,
+        chatAlias: ChatAlias?,
+        chatProfilePic: PhotoUrl?
     ) {
         val newMessage = chat.sphinx.wrapper.mqtt.Message(
             messageContent,
@@ -4501,7 +4430,9 @@ abstract class SphinxRepository(
                 it,
                 messageType?.value ?: 0,
                 amount?.value,
-                isTribe
+                isTribe,
+                chatAlias?.value,
+                chatProfilePic?.value
             )
         }
     }
@@ -5330,7 +5261,7 @@ abstract class SphinxRepository(
                     contact.node_pub_key?.value ?: "",
                     provisionalId.value,
                     MessageType.DIRECT_PAYMENT,
-                    sendPayment.amount,
+                    sendPayment.amount
                 )
             }
 
@@ -8255,7 +8186,7 @@ abstract class SphinxRepository(
                             contact.nodePubKey?.value ?: "",
                             provisionalId.value,
                             messageType.value,
-                            null,
+                            null
                         )
                     }
                 }

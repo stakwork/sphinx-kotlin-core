@@ -1454,7 +1454,9 @@ class ConnectManagerImpl(
         provisionalId: Long,
         messageType: Int,
         amount: Long?,
-        isTribe: Boolean
+        isTribe: Boolean,
+        tribeAlias: String?,
+        tribeProfilePic: String?
     ) {
         val now = getTimestampInMilliseconds()
 
@@ -1465,7 +1467,18 @@ class ConnectManagerImpl(
             else -> amount ?: 0L
         }
 
-        val myAlias = if (isTribe) (ownerInfoStateFlow.value.alias ?: "").replace(" ", "_") else (ownerInfoStateFlow.value.alias ?: "")
+        val myAlias = if (isTribe) {
+            tribeAlias?.replace(" ", "_") ?: ""
+        } else {
+            ownerInfoStateFlow.value.alias ?: ""
+        }
+
+        val myPhotoUrl = if (isTribe) {
+            tribeProfilePic
+        } else {
+            ownerInfoStateFlow.value.picture ?: ""
+        }
+
 
         try {
             val message = send(
@@ -1476,7 +1489,7 @@ class ConnectManagerImpl(
                 sphinxMessage,
                 getCurrentUserState(),
                 myAlias,
-                ownerInfoStateFlow.value.picture ?: "",
+                myPhotoUrl ?: "",
                 convertSatsToMillisats(nnAmount),
                 isTribe
             )
