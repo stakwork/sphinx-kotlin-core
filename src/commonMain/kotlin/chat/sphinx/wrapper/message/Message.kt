@@ -351,6 +351,20 @@ inline val Message.isSphinxCallLink: Boolean
         return false
     }
 
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isTribeChat(): Boolean {
+    // Arbitrary threshold: Tribe chat IDs start from Long.MAX_VALUE and decrease.
+    // We assume that any chatId within the last 100,000 values of Long.MAX_VALUE is a tribe.
+    return chatId.value >= (Long.MAX_VALUE - 100_000)
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isConversationChat(): Boolean {
+    // Arbitrary threshold: Direct conversation chat IDs start from 0 and increase.
+    // We assume that any chatId below 100,000 belongs to a direct conversation.
+    return chatId.value < 100_000
+}
+
 inline val Message.isAudioMessage: Boolean
     get() = type.isAttachment() && messageMedia?.mediaType?.isAudio == true
 

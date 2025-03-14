@@ -1551,43 +1551,60 @@ abstract class SphinxRepository(
             val paymentsJson = payments.toPaymentsList()
 
             val paymentsReceived = paymentsJson?.mapNotNull {
-                it.msg_idx?.let { msgId ->
-                    MessageId(msgId)
-                }
+                it.msg_idx?.let { msgId -> MessageId(msgId) }
             }
-
             val paymentsSent = paymentsJson?.mapNotNull {
-                it.rhash?.let { hash ->
-                    LightningPaymentHash(hash)
-                }
+                it.rhash?.let { hash -> LightningPaymentHash(hash) }
             }
 
             val paymentsReceivedMsgs = paymentsReceived?.let {
                 getMessagesByIds(it).firstOrNull()
             }
-
             val paymentsSentMsgs = paymentsSent?.let {
                 getMessagesByPaymentHashes(it).firstOrNull()
             }
 
-            // Combine all retrieved messages from DB
             val combinedMessages: List<Message?> = paymentsReceivedMsgs.orEmpty() + paymentsSentMsgs.orEmpty()
 
-            // Generate TransactionDto from the combinedMessages list or from the raw payments data
+            val tribeBoostMessages = paymentsSentMsgs.orEmpty().filter { it?.isTribeChat() == true && it.type.isBoost() }
+            val replyUUIDs = tribeBoostMessages.mapNotNull { it?.replyUUID?.value }
+            val repliedMessages = if (replyUUIDs.isNotEmpty()) {
+                getAllMessagesByUUID(replyUUIDs.mapNotNull { it.toMessageUUID() })
+
+            } else emptyList()
+            val replyUUIDToSenderAlias = repliedMessages.associateBy(
+                keySelector = { it.uuid?.value },
+                valueTransform = { it.senderAlias?.value }
+            )
+
+            val directPaymentMessages = paymentsSentMsgs.orEmpty()
+                .filter { it?.type?.isDirectPayment() == true }
+            val chatIds = directPaymentMessages.mapNotNull { it?.chatId }
+            val chats = if (chatIds.isNotEmpty()) getAllChatsByIds(chatIds) else emptyList()
+            val chatIdToChatName = chats.associateBy(
+                keySelector = { it.id },
+                valueTransform = { it.name?.value }
+            )
+
             val transactionDtoList = paymentsJson?.map { payment ->
-                // Try to find corresponding DB message first
                 val dbMessage = combinedMessages.firstOrNull {
                     it?.id?.value == payment.msg_idx || it?.paymentHash?.value == payment.rhash
                 }
 
                 dbMessage?.takeIf { it.type !is MessageType.Invoice }?.let { message ->
-                    // If found in DB, build TransactionDto using DB information
+                    val senderAlias = when {
+                        message.isTribeChat() && message.type.isBoost() ->
+                            replyUUIDToSenderAlias[message.replyUUID?.value]
+                        message.type.isDirectPayment() ->
+                            chatIdToChatName[message.chatId]
+                        else -> message.senderAlias?.value
+                    }
                     TransactionDto(
                         id = message.id.value,
                         chat_id = message.chatId.value,
                         type = message.type.value,
                         sender = message.sender.value,
-                        sender_alias = message.senderAlias?.value,
+                        sender_alias = senderAlias,
                         receiver = message.receiver?.value,
                         amount = message.amount.value,
                         payment_hash = message.paymentHash?.value,
@@ -1597,7 +1614,6 @@ abstract class SphinxRepository(
                         error_message = message.errorMessage?.value
                     )
                 } ?: run {
-                    // If not found in DB, create TransactionDto with available information from the Payment object
                     TransactionDto(
                         id = payment.msg_idx ?: 0L,
                         chat_id = null,
@@ -1615,8 +1631,9 @@ abstract class SphinxRepository(
                 }
             }.orEmpty()
 
-            // Sort the transactions by date and set the result to the state
-            transactionDtoState.value = transactionDtoList.sortedByDescending { it.date}.distinct()
+            transactionDtoState.value = transactionDtoList
+                .sortedByDescending { it.date }
+                .distinct()
         }
     }
 
