@@ -215,6 +215,7 @@ interface ConnectManagerListener {
     fun onUpdateMutes(mutes: String)
     fun onGetNodes()
     fun onConnectManagerError(error: ConnectManagerError)
+    fun onDebugRestore(debug: String?)
     fun onRestoreProgress(progress: Int)
     fun onRestoreFinished(isRestoreCancelled: Boolean = false)
     fun updatePaidInvoices()

@@ -221,6 +221,10 @@ abstract class SphinxRepository(
         MutableStateFlow(null)
     }
 
+    override val debugRestoreState: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
     override val transactionDtoState: MutableStateFlow<List<TransactionDto>?> by lazy {
         MutableStateFlow(null)
     }
@@ -1212,6 +1216,10 @@ abstract class SphinxRepository(
 
     override fun onConnectManagerError(error: ConnectManagerError) {
         connectManagerErrorState.value = error
+    }
+
+    override fun onDebugRestore(debug: String?) {
+        debugRestoreState.value = debug
     }
 
     override fun onRestoreProgress(progress: Int) {

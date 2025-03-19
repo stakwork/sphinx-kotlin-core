@@ -727,6 +727,7 @@ class ConnectManagerImpl(
 
     override fun createAccount(userAlias: String) {
         ownerUserName = userAlias
+        notifyListeners { onDebugRestore("Start create account") }
         if (isRestoreAccount()) {
             notifyListeners {
                 onRestoreAccount(isProductionEnvironment())
@@ -765,11 +766,7 @@ class ConnectManagerImpl(
                     tribeServer = hostAndPubKey?.first
                     inviteInitialTribe = invite.initialTribe
 
-                    network = if (isProductionServer()) {
-                        MAINNET_NETWORK
-                    } else {
-                        REGTEST_NETWORK
-                    }
+                    network = MAINNET_NETWORK
                 }
 
                 val xPub = generateXPub(firstSeed, now, network)
@@ -803,21 +800,17 @@ class ConnectManagerImpl(
             router = routerUrl
             serverDefaultTribe = defaultTribe
 
-            network = if (isProductionServer()) {
-                MAINNET_NETWORK
-            } else {
-                REGTEST_NETWORK
-            }
-
-            notifyListeners {
-                onConnectManagerError(ConnectManagerError.MqttConnectError(network))
-            }
+            network = MAINNET_NETWORK
 
             val xPub = generateXPub(firstSeed, now, network)
             val sig = signMs(firstSeed, now, network)
 
             if (xPub != null) {
                 connectToMQTT(mixerIp!!, xPub, now, sig)
+            }
+
+            notifyListeners {
+                onDebugRestore("restore account")
             }
         }
     }
@@ -972,7 +965,7 @@ class ConnectManagerImpl(
     ) {
         _mixerIp = serverUri
         walletMnemonic = mnemonicWords
-        network = if (isProductionServer()) MAINNET_NETWORK else REGTEST_NETWORK
+        network = MAINNET_NETWORK
 
         if (isConnected()) {
             _ownerInfoStateFlow.value = OwnerInfo(
