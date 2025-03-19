@@ -41,7 +41,7 @@ class ConnectManagerImpl(
     private var _mixerIp: String? = null
     private var walletMnemonic: WalletMnemonic? = null
     private var mqttClient: MqttAsyncClient? = null
-    private var network = ""
+    private var network = MAINNET_NETWORK
     private var ownerSeed: String? = null
     private var inviteCode: String? = null
     private var inviteInitialTribe: String? = null
@@ -809,6 +809,10 @@ class ConnectManagerImpl(
                 REGTEST_NETWORK
             }
 
+            notifyListeners {
+                onConnectManagerError(ConnectManagerError.MqttConnectError(network))
+            }
+
             val xPub = generateXPub(firstSeed, now, network)
             val sig = signMs(firstSeed, now, network)
 
@@ -831,11 +835,11 @@ class ConnectManagerImpl(
     }
 
     override fun setNetworkType(isTestEnvironment: Boolean) {
-        if (isTestEnvironment) {
-            this.network = REGTEST_NETWORK
-        } else {
-            this.network = MAINNET_NETWORK
-        }
+//        if (isTestEnvironment) {
+//            this.network = REGTEST_NETWORK
+//        } else {
+//            this.network = MAINNET_NETWORK
+//        }
     }
 
     override fun setOwnerDeviceId(
