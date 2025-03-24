@@ -145,7 +145,11 @@ abstract class CoreDBImpl: CoreDB() {
                     content_seen_atAdapter = DateTimeAdapter.getInstance(),
                     notifyAdapter = NotifyAdapter(),
                     second_brain_urlAdapter = SecondBrainUrlAdapter(),
-                    pin_messageAdapter = PinMessageAdapter.getInstance()
+                    pin_messageAdapter = PinMessageAdapter.getInstance(),
+                    timezone_enabledAdapter = TimezoneEnabledAdapter(),
+                    timezone_updatedAdapter = TimezoneUpdatedAdapter(),
+                    remote_timezone_identifierAdapter = RemoteTimezoneIdentifierAdapter(),
+                    timezone_identifierAdapter = TimezoneIdentifierAdapter()
                 ),
                 contactDboAdapter = ContactDbo.Adapter(
                     idAdapter = ContactIdAdapter.getInstance(),
@@ -215,6 +219,7 @@ abstract class CoreDBImpl: CoreDB() {
                     thread_uuidAdapter = ThreadUUIDAdapter(),
                     tag_messageAdapter = TagMessageAdapter(),
                     error_messageAdapter = ErrorMessageAdapter(),
+                    remote_timezone_identifierAdapter = RemoteTimezoneIdentifierAdapter()
                 ),
                 messageMediaDboAdapter = MessageMediaDbo.Adapter(
                     idAdapter = MessageIdAdapter.getInstance(),

@@ -138,6 +138,12 @@ class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
     var _thread: List<Message>? = null
     override val thread: List<Message>?
         get() = _thread
+
+    @Volatile
+    @Suppress("PropertyName")
+    var _remoteTimezoneIdentifier: RemoteTimezoneIdentifier? = messageDbo.remote_timezone_identifier
+    override val remoteTimezoneIdentifier: RemoteTimezoneIdentifier?
+        get() = _remoteTimezoneIdentifier
 }
 
 fun convertMessageDboToNewMessage(messageDbo: MessageDbo, messageMedia: MessageMediaDbo): NewMessage {

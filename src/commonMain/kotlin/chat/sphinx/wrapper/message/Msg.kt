@@ -15,10 +15,11 @@ data class Msg(
     val threadUuid: String? = null,
     val originalUuid: String? = null,
     val date: Long? = null,
-    val encryptedDate: String? = null, // Added this line if you need encryptedDate
+    val encryptedDate: String? = null,
     val invoice: String? = null,
     val paymentHash: String? = null,
-    val encryptedTag: String? = null
+    val encryptedTag: String? = null,
+    val metadata: String? = null
 ) {
     companion object {
         private val jsonDecoder = Json { ignoreUnknownKeys = true }

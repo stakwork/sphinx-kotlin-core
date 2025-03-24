@@ -5,12 +5,11 @@ import chat.sphinx.concepts.repository.chat.model.CreateTribe
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
-import chat.sphinx.wrapper.chat.Chat
-import chat.sphinx.wrapper.chat.ChatAlias
-import chat.sphinx.wrapper.chat.ChatUUID
+import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.Message
+import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper_chat.NotificationLevel
 import kotlinx.coroutines.flow.Flow
@@ -60,5 +59,29 @@ interface ChatRepository {
         errorMessage: String,
         isProductionEnvironment: Boolean
     ): Response<Any, ResponseError>
+
+
+    suspend fun updateTimezoneEnabledStatus(
+        isTimezoneEnabled: TimezoneEnabled,
+        chatId: ChatId
+    )
+
+    suspend fun updateTimezoneIdentifier(
+        timezoneIdentifier: TimezoneIdentifier?,
+        chatId: ChatId
+    )
+
+    suspend fun updateTimezoneUpdated(
+        timezoneUpdated: TimezoneUpdated,
+        chatId: ChatId
+    )
+
+    suspend fun updateTimezoneUpdatedOnSystemChange()
+
+    suspend fun updateChatRemoteTimezoneIdentifier(
+        remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
+        chatId: ChatId,
+        isRestore: Boolean
+    )
 
 }

@@ -119,7 +119,8 @@ interface MessageRepository {
         paymentRequest: LightningPaymentRequest?,
         paymentHash: LightningPaymentHash?,
         bolt11: Bolt11?,
-        tag: TagMessage?
+        tag: TagMessage?,
+        isRestore: Boolean
     )
 
     suspend fun deleteMqttMessage(messageUuid: MessageUUID)

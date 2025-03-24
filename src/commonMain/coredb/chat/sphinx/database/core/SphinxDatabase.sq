@@ -14,6 +14,9 @@ import chat.sphinx.wrapper.chat.ChatType;
 import chat.sphinx.wrapper.chat.ChatUUID;
 import chat.sphinx.wrapper.chat.ChatUnlisted;
 import chat.sphinx.wrapper.chat.Push;
+import chat.sphinx.wrapper.chat.TimezoneEnabled;
+import chat.sphinx.wrapper.chat.TimezoneIdentifier;
+import chat.sphinx.wrapper.chat.TimezoneUpdated;
 import chat.sphinx.wrapper.contact.Blocked;
 import chat.sphinx.wrapper.contact.ContactAlias;
 import chat.sphinx.wrapper.contact.ContactStatus;
@@ -64,6 +67,7 @@ import chat.sphinx.wrapper.message.MessageStatus;
 import chat.sphinx.wrapper.message.MessageType;
 import chat.sphinx.wrapper.message.MessageUUID;
 import chat.sphinx.wrapper.message.RecipientAlias;
+import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier;
 import chat.sphinx.wrapper.message.ReplyUUID;
 import chat.sphinx.wrapper.message.SenderAlias;
 import chat.sphinx.wrapper.message.TagMessage;
@@ -110,7 +114,11 @@ CREATE TABLE chatDbo(
     content_seen_at             INTEGER         AS DateTime,
     notify                      INTEGER         AS NotificationLevel,
     second_brain_url            TEXT            AS SecondBrainUrl DEFAULT NULL,
-    pin_message                 TEXT            AS MessageUUID DEFAULT NULL
+    pin_message                 TEXT            AS MessageUUID DEFAULT NULL,
+    timezone_enabled            INTEGER         AS TimezoneEnabled DEFAULT 1,
+    timezone_identifier         TEXT            AS TimezoneIdentifier DEFAULT NULL,
+    remote_timezone_identifier  TEXT            AS RemoteTimezoneIdentifier DEFAULT NULL,
+    timezone_updated            INTEGER         AS TimezoneUpdated DEFAULT 1
 );
 
 chatUpdateNameAndStatus:
@@ -138,6 +146,37 @@ chatUpdateContentSeenAt:
 UPDATE chatDbo
 SET content_seen_at = :content_seen_at
 WHERE id = ?;
+
+chatUpdateTimezoneEnabled:
+UPDATE chatDbo
+SET timezone_enabled = :timezone_enabled
+WHERE id = ?;
+
+chatUpdateTimezoneIdentifier:
+UPDATE chatDbo
+SET timezone_identifier = :timezone_identifier
+WHERE id = ?;
+
+chatUpdateRemoteTimezoneIdentifier:
+UPDATE chatDbo
+SET remote_timezone_identifier = :remote_timezone_identifier
+WHERE id = ?;
+
+chatUpdateRemoteTimezoneIdentifierIfNull:
+UPDATE chatDbo
+SET remote_timezone_identifier = :remote_timezone_identifier
+WHERE id = ? AND remote_timezone_identifier IS NULL;
+
+chatUpdateTimezoneUpdated:
+UPDATE chatDbo
+SET timezone_updated = :timezone_updated
+WHERE id = ?;
+
+chatUpdateTimezoneUpdatedOnSystemChanged:
+UPDATE chatDbo
+SET timezone_updated = 1
+WHERE timezone_identifier IS NULL AND timezone_enabled = 1;
+
 
 chatGetAll:
 SELECT *
@@ -725,7 +764,8 @@ CREATE TABLE messageDbo(
     person                      TEXT            AS MessagePerson,
     thread_uuid                 TEXT            AS ThreadUUID,
     tag_message                 TEXT            AS TagMessage,
-    error_message               TEXT            AS ErrorMessage
+    error_message               TEXT            AS ErrorMessage,
+    remote_timezone_identifier  TEXT            AS RemoteTimezoneIdentifier DEFAULT NULL
 );
 
 messageGetAllReactionsByUUID:
@@ -1040,6 +1080,11 @@ SET seen = 1
 WHERE chat_id = ?
 AND id <= ?;
 
+messageUpdateRemoteTimezoneIdentifier:
+UPDATE messageDbo
+SET remote_timezone_identifier = :remote_timezone_identifier
+WHERE chat_id = ?
+AND id = ?;
 
 -- If the message exists in the DB, it will update all fields _except_
     -- for message_content_decrypted as to not overwrite it.
@@ -1089,7 +1134,8 @@ messageUpsert {
         person,
         thread_uuid,
         tag_message,
-        error_message
+        error_message,
+        remote_timezone_identifier
     )
     VALUES (
         :id,
@@ -1119,7 +1165,8 @@ messageUpsert {
         :person,
         :thread_uuid,
         :tag_message,
-        :error_message
+        :error_message,
+        :remote_timezone_identifier
     );
 }
 

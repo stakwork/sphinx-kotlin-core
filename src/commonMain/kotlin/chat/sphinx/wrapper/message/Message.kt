@@ -260,7 +260,7 @@ inline fun Message.hasSameSenderThanMessage(message: Message): Boolean {
 inline fun Message.shouldAvoidGrouping(): Boolean {
     return status.isPending() || status.isFailed() || status.isDeleted() ||
             type.isInvoice() || type.isInvoicePayment() || type.isGroupAction() ||
-            flagged.isTrue()
+            flagged.isTrue() || remoteTimezoneIdentifier != null
 }
 
 @Suppress("NOTHING_TO_INLINE")
@@ -442,7 +442,7 @@ abstract class Message {
     abstract val purchaseItems: List<Message>?
     abstract val replyMessage: Message?
     abstract val thread: List<Message>?
-
+    abstract val remoteTimezoneIdentifier: RemoteTimezoneIdentifier?
 
     override fun equals(other: Any?): Boolean {
         return  other                               is Message &&
@@ -488,7 +488,8 @@ abstract class Message {
                     }
                 }                                                                   &&
                 other.replyMessage                  == replyMessage                 &&
-                other.threadUUID                    == threadUUID
+                other.threadUUID                    == threadUUID                   &&
+                other.remoteTimezoneIdentifier      == remoteTimezoneIdentifier
 
     }
 
@@ -550,6 +551,7 @@ abstract class Message {
                 "messageMedia=$messageMedia,feedBoost=$feedBoost,podcastClip=$podcastClip,"     +
                 "giphyData=$giphyData,reactions=$reactions,purchaseItems=$purchaseItems,"       +
                 "replyMessage=$replyMessage,recipientAlias=$recipientAlias,"                    +
-                "recipientPic=$recipientPic,callLink=$callLinkMessage)"
+                "recipientPic=$recipientPic,callLink=$callLinkMessage,"                         +
+                " remoteTimezoneIdentifier=$remoteTimezoneIdentifier)"
     }
 }

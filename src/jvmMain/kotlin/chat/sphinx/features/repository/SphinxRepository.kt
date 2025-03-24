@@ -27,6 +27,7 @@ import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
 import chat.sphinx.concepts.network.query.message.model.*
 import chat.sphinx.concepts.network.query.message.model.MessageDto
+import chat.sphinx.concepts.network.query.message.model.MessageMetadata.Companion.toMessageMetadata
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.redeem_badge_token.model.RedeemBadgeTokenDto
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
@@ -351,7 +352,11 @@ abstract class SphinxRepository(
                 contentSeenAt = null,
                 notify = NotificationLevel.SeeAll,
                 secondBrainUrl = null,
-                pinedMessage = null
+                pinedMessage = null,
+                timezoneEnabled = null,
+                timezoneIdentifier = null,
+                remoteTimezoneIdentifier = null,
+                timezoneUpdated = null
             )
 
             chatLock.withLock {
@@ -997,7 +1002,11 @@ abstract class SphinxRepository(
                                 contentSeenAt = null,
                                 notify = NotificationLevel.SeeAll,
                                 secondBrainUrl = null,
-                                pinedMessage = loadResponse.value.pin?.toMessageUUID()
+                                pinedMessage = loadResponse.value.pin?.toMessageUUID(),
+                                timezoneEnabled = null,
+                                timezoneIdentifier = null,
+                                remoteTimezoneIdentifier = null,
+                                timezoneUpdated = null
                             )
 
                             chatLock.withLock {
@@ -1071,7 +1080,11 @@ abstract class SphinxRepository(
                                 contentSeenAt = null,
                                 notify = NotificationLevel.SeeAll,
                                 secondBrainUrl = loadResponse.value.second_brain_url?.toSecondBrainUrl(),
-                                pinedMessage = loadResponse.value.pin?.toMessageUUID()
+                                pinedMessage = loadResponse.value.pin?.toMessageUUID(),
+                                timezoneEnabled = null,
+                                timezoneIdentifier = null,
+                                remoteTimezoneIdentifier = null,
+                                timezoneUpdated = null
                             )
 
                             messageLock.withLock {
@@ -1353,7 +1366,8 @@ abstract class SphinxRepository(
                                 paymentRequest,
                                 paymentHash,
                                 bolt11,
-                                msgTag
+                                msgTag,
+                                isRestore
                             )
                         }
                     }
@@ -1514,7 +1528,11 @@ abstract class SphinxRepository(
                     contentSeenAt = existingTribe?.contentSeenAt,
                     notify = NotificationLevel.SeeAll,
                     secondBrainUrl = existingTribe?.secondBrainUrl,
-                    pinedMessage = existingTribe?.pinedMessage
+                    pinedMessage = existingTribe?.pinedMessage,
+                    timezoneEnabled = existingTribe?.timezoneEnabled,
+                    timezoneIdentifier = existingTribe?.timezoneIdentifier,
+                    remoteTimezoneIdentifier = existingTribe?.remoteTimezoneIdentifier,
+                    timezoneUpdated = existingTribe?.timezoneUpdated
                 )
 
                 chatLock.withLock {
@@ -3040,6 +3058,105 @@ abstract class SphinxRepository(
         return response
     }
 
+    override suspend fun updateTimezoneEnabledStatus(
+        isTimezoneEnabled: TimezoneEnabled,
+        chatId: ChatId
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneEnabled(
+                    timezone_enabled = isTimezoneEnabled,
+                    id = chatId
+                )
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateTimezoneIdentifier(
+        timezoneIdentifier: TimezoneIdentifier?,
+        chatId: ChatId
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneIdentifier(
+                    timezone_identifier = timezoneIdentifier,
+                    id = chatId
+                )
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateTimezoneUpdated(
+        timezoneUpdated: TimezoneUpdated,
+        chatId: ChatId
+    ) {
+        updateTimezoneFlag(timezoneUpdated, chatId)
+    }
+
+    private suspend fun updateTimezoneFlag(
+        timezoneUpdated: TimezoneUpdated,
+        chatId: ChatId
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneUpdated(
+                    timezone_updated = timezoneUpdated,
+                    id = chatId
+                )
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateTimezoneUpdatedOnSystemChange() {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneUpdatedOnSystemChanged()
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateChatRemoteTimezoneIdentifier(
+        remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
+        chatId: ChatId,
+        isRestore: Boolean
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                if (isRestore) {
+                    queries.chatUpdateRemoteTimezoneIdentifierIfNull(
+                        remote_timezone_identifier = remoteTimezoneIdentifier,
+                        id = chatId
+                    )
+                } else {
+                    queries.chatUpdateRemoteTimezoneIdentifier(
+                        remote_timezone_identifier = remoteTimezoneIdentifier,
+                        id = chatId
+                    )
+                }
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
     suspend fun updateChatProfilePic(
         chatId: ChatId,
         path: Path,
@@ -3506,7 +3623,11 @@ abstract class SphinxRepository(
                     contentSeenAt = null,
                     notify = NotificationLevel.SeeAll,
                     secondBrainUrl = null,
-                    pinedMessage = null
+                    pinedMessage = null,
+                    timezoneEnabled = null,
+                    timezoneIdentifier = null,
+                    remoteTimezoneIdentifier = null,
+                    timezoneUpdated = null
                 )
 
                 withContext(dispatchers.io) {
@@ -4303,6 +4424,7 @@ abstract class SphinxRepository(
                                 message?.toMessageContentDecrypted() ?: sendMessage.text?.toMessageContentDecrypted(),
                                 null,
                                 false.toFlagged(),
+                                if (chat.timezoneEnabled?.isTrue() == true) chat.timezoneIdentifier?.value?.toRemoteTimezoneIdentifier() else null
                             )
                         }
                         provisionalId
@@ -4383,7 +4505,8 @@ abstract class SphinxRepository(
                                     chat?.isTribe() ?: false,
                                     sendMessage.memberPubKey,
                                     chat?.myAlias,
-                                    chat?.myPhotoUrl
+                                    chat?.myPhotoUrl,
+                                    chat
                                 )
 
                                 LOG.d("MQTT_MESSAGES", "Media Message was sent. mediatoken=$mediaTokenValue mediakey$mediaKey" )
@@ -4405,7 +4528,8 @@ abstract class SphinxRepository(
                         chat?.isTribe() ?: false,
                         sendMessage.memberPubKey,
                         chat?.myAlias,
-                        chat?.myPhotoUrl
+                        chat?.myPhotoUrl,
+                        chat
                     )
                 }
             }
@@ -4426,8 +4550,20 @@ abstract class SphinxRepository(
         isTribe: Boolean,
         memberPubKey: LightningNodePubKey?,
         chatAlias: ChatAlias?,
-        chatProfilePic: PhotoUrl?
+        chatProfilePic: PhotoUrl?,
+        currentChat: Chat?
     ) {
+
+        val metadata: String? = if(
+            currentChat?.timezoneUpdated?.isTrue() == true &&
+            currentChat.timezoneEnabled?.isTrue() == true
+        ) {
+            val timezoneAbbreviation = DateTime.getTimezoneAbbreviationFrom(currentChat.timezoneIdentifier?.value)
+            MessageMetadata(tz = timezoneAbbreviation).toJson()
+        } else {
+            null
+        }
+
         val newMessage = chat.sphinx.wrapper.mqtt.Message(
             messageContent,
             null,
@@ -4437,7 +4573,8 @@ abstract class SphinxRepository(
             replyUUID?.value,
             threadUUID?.value,
             memberPubKey?.value,
-            null
+            null,
+            metadata
         ).toJson()
 
         provisionalId?.value?.let {
@@ -4452,336 +4589,18 @@ abstract class SphinxRepository(
                 chatProfilePic?.value
             )
         }
+
+        if (currentChat?.timezoneUpdated?.isTrue() == true &&
+            currentChat.timezoneEnabled?.isTrue() == true
+        ) {
+            applicationScope.launch {
+                updateTimezoneFlag(
+                    timezoneUpdated = TimezoneUpdated.False,
+                    chatId = currentChat.id
+                )
+            }
+        }
     }
-
-
-//    // TODO: Rework to handle different message types
-//    @OptIn(RawPasswordAccess::class)
-//    override fun sendMessage(sendMessage: SendMessage?) {
-//        if (sendMessage == null) return
-//
-//        applicationScope.launch(mainImmediate) {
-//
-//            val queries = coreDB.getSphinxDatabaseQueries()
-//
-//            // TODO: Update SendMessage to accept a Chat && Contact instead of just IDs
-//            val chat: Chat? = sendMessage.chatId?.let {
-//                getChatByIdFlow(it).firstOrNull()
-//            }
-//
-//            val contact: Contact? = sendMessage.contactId?.let {
-//                getContactById(it).firstOrNull()
-//            }
-//
-//            val owner: Contact? = accountOwner.value
-//                ?: let {
-//                    // TODO: Handle this better...
-//                    var owner: Contact? = null
-//                    try {
-//                        accountOwner.collect {
-//                            if (it != null) {
-//                                owner = it
-//                                throw Exception()
-//                            }
-//                        }
-//                    } catch (e: Exception) {
-//                    }
-//                    delay(25L)
-//                    owner
-//                }
-//
-//            val ownerPubKey = owner?.rsaPublicKey
-//
-//            if (owner == null) {
-//                LOG.w(TAG, "Owner returned null")
-//                return@launch
-//            }
-//
-//            if (ownerPubKey == null) {
-//                LOG.w(TAG, "Owner's RSA public key was null")
-//                return@launch
-//            }
-//
-//            // encrypt text
-//            val message: Pair<MessageContentDecrypted, MessageContent>? =
-//                messageText(sendMessage)?.let { msgText ->
-//
-//                    val response = rsa.encrypt(
-//                        ownerPubKey,
-//                        UnencryptedString(msgText),
-//                        formatOutput = false,
-//                        dispatcher = default,
-//                    )
-//
-//                    Exhaustive@
-//                    when (response) {
-//                        is Response.Error -> {
-//                            LOG.e(TAG, response.message, response.exception)
-//                            null
-//                        }
-//                        is Response.Success -> {
-//                            Pair(
-//                                MessageContentDecrypted(msgText),
-//                                MessageContent(response.value.value)
-//                            )
-//                        }
-//                    }
-//                }
-//
-//            // media attachment
-//            val media: Triple<Password, MediaKey, AttachmentInfo>? =
-//                if (sendMessage.giphyData == null) {
-//                    sendMessage.attachmentInfo?.let { info ->
-//                        val password = PasswordGenerator(MEDIA_KEY_SIZE).password
-//
-//                        val response = rsa.encrypt(
-//                            ownerPubKey,
-//                            UnencryptedString(password.value.joinToString("")),
-//                            formatOutput = false,
-//                            dispatcher = default,
-//                        )
-//
-//                        Exhaustive@
-//                        when (response) {
-//                            is Response.Error -> {
-//                                LOG.e(TAG, response.message, response.exception)
-//                                null
-//                            }
-//                            is Response.Success -> {
-//                                Triple(password, MediaKey(response.value.value), info)
-//                            }
-//                        }
-//                    }
-//                } else {
-//                    null
-//                }
-//
-//            if (message == null && media == null && !sendMessage.isTribePayment) {
-//                return@launch
-//            }
-//
-//            val pricePerMessage = chat?.pricePerMessage?.value ?: 0
-//            val escrowAmount = chat?.escrowAmount?.value ?: 0
-//            val priceToMeet = sendMessage.priceToMeet?.value ?: 0
-//            val messagePrice = (pricePerMessage + escrowAmount + priceToMeet).toSat() ?: Sat(0)
-//
-//            val messageType = when {
-//                (media != null) -> {
-//                    MessageType.Attachment
-//                }
-//                (sendMessage.isBoost) -> {
-//                    MessageType.Boost
-//                }
-//                (sendMessage.isTribePayment) -> {
-//                    MessageType.DirectPayment
-//                }
-//                (sendMessage.isCall) -> {
-//                    MessageType.CallLink
-//                }
-//                else -> {
-//                    MessageType.Message
-//                }
-//            }
-//
-//            //If is tribe payment, reply UUID is sent to identify recipient. But it's not a response
-//            val replyUUID = when {
-//                (sendMessage.isTribePayment) -> {
-//                    null
-//                }
-//                else -> {
-//                    sendMessage.replyUUID
-//                }
-//            }
-//
-//            val threadUUID = when {
-//                (sendMessage.isTribePayment) -> {
-//                    null
-//                }
-//                else -> {
-//                    sendMessage.threadUUID
-//                }
-//            }
-//
-//            val provisionalMessageId: MessageId? = chat?.let { chatDbo ->
-//                // Build provisional message and insert
-//                provisionalMessageLock.withLock {
-//                    val currentProvisionalId: MessageId? = withContext(io) {
-//                        queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
-//                    }
-//
-//                    val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
-//
-//                    withContext(io) {
-//
-//                        queries.transaction {
-//
-//                            if (media != null) {
-//                                queries.messageMediaUpsert(
-//                                    media.second,
-//                                    media.third.mediaType,
-//                                    MediaToken.PROVISIONAL_TOKEN,
-//                                    provisionalId,
-//                                    chatDbo.id,
-//                                    MediaKeyDecrypted(media.first.value.joinToString("")),
-//                                    media.third.filePath,
-//                                    media.third.fileName
-//                                )
-//                            }
-//
-//                            queries.messageUpsert(
-//                                MessageStatus.Pending,
-//                                Seen.True,
-//                                chatDbo.myAlias?.value?.toSenderAlias(),
-//                                chatDbo.myPhotoUrl,
-//                                null,
-//                                replyUUID,
-//                                messageType,
-//                                null,
-//                                null,
-//                                Push.False,
-//                                null,
-//                                threadUUID,
-//                                null,
-//                                null,
-//                                provisionalId,
-//                                null,
-//                                chatDbo.id,
-//                                owner.id,
-//                                sendMessage.contactId,
-//                                messagePrice,
-//                                null,
-//                                null,
-//                                DateTime.nowUTC().toDateTime(),
-//                                null,
-//                                message?.second,
-//                                message?.first,
-//                                null,
-//                                false.toFlagged()
-//                            )
-//
-//                            if (media != null) {
-//                                queries.messageMediaUpsert(
-//                                    media.second,
-//                                    media.third.mediaType,
-//                                    MediaToken.PROVISIONAL_TOKEN,
-//                                    provisionalId,
-//                                    chatDbo.id,
-//                                    MediaKeyDecrypted(media.first.value.joinToString("")),
-//                                    media.third.filePath,
-//                                    media.third.fileName
-//                                )
-//                            }
-//                        }
-//                    }
-//
-//                    provisionalId
-//                }
-//            }
-//
-//            val isPaidTextMessage =
-//                sendMessage.attachmentInfo?.mediaType?.isSphinxText == true &&
-//                        sendMessage.paidMessagePrice?.value ?: 0 > 0
-//
-//            val messageContent: String? = if (isPaidTextMessage) null else message?.second?.value
-//
-//            val remoteTextMap: Map<String, String>? =
-//                if (isPaidTextMessage) null else getRemoteTextMap(
-//                    UnencryptedString(message?.first?.value ?: ""),
-//                    contact,
-//                    chat
-//                )
-//
-//            val mediaKeyMap: Map<String, String>? = if (media != null) {
-//                getMediaKeyMap(
-//                    owner.id,
-//                    media.second,
-//                    UnencryptedString(media.first.value.joinToString("")),
-//                    contact,
-//                    chat
-//                )
-//            } else {
-//                null
-//            }
-//
-//            val postMemeServerDto: PostMemeServerUploadDto? = if (media != null) {
-//                val token = memeServerTokenHandler.retrieveAuthenticationToken(MediaHost.DEFAULT)
-//                    ?: provisionalMessageId?.let { provId ->
-//                        withContext(io) {
-//                            queries.messageUpdateStatus(MessageStatus.Failed, provId)
-//                        }
-//
-//                        return@launch
-//                    } ?: return@launch
-//
-//                val response = networkQueryMemeServer.uploadAttachmentEncrypted(
-//                    token,
-//                    media.third.mediaType,
-//                    media.third.filePath,
-//                    media.first,
-//                    MediaHost.DEFAULT,
-//                )
-//
-//                Exhaustive@
-//                when (response) {
-//                    is Response.Error -> {
-//                        LOG.e(TAG, response.message, response.exception)
-//
-//                        provisionalMessageId?.let { provId ->
-//                            withContext(io) {
-//                                queries.messageUpdateStatus(MessageStatus.Failed, provId)
-//                            }
-//                        }
-//
-//                        return@launch
-//                    }
-//                    is Response.Success -> {
-//                        response.value
-//                    }
-//                }
-//            } else {
-//                null
-//            }
-//
-//            val amount = messagePrice.value + (sendMessage.tribePaymentAmount ?: Sat(0)).value
-//
-//            val postMessageDto: PostMessageDto = try {
-//                PostMessageDto(
-//                    sendMessage.chatId?.value,
-//                    sendMessage.contactId?.value,
-//                    amount,
-//                    messagePrice.value,
-//                    sendMessage.replyUUID?.value,
-//                    messageContent,
-//                    remoteTextMap,
-//                    mediaKeyMap,
-//                    postMemeServerDto?.mime,
-//                    postMemeServerDto?.muid,
-//                    sendMessage.paidMessagePrice?.value,
-//                    sendMessage.isBoost,
-//                    sendMessage.isCall,
-//                    sendMessage.isTribePayment,
-//                    sendMessage.threadUUID?.value
-//                )
-//            } catch (e: IllegalArgumentException) {
-//                LOG.e(TAG, "Failed to create PostMessageDto", e)
-//
-//                provisionalMessageId?.let { provId ->
-//                    withContext(io) {
-//                        queries.messageUpdateStatus(MessageStatus.Failed, provId)
-//                    }
-//                }
-//
-//                return@launch
-//            }
-//
-//            sendMessage(
-//                provisionalMessageId,
-//                postMessageDto,
-//                message?.first,
-//                media
-//            )
-//        }
-//    }
 
     private suspend fun getRemoteTextMap(
         unencryptedString: UnencryptedString?,
@@ -7840,7 +7659,8 @@ abstract class SphinxRepository(
         paymentRequest: LightningPaymentRequest?,
         paymentHash: LightningPaymentHash?,
         bolt11: Bolt11?,
-        tag: TagMessage?
+        tag: TagMessage?,
+        isRestore: Boolean
     ) {
         val queries = coreDB.getSphinxDatabaseQueries()
         val contact = contactTribePubKey.toLightningNodePubKey()?.let { getContactByPubKey(it).firstOrNull() }
@@ -7961,7 +7781,8 @@ abstract class SphinxRepository(
                 reactions = null,
                 purchaseItems = null,
                 replyMessage = null,
-                thread = null
+                thread = null,
+                remoteTimezoneIdentifier = if (isTribe) msg.metadata?.toMessageMetadata()?.tz?.toRemoteTimezoneIdentifier() else null
             )
             contact?.id?.let { contactId ->
                 if (!fromMe) {
@@ -8034,6 +7855,18 @@ abstract class SphinxRepository(
 
             chatLock.withLock {
                 queries.chatUpdateSeen(Seen.False, ChatId(chatId))
+            }
+
+            if (!fromMe) {
+                msg.metadata?.toMessageMetadata()?.tz?.let {
+                    if (!isTribe) {
+                        updateChatRemoteTimezoneIdentifier(
+                            remoteTimezoneIdentifier = it.toRemoteTimezoneIdentifier(),
+                            chatId = ChatId(chatId),
+                            isRestore = isRestore
+                        )
+                    }
+                }
             }
         }
     }

@@ -14,7 +14,8 @@ data class Message(
     val replyUuid: String? = null,
     val threadUuid: String? = null,
     val member: String? = null,
-    val invoice: String? = null
+    val invoice: String? = null,
+    val metadata: String? = null
 ) {
     @Throws(AssertionError::class)
     fun toJson(): String {

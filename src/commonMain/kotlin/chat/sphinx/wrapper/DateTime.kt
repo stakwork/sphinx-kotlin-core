@@ -4,6 +4,7 @@ import chat.sphinx.utils.platform.getCurrentTimeInMillis
 import com.soywiz.klock.*
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Date
 import kotlin.jvm.JvmInline
@@ -231,6 +232,34 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
                         formatRelay = it
                     }
             }
+
+
+        fun getTimezoneAbbreviationFrom(identifier: String?): String {
+            var timezone = TimeZone.getDefault()
+            identifier?.let {
+                timezone = TimeZone.getTimeZone(it)
+            }
+            return timezone.getDisplayName(false, TimeZone.SHORT).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+        }
+
+        fun getValidTimeZoneIds(): List<String> {
+            return TimeZone.getAvailableIDs().filter { id ->
+                val tz = TimeZone.getTimeZone(id)
+                tz.id != "GMT" || id == "GMT" // Ensure it's not an invalid alias
+            }
+        }
+        fun getLocalTimeFor(identifier: String, datetime: DateTime?): String {
+            val timeZone = TimeZone.getTimeZone(identifier)
+            val dateFormat = SimpleDateFormat("hh:mm a z", Locale.getDefault())
+            dateFormat.timeZone = timeZone
+
+            val date = datetime?.value ?: Date()
+            return dateFormat.format(date).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+        }
+
+        inline fun getSystemTimezoneAbbreviation(): String {
+            return TimeZone.getDefault().getDisplayName(false, TimeZone.SHORT)
+        }
 
         /**
          * Returns a string value using [FORMAT_RELAY]

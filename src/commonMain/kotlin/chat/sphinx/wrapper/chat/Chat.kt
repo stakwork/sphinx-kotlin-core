@@ -7,6 +7,7 @@ import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
 import chat.sphinx.wrapper.message.MessageUUID
+import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_chat.isOnlyMentions
@@ -95,4 +96,8 @@ data class Chat(
     val notify: NotificationLevel?,
     val secondBrainUrl: SecondBrainUrl?,
     val pinedMessage: MessageUUID?,
+    val timezoneEnabled: TimezoneEnabled?,
+    val timezoneIdentifier: TimezoneIdentifier?,
+    val remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
+    val timezoneUpdated: TimezoneUpdated?
     )

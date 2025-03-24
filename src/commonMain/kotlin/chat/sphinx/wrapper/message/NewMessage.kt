@@ -49,8 +49,9 @@ class NewMessage(
     override val reactions: List<Message>? = null,
     override val purchaseItems: List<Message>? = null,
     override val replyMessage: Message? = null,
-    override val thread: List<Message>? = null
-) : Message() {
+    override val thread: List<Message>? = null,
+    override val remoteTimezoneIdentifier: RemoteTimezoneIdentifier? = null
+    ) : Message() {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -85,6 +86,6 @@ class NewMessage(
                 "messageDecryptionException=$messageDecryptionException, " +
                 "messageMedia=$messageMedia, feedBoost=$feedBoost, callLinkMessage=$callLinkMessage, " +
                 "podcastClip=$podcastClip, giphyData=$giphyData, reactions=$reactions, " +
-                "purchaseItems=$purchaseItems, replyMessage=$replyMessage, thread=$thread)"
+                "purchaseItems=$purchaseItems, replyMessage=$replyMessage, thread=$thread, remoteTimezoneIdentifier=$remoteTimezoneIdentifier)"
     }
 }
