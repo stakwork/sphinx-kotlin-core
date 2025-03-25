@@ -4380,6 +4380,23 @@ abstract class SphinxRepository(
 
             val threadUUID = sendMessage.threadUUID
 
+            val metadata: String? = if(
+                chat?.timezoneUpdated?.isTrue() == true &&
+                chat.timezoneEnabled?.isTrue() == true
+            ) {
+                val timezoneAbbreviation = DateTime.getTimezoneAbbreviationFrom(chat.timezoneIdentifier?.value)
+                MessageMetadata(tz = timezoneAbbreviation).toJson()
+            } else {
+                null
+            }
+
+            if (metadata != null && chat?.id != null) {
+                updateTimezoneFlag(
+                    timezoneUpdated = TimezoneUpdated.False,
+                    chatId = chat.id
+                )
+            }
+
             val provisionalMessageId: MessageId? = chat?.let { chatDbo ->
                 // Build provisional message and insert
                 provisionalMessageLock.withLock {
@@ -4506,7 +4523,7 @@ abstract class SphinxRepository(
                                     sendMessage.memberPubKey,
                                     chat?.myAlias,
                                     chat?.myPhotoUrl,
-                                    chat
+                                    metadata
                                 )
 
                                 LOG.d("MQTT_MESSAGES", "Media Message was sent. mediatoken=$mediaTokenValue mediakey$mediaKey" )
@@ -4529,7 +4546,7 @@ abstract class SphinxRepository(
                         sendMessage.memberPubKey,
                         chat?.myAlias,
                         chat?.myPhotoUrl,
-                        chat
+                        metadata
                     )
                 }
             }
@@ -4551,19 +4568,8 @@ abstract class SphinxRepository(
         memberPubKey: LightningNodePubKey?,
         chatAlias: ChatAlias?,
         chatProfilePic: PhotoUrl?,
-        currentChat: Chat?
+        metadata: String?
     ) {
-
-        val metadata: String? = if(
-            currentChat?.timezoneUpdated?.isTrue() == true &&
-            currentChat.timezoneEnabled?.isTrue() == true
-        ) {
-            val timezoneAbbreviation = DateTime.getTimezoneAbbreviationFrom(currentChat.timezoneIdentifier?.value)
-            MessageMetadata(tz = timezoneAbbreviation).toJson()
-        } else {
-            null
-        }
-
         val newMessage = chat.sphinx.wrapper.mqtt.Message(
             messageContent,
             null,
@@ -4588,17 +4594,6 @@ abstract class SphinxRepository(
                 chatAlias?.value,
                 chatProfilePic?.value
             )
-        }
-
-        if (currentChat?.timezoneUpdated?.isTrue() == true &&
-            currentChat.timezoneEnabled?.isTrue() == true
-        ) {
-            applicationScope.launch {
-                updateTimezoneFlag(
-                    timezoneUpdated = TimezoneUpdated.False,
-                    chatId = currentChat.id
-                )
-            }
         }
     }
 
