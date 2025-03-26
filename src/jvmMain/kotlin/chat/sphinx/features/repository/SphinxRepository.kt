@@ -4381,8 +4381,8 @@ abstract class SphinxRepository(
             val threadUUID = sendMessage.threadUUID
 
             val metadata: String? = if(
-                chat?.timezoneUpdated?.isTrue() == true &&
-                chat.timezoneEnabled?.isTrue() == true
+                chat?.timezoneUpdated?.toBoolean() == true &&
+                chat.timezoneEnabled?.toBoolean() == true
             ) {
                 val timezoneAbbreviation = DateTime.getTimezoneAbbreviationFrom(chat.timezoneIdentifier?.value)
                 MessageMetadata(tz = timezoneAbbreviation).toJson()
@@ -4441,7 +4441,7 @@ abstract class SphinxRepository(
                                 message?.toMessageContentDecrypted() ?: sendMessage.text?.toMessageContentDecrypted(),
                                 null,
                                 false.toFlagged(),
-                                if (chat.timezoneEnabled?.isTrue() == true) chat.timezoneIdentifier?.value?.toRemoteTimezoneIdentifier() else null
+                                if (chat.timezoneEnabled?.toBoolean() == true) chat.timezoneIdentifier?.value?.toRemoteTimezoneIdentifier() else null
                             )
                         }
                         provisionalId

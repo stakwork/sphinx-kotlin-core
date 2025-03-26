@@ -1,7 +1,7 @@
 package chat.sphinx.wrapper.chat
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun TimezoneEnabled.isTrue(): Boolean =
+inline fun TimezoneEnabled.toBoolean(): Boolean =
     this is TimezoneEnabled.True
 
 @Suppress("NOTHING_TO_INLINE")

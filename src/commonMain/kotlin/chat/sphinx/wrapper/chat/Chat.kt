@@ -30,15 +30,15 @@ inline fun Chat.isSeeAll(): Boolean {
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.notifyActualValue(): NotificationLevel =
-    notify ?: (if (isMuted.isTrue()) NotificationLevel.MuteChat else NotificationLevel.SeeAll)
+    notify ?: (if (isMuted.toBoolean()) NotificationLevel.MuteChat else NotificationLevel.SeeAll)
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isUnlisted(): Boolean =
-    unlisted.isTrue()
+    unlisted.toBoolean()
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isPrivateTribe(): Boolean =
-    privateTribe.isTrue()
+    privateTribe.toBoolean()
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.hasBeenSeen(): Boolean =

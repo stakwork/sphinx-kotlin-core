@@ -1,7 +1,7 @@
 package chat.sphinx.wrapper.chat
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun ChatMuted.isTrue(): Boolean =
+inline fun ChatMuted.toBoolean(): Boolean =
     this is ChatMuted.True
 
 @Suppress("NOTHING_TO_INLINE")

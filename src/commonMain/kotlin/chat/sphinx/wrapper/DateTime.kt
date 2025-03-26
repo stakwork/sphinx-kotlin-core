@@ -235,6 +235,23 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
 
 
         fun getTimezoneAbbreviationFrom(identifier: String?): String {
+            val timezone = when {
+                identifier.isNullOrBlank() -> {
+                    TimeZone.getDefault()
+                }
+                identifier == "Use Computer Settings" -> {
+                    TimeZone.getTimeZone(TimeZone.getDefault().id)
+                }
+                else -> {
+                    TimeZone.getTimeZone(identifier)
+                }
+            }
+            return timezone.getDisplayName(false, TimeZone.SHORT)
+                .replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+        }
+
+
+        fun getTimezoneAbbreviationFrom1(identifier: String?): String {
             var timezone = TimeZone.getDefault()
             identifier?.let {
                 timezone = TimeZone.getTimeZone(it)
@@ -248,13 +265,37 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
                 tz.id != "GMT" || id == "GMT" // Ensure it's not an invalid alias
             }
         }
+//        fun getLocalTimeFor(identifier: String, datetime: DateTime?): String {
+//            if (datetime == null) {
+//                return ""
+//            }
+//
+//            val timeZone = if (identifier == "Use Computer Settings") {
+//                TimeZone.getTimeZone(TimeZone.getDefault().id)
+//            } else {
+//                TimeZone.getTimeZone(identifier)
+//            }
+//
+//            val abbreviation = getTimezoneAbbreviationFrom(identifier)
+//
+//            val offsetMillis = timeZone.getOffset(datetime.value.utc.unixMillisLong)
+//            val localMillis = datetime.value.utc.unixMillisLong + offsetMillis
+//            val localDateTimeTz = com.soywiz.klock.DateTimeTz.fromUnix(localMillis)
+//
+//            val timeString = DateTime.getFormathmma().format(localDateTimeTz)
+//
+//            return "$timeString $abbreviation"
+//        }
+
         fun getLocalTimeFor(identifier: String, datetime: DateTime?): String {
             val timeZone = TimeZone.getTimeZone(identifier)
             val dateFormat = SimpleDateFormat("hh:mm a z", Locale.getDefault())
             dateFormat.timeZone = timeZone
 
-            val date = datetime?.value ?: Date()
-            return dateFormat.format(date).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+            datetime?.let {
+                return dateFormat.format(Date(it.time)).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+            }
+            return dateFormat.format(Date()).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
         }
 
         inline fun getSystemTimezoneAbbreviation(): String {
@@ -272,9 +313,9 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getFormatToday00(): DateFormat =
             formatToday00  ?: synchronized(lock) {
                 DateFormat(FORMAT_TODAY_00)
-                .also {
-                    formatToday00 = it
-                }
+                    .also {
+                        formatToday00 = it
+                    }
             }
 
         /**
@@ -284,10 +325,10 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
          * */
         fun getToday00(): DateTime =
             getFormatToday00()
-            .format(
-                DateTimeTz.nowLocal()
-            )
-            .toDateTime()
+                .format(
+                    DateTimeTz.nowLocal()
+                )
+                .toDateTime()
 
         /**
          * Create a [DateTime] that is 6 days from the current time
@@ -304,9 +345,9 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getFormateeemmddhmma(): DateFormat =
             formateeemmddhmma ?: synchronized(lock) {
                 DateFormat(FORMAT_EEE_MM_DD_H_MM_A)
-                .also {
-                    formateeemmddhmma = it
-                }
+                    .also {
+                        formateeemmddhmma = it
+                    }
             }
 
         @Volatile
@@ -315,9 +356,9 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getFormatddmmmhhmm(): DateFormat =
             formatddmmmhhmm ?: synchronized(lock) {
                 DateFormat(FORMAT_DD_MMM_HH_MM)
-                .also {
-                    formatddmmmhhmm = it
-                }
+                    .also {
+                        formatddmmmhhmm = it
+                    }
             }
 
         @Volatile
@@ -325,7 +366,7 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         @Suppress("SpellCheckingInspection")
         fun getFormathmma(): DateFormat =
             formathmma ?: synchronized(lock) {
-                 DateFormat(FORMAT_H_MM_A)
+                DateFormat(FORMAT_H_MM_A)
                     .also {
                         formathmma = it
                     }
@@ -337,9 +378,9 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getFormatEEEhmma(): DateFormat =
             formateeehmma ?: synchronized(lock) {
                 DateFormat(FORMAT_EEE_H_MM_A)
-                .also {
-                    formateeehmma = it
-                }
+                    .also {
+                        formateeehmma = it
+                    }
             }
 
         @Volatile
@@ -347,16 +388,16 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getFormatMMM(): DateFormat =
             formatMMM ?: synchronized(lock) {
                 DateFormat(FORMAT_MMM)
-                .also {
-                    formatMMM = it
-                }
+                    .also {
+                        formatMMM = it
+                    }
             }
 
         @Volatile
         private var formatEEEdd: DateFormat? = null
         fun getFormatEEEdd(): DateFormat =
             formatEEEdd ?: synchronized(lock) {
-                 DateFormat(FORMAT_EEE_DD)
+                DateFormat(FORMAT_EEE_DD)
                     .also {
                         formatEEEdd = it
                     }
@@ -377,9 +418,9 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         fun getFormatMMMddyyyy(timeZone: TimezoneOffset = DateTimeTz.nowLocal().local.localOffset): DateFormat =
             formatMMMddyyyy ?: synchronized(lock) {
                 DateFormat(FORMAT_MMM_DD_YYYY)
-                .also {
-                    formatMMMddyyyy = it
-                }
+                    .also {
+                        formatMMMddyyyy = it
+                    }
             }
     }
 
