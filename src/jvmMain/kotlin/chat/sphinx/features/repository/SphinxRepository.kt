@@ -139,6 +139,7 @@ import okio.Path
 import okio.Path.Companion.toOkioPath
 import org.json.JSONException
 import org.json.JSONObject
+import java.awt.Color
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.LinkedHashMap
@@ -815,7 +816,9 @@ abstract class SphinxRepository(
                         )
                     }
                     LoadResponse.Loading -> {}
-                    is Response.Error -> {}
+                    is Response.Error -> {
+                        connectManagerErrorState.value = ConnectManagerError.InternetConnectionError
+                    }
                 }
             }
         }

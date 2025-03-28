@@ -36,4 +36,5 @@ sealed class ConnectManagerError {
     object SendBoostError: ConnectManagerError()
     object MqttReconnectError: ConnectManagerError()
     object XPubOrSignError: ConnectManagerError()
+    object InternetConnectionError: ConnectManagerError()
 }
