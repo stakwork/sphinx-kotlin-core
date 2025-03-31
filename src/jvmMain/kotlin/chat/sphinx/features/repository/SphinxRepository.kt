@@ -1238,6 +1238,12 @@ abstract class SphinxRepository(
 
     override fun onRestoreFinished(isRestoreCancelled: Boolean) {
         restoreProgress.value = if (isRestoreCancelled) null else RestoreProgress(false, 100)
+
+        if (isRestoreCancelled) {
+            connectManager.getReadMessages()
+            return
+        }
+
         applicationScope.launch(io) {
             val messageId = restoreMinIndex.value?.let { MessageId(it) }
 
