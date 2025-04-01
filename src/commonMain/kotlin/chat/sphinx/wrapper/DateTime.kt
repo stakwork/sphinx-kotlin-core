@@ -246,56 +246,53 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
                     TimeZone.getTimeZone(identifier)
                 }
             }
-            return timezone.getDisplayName(false, TimeZone.SHORT)
-                .replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+            return getGmtOffset(timezone)
         }
 
+        fun getLocalTimeFor(identifier: String, datetime: DateTime?): String {
+            val zoneIdMap = buildZoneIdMap()
+            val resolvedId = zoneIdMap[identifier.uppercase()] ?: identifier
+            val timeZone = TimeZone.getTimeZone(resolvedId)
 
-        fun getTimezoneAbbreviationFrom1(identifier: String?): String {
-            var timezone = TimeZone.getDefault()
-            identifier?.let {
-                timezone = TimeZone.getTimeZone(it)
+            val dateFormat = SimpleDateFormat("hh:mm a 'GMT'Z", Locale.getDefault())
+            dateFormat.timeZone = timeZone
+
+            val date = datetime?.let { Date(it.time) } ?: Date()
+            val formatted = dateFormat.format(date)
+
+            return formatted.replace(Regex("GMT([+-])0?(\\d{1,2})00")) { matchResult ->
+                val sign = matchResult.groupValues[1]
+                val hour = matchResult.groupValues[2]
+                if (hour == "0") "GMT" else "GMT$sign$hour"
             }
-            return timezone.getDisplayName(false, TimeZone.SHORT).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
         }
 
         fun getValidTimeZoneIds(): List<String> {
             return TimeZone.getAvailableIDs().filter { id ->
                 val tz = TimeZone.getTimeZone(id)
-                tz.id != "GMT" || id == "GMT" // Ensure it's not an invalid alias
+                tz.id != "GMT" || id == "GMT"
             }
         }
-//        fun getLocalTimeFor(identifier: String, datetime: DateTime?): String {
-//            if (datetime == null) {
-//                return ""
-//            }
-//
-//            val timeZone = if (identifier == "Use Computer Settings") {
-//                TimeZone.getTimeZone(TimeZone.getDefault().id)
-//            } else {
-//                TimeZone.getTimeZone(identifier)
-//            }
-//
-//            val abbreviation = getTimezoneAbbreviationFrom(identifier)
-//
-//            val offsetMillis = timeZone.getOffset(datetime.value.utc.unixMillisLong)
-//            val localMillis = datetime.value.utc.unixMillisLong + offsetMillis
-//            val localDateTimeTz = com.soywiz.klock.DateTimeTz.fromUnix(localMillis)
-//
-//            val timeString = DateTime.getFormathmma().format(localDateTimeTz)
-//
-//            return "$timeString $abbreviation"
-//        }
 
-        fun getLocalTimeFor(identifier: String, datetime: DateTime?): String {
-            val timeZone = TimeZone.getTimeZone(identifier)
-            val dateFormat = SimpleDateFormat("hh:mm a z", Locale.getDefault())
-            dateFormat.timeZone = timeZone
-
-            datetime?.let {
-                return dateFormat.format(Date(it.time)).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+        fun buildZoneIdMap(): Map<String, String> {
+            val map = mutableMapOf<String, String>()
+            for (id in getValidTimeZoneIds()) {
+                val tz = TimeZone.getTimeZone(id)
+                val shortId = tz.getDisplayName(false, TimeZone.SHORT, Locale.US)
+                val dstId = tz.getDisplayName(true, TimeZone.SHORT, Locale.US)
+                map[shortId.uppercase()] = id
+                map[dstId.uppercase()] = id
             }
-            return dateFormat.format(Date()).replace(Regex("GMT([+-])0?(\\d+):\\d+"), "GMT$1$2")
+            return map
+        }
+
+        @Suppress("DefaultLocale")
+        private fun getGmtOffset(timeZone: TimeZone): String {
+            val offsetMillis = timeZone.rawOffset
+            val hours = offsetMillis / 3_600_000 // Convert milliseconds to hours
+            val minutes = (offsetMillis % 3_600_000) / 60_000 // Get remaining minutes
+
+            return String.format("GMT%+02d:%02d", hours, minutes)
         }
 
         inline fun getSystemTimezoneAbbreviation(): String {
