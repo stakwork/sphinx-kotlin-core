@@ -287,12 +287,16 @@ value class DateTime(val value: com.soywiz.klock.DateTimeTz) {
         }
 
         @Suppress("DefaultLocale")
-        private fun getGmtOffset(timeZone: TimeZone): String {
+        fun getGmtOffset(timeZone: TimeZone): String {
             val offsetMillis = timeZone.rawOffset
-            val hours = offsetMillis / 3_600_000 // Convert milliseconds to hours
-            val minutes = (offsetMillis % 3_600_000) / 60_000 // Get remaining minutes
+            val hours = offsetMillis / 3_600_000  // convert ms to hours
+            val minutes = (offsetMillis % 3_600_000) / 60_000  // remaining minutes
 
-            return String.format("GMT%+02d:%02d", hours, minutes)
+            return if (minutes == 0) {
+                String.format("GMT%+d", hours)
+            } else {
+                String.format("GMT%+d:%02d", hours, minutes)
+            }
         }
 
         inline fun getSystemTimezoneAbbreviation(): String {
