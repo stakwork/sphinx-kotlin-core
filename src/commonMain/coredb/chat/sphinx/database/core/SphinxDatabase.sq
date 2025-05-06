@@ -56,6 +56,13 @@ import chat.sphinx.wrapper.lightning.LightningPaymentHash;
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest;
 import chat.sphinx.wrapper.lightning.LightningRouteHint;
 import chat.sphinx.wrapper.lightning.Sat;
+import chat.sphinx.wrapper.lsat.LsatIdentifier;
+import chat.sphinx.wrapper.lsat.LsatIssuer;
+import chat.sphinx.wrapper.lsat.LsatMetaData;
+import chat.sphinx.wrapper.lsat.LsatPaths;
+import chat.sphinx.wrapper.lsat.LsatPreImage;
+import chat.sphinx.wrapper.lsat.LsatStatus;
+import chat.sphinx.wrapper.lsat.Macaroon;
 import chat.sphinx.wrapper.message.ErrorMessage;
 import chat.sphinx.wrapper.message.Flagged;
 import chat.sphinx.wrapper.message.MessageContent;
@@ -1740,3 +1747,86 @@ userStateGet:
 SELECT *
 FROM userStateDbo
 LIMIT 1;
+
+CREATE TABLE lsatDbo (
+    id                TEXT          AS LsatIdentifier NOT NULL PRIMARY KEY,
+    macaroon          TEXT          AS Macaroon NOT NULL,
+    payment_request   TEXT          AS LightningPaymentRequest,
+    issuer            TEXT          AS LsatIssuer,
+    meta_data         TEXT          AS LsatMetaData,
+    paths             TEXT          AS LsatPaths,
+    preimage          TEXT          AS LsatPreImage,
+    status            INTEGER       AS LsatStatus NOT NULL,
+    created_at        INTEGER       AS DateTime NOT NULL
+);
+
+lsatGetLastActiveByIssuer:
+SELECT *
+FROM lsatDbo
+WHERE issuer = ?
+AND status = 1
+ORDER BY created_at DESC
+LIMIT 1;
+
+lsatGetLastActive:
+SELECT *
+FROM lsatDbo
+WHERE status = 1
+ORDER BY created_at DESC
+LIMIT 1;
+
+lsatGetById:
+SELECT *
+FROM lsatDbo
+WHERE id = ?;
+
+lsatUpdateStatus:
+UPDATE lsatDbo
+SET status = :status
+WHERE id = ?;
+
+lsatUpdateMetaData:
+UPDATE lsatDbo
+SET meta_data = :meta_data
+WHERE id = ?;
+
+lsatGetAllActive:
+SELECT *
+FROM lsatDbo
+WHERE status = 1;
+
+lsatUpsert {
+    UPDATE lsatDbo
+    SET macaroon = :macaroon,
+        payment_request = :payment_request,
+        issuer = :issuer,
+        meta_data = :meta_data,
+        paths = :paths,
+        preimage = :preimage,
+        status = :status,
+        created_at = :created_at
+    WHERE id = :id;
+
+    INSERT OR IGNORE INTO lsatDbo (
+        id,
+        macaroon,
+        payment_request,
+        issuer,
+        meta_data,
+        paths,
+        preimage,
+        status,
+        created_at
+    )
+    VALUES (
+        :id,
+        :macaroon,
+        :payment_request,
+        :issuer,
+        :meta_data,
+        :paths,
+        :preimage,
+        :status,
+        :created_at
+    );
+}

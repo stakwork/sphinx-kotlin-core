@@ -67,6 +67,12 @@ import chat.sphinx.features.coredb.adapters.feed.FeedTypeAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedUrlAdapter
 import chat.sphinx.features.coredb.adapters.feed.SubscribedAdapter
 import chat.sphinx.features.coredb.adapters.invite.InviteCodeAdapter
+import chat.sphinx.features.coredb.adapters.lsp.*
+import chat.sphinx.features.coredb.adapters.lsp.LsatIdentifierAdapter
+import chat.sphinx.features.coredb.adapters.lsp.LsatIssuerAdapter
+import chat.sphinx.features.coredb.adapters.lsp.LsatMetaDataAdapter
+import chat.sphinx.features.coredb.adapters.lsp.LsatPathsAdapter
+import chat.sphinx.features.coredb.adapters.lsp.MacaroonAdapter
 import chat.sphinx.features.coredb.adapters.media.*
 import chat.sphinx.features.coredb.adapters.media.FileNameAdapter
 import chat.sphinx.features.coredb.adapters.media.MediaKeyAdapter
@@ -295,6 +301,17 @@ abstract class CoreDBImpl: CoreDB() {
                 userStateDboAdapter = UserStateDbo.Adapter(
                     idAdapter = UserStateIdAdapter.getInstance(),
                     user_stateAdapter = UserStateAdapter()
+                ),
+                lsatDboAdapter = LsatDbo.Adapter(
+                    idAdapter = LsatIdentifierAdapter(),
+                    macaroonAdapter = MacaroonAdapter(),
+                    payment_requestAdapter = LightningPaymentRequestAdapter.getInstance(),
+                    issuerAdapter = LsatIssuerAdapter(),
+                    meta_dataAdapter = LsatMetaDataAdapter(),
+                    pathsAdapter = LsatPathsAdapter(),
+                    preimageAdapter = LsatPreImageAdapter(),
+                    statusAdapter = LsatStatusAdapter(),
+                    created_atAdapter = DateTimeAdapter.getInstance()
                 )
             ).sphinxDatabaseQueries
         }
