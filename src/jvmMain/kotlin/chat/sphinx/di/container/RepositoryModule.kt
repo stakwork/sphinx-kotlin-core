@@ -2,6 +2,7 @@ package chat.sphinx.di.container
 
 import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
+import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.concepts.repository.chat.ChatRepository
 import chat.sphinx.concepts.repository.connect_manager.ConnectManagerRepository
@@ -83,6 +84,7 @@ class RepositoryModule(
     val subscriptionRepository: SubscriptionRepository = sphinxRepositoryPlatform
     val feedRepository: FeedRepository = sphinxRepositoryPlatform
     val connectManagerRepository: ConnectManagerRepository = sphinxRepositoryPlatform
+    val networkQueryContact: NetworkQueryContact = networkModule.networkQueryContact
 
     val repositoryDashboard: RepositoryDashboard = sphinxRepositoryPlatform
     val repositoryMedia: RepositoryMedia = sphinxRepositoryPlatform

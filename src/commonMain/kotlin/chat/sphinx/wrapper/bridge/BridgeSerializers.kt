@@ -609,13 +609,10 @@ fun SendGetBudgetMessage.toJson(): String =
 data class SendLSatMessage(
     val type: String,
     val application: String,
-    val password: String,
-    val paymentRequest: String,
-    val macaroon: String,
-    val issuer: String,
-    val lsat: String,
+    val success: Int,
     val budget: Int?,
-    val success: Boolean
+    val password: String,
+    val lsat: String
 )
 
 @Throws(AssertionError::class)
@@ -624,13 +621,10 @@ fun SendLSatMessage.toJson(): String =
         SendLSatMessage(
             type,
             application,
-            password,
-            paymentRequest,
-            macaroon,
-            issuer,
-            lsat,
+            success,
             budget,
-            success
+            password,
+            lsat
         )
     )
 
@@ -638,11 +632,8 @@ fun SendLSatMessage.toJson(): String =
 data class SendLSatFailedMessage(
     val type: String,
     val application: String,
+    val success: Int,
     val password: String,
-    val paymentRequest: String,
-    val macaroon: String,
-    val issuer: String,
-    val success: Boolean
 )
 
 @Throws(AssertionError::class)
@@ -651,11 +642,8 @@ fun SendLSatFailedMessage.toJson(): String =
         SendLSatFailedMessage(
             type,
             application,
-            password,
-            paymentRequest,
-            macaroon,
-            issuer,
-            success
+            success,
+            password
         )
     )
 
@@ -664,10 +652,8 @@ data class SendUpdateLSatMessage(
     val type: String,
     val application: String,
     val password: String,
-    val identifier: String,
-    val status: String,
+    val success: Int,
     val lsat: String,
-    val success: Boolean
 )
 
 @Throws(AssertionError::class)
@@ -677,10 +663,8 @@ fun SendUpdateLSatMessage.toJson(): String =
             type,
             application,
             password,
-            identifier,
-            status,
-            lsat,
-            success
+            success,
+            lsat
         )
     )
 

@@ -112,18 +112,20 @@ interface ConnectManagerRepository {
         memo: String
     ): Pair<String, String>? // invoice, paymentHash
 //
-//    fun clearWebViewPreImage()
+    fun clearWebViewPreImage()
 //
 //    fun requestNodes(nodeUrl: String)
     fun getInvoiceInfo(invoice: String): String?
 //    fun getSignedTimeStamps(): String?
 //    fun getSignBase64(text: String): String?
-//    fun getIdFromMacaroon(macaroon: String): String?
+    fun getIdFromMacaroon(macaroon: String): String?
 //    fun attemptReconnectOnResume()
 //
+    fun retrieveRouterUrl(): String?
+    fun retrieveRouterPubKey(): String?
+
     fun cancelRestore()
     fun reconnectMqtt()
     fun cleanMnemonic()
     fun disconnectMqtt()
-
 }

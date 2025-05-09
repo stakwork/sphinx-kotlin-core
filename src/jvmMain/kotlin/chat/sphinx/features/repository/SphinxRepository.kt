@@ -144,7 +144,6 @@ import okio.Path
 import okio.Path.Companion.toOkioPath
 import org.json.JSONException
 import org.json.JSONObject
-import java.awt.Color
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.LinkedHashMap
@@ -470,8 +469,24 @@ abstract class SphinxRepository(
         return connectManager.createInvoice(amount, memo)
     }
 
+    override fun clearWebViewPreImage() {
+        webViewPreImage.value = null
+    }
+
     override fun getInvoiceInfo(invoice: String): String? {
         return connectManager.getInvoiceInfo(invoice)
+    }
+
+    override fun getIdFromMacaroon(macaroon: String): String? {
+        return connectManager.getIdFromMacaroon(macaroon)
+    }
+
+    override fun retrieveRouterUrl(): String? {
+        return serversUrls.getRouterUrl()
+    }
+
+    override fun retrieveRouterPubKey(): String? {
+        return serversUrls.getRouterPubkey()
     }
 
     override fun cancelRestore() {
