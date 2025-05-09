@@ -18,6 +18,7 @@ import chat.sphinx.wrapper.dashboard.InviteId
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.invite.*
 import chat.sphinx.wrapper.lightning.*
+import chat.sphinx.wrapper.lsat.Lsat
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.rsa.RsaPublicKey
@@ -852,6 +853,24 @@ fun TransactionCallbacks.deleteFeedById(
         queries.feedDestinationDeleteByFeedId(feedDbo.id)
         queries.feedDeleteById(feedDbo.id)
     }
+}
+
+@Suppress("NOTHING_TO_INLINE")
+fun TransactionCallbacks.upsertLsat(
+    lsat: Lsat,
+    queries: SphinxDatabaseQueries
+) {
+    queries.lsatUpsert(
+        lsat.macaroon,
+        lsat.paymentRequest,
+        lsat.issuer,
+        lsat.metaData,
+        lsat.paths,
+        lsat.preimage,
+        lsat.status,
+        lsat.createdAt,
+        lsat.id
+    )
 }
 
 fun TransactionCallbacks.deleteAll(

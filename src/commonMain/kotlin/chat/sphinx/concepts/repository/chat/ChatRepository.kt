@@ -7,6 +7,10 @@ import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.dashboard.ChatId
+import chat.sphinx.wrapper.lsat.Lsat
+import chat.sphinx.wrapper.lsat.LsatIdentifier
+import chat.sphinx.wrapper.lsat.LsatIssuer
+import chat.sphinx.wrapper.lsat.LsatStatus
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.Message
 import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier
@@ -83,5 +87,12 @@ interface ChatRepository {
         chatId: ChatId,
         isRestore: Boolean
     )
+
+    suspend fun getLastLsatByIssuer(issuer: LsatIssuer): Flow<Lsat?>
+    suspend fun getLastLsatActive(): Flow<Lsat?>
+
+    suspend fun getLsatByIdentifier(identifier: LsatIdentifier): Flow<Lsat?>
+    suspend fun upsertLsat(lsat: Lsat)
+    suspend fun updateLsatStatus(identifier: LsatIdentifier, status: LsatStatus)
 
 }

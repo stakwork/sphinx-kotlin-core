@@ -480,10 +480,10 @@ data class SendActiveLSatMessage(
     val paymentRequest: String,
     val preimage: String,
     val identifier: String,
-    val issuer: String,
-    val success: Boolean,
-    val status: Long,
+    val success: Int,
+    val status: String,
     val paths: String,
+    val issuer: String
 )
 
 @Serializable
@@ -491,7 +491,8 @@ data class SendActiveLSatFailedMessage(
     val type: String,
     val application: String,
     val password: String,
-    val success: Boolean
+    val success: Int,
+    val issuer: String
 )
 
 @Throws(AssertionError::class)
@@ -505,10 +506,10 @@ fun SendActiveLSatMessage.toJson(): String =
             paymentRequest,
             preimage,
             identifier,
-            issuer,
             success,
             status,
-            paths
+            paths,
+            issuer
         )
     )
 
@@ -519,7 +520,8 @@ fun SendActiveLSatFailedMessage.toJson(): String =
             type,
             application,
             password,
-            success
+            success,
+            issuer
         )
     )
 
@@ -529,7 +531,7 @@ data class SendSignMessage(
     val application: String,
     val password: String,
     val signature: String,
-    val success: Boolean
+    val success: Int
 )
 
 @Serializable
@@ -537,7 +539,7 @@ data class SendFailedSignMessage(
     val type: String,
     val application: String,
     val password: String,
-    val success: Boolean
+    val success: Int
 )
 
 @Throws(AssertionError::class)
