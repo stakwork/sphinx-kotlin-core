@@ -1,7 +1,7 @@
 package chat.sphinx.wrapper.chat
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun Push.isTrue(): Boolean =
+inline fun Push.toBoolean(): Boolean =
     this is Push.True
 
 @Suppress("NOTHING_TO_INLINE")

@@ -4,7 +4,13 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import chat.sphinx.concepts.repository.connect_manager.model.NetworkStatus
+import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationState
+import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
+import chat.sphinx.concepts.connect_manager.ConnectManager
+import chat.sphinx.concepts.connect_manager.ConnectManagerListener
+import chat.sphinx.concepts.connect_manager.model.OwnerInfo
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
@@ -17,30 +23,23 @@ import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.contact.model.*
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
 import chat.sphinx.concepts.network.query.feed_search.model.toFeedSearchResult
-import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
-import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
-import chat.sphinx.concepts.network.query.lightning.model.balance.BalanceDto
 import chat.sphinx.concepts.network.query.lightning.model.lightning.*
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
-import chat.sphinx.concepts.network.query.meme_server.model.PostMemeServerUploadDto
-import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.message.model.*
+import chat.sphinx.concepts.network.query.message.model.MessageDto
+import chat.sphinx.concepts.network.query.message.model.MessageMetadata.Companion.toMessageMetadata
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.redeem_badge_token.model.RedeemBadgeTokenDto
-import chat.sphinx.concepts.network.query.relay_keys.NetworkQueryRelayKeys
-import chat.sphinx.concepts.network.query.relay_keys.model.PostHMacKeyDto
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
 import chat.sphinx.concepts.network.query.save_profile.model.DeletePeopleProfileDto
 import chat.sphinx.concepts.network.query.save_profile.model.PeopleProfileDto
-import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
-import chat.sphinx.concepts.network.query.subscription.model.PostSubscriptionDto
-import chat.sphinx.concepts.network.query.subscription.model.PutSubscriptionDto
 import chat.sphinx.concepts.network.query.subscription.model.SubscriptionDto
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.concepts.relay.RelayDataHandler
 import chat.sphinx.concepts.repository.chat.ChatRepository
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
+import chat.sphinx.concepts.repository.connect_manager.ConnectManagerRepository
 import chat.sphinx.concepts.repository.contact.ContactRepository
 import chat.sphinx.concepts.repository.dashboard.RepositoryDashboard
 import chat.sphinx.concepts.repository.feed.FeedRepository
@@ -52,9 +51,6 @@ import chat.sphinx.concepts.repository.message.model.SendMessage
 import chat.sphinx.concepts.repository.message.model.SendPayment
 import chat.sphinx.concepts.repository.message.model.SendPaymentRequest
 import chat.sphinx.concepts.repository.subscription.SubscriptionRepository
-import chat.sphinx.concepts.socket_io.SocketIOManager
-import chat.sphinx.concepts.socket_io.SphinxSocketIOMessage
-import chat.sphinx.concepts.socket_io.SphinxSocketIOMessageListener
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.annotations.UnencryptedDataAccess
 import chat.sphinx.crypto.common.clazzes.*
@@ -68,17 +64,20 @@ import chat.sphinx.features.repository.mappers.feed.FeedItemDboPresenterMapper
 import chat.sphinx.features.repository.mappers.feed.FeedModelDboPresenterMapper
 import chat.sphinx.features.repository.mappers.feed.podcast.*
 import chat.sphinx.features.repository.mappers.invite.InviteDboPresenterMapper
+import chat.sphinx.features.repository.mappers.lsat.LsatDboPresenterMapper
 import chat.sphinx.features.repository.mappers.mapListFrom
 import chat.sphinx.features.repository.mappers.message.MessageDboPresenterMapper
 import chat.sphinx.features.repository.mappers.subscription.SubscriptionDboPresenterMapper
 import chat.sphinx.features.repository.model.message.MessageDboWrapper
 import chat.sphinx.features.repository.model.message.MessageMediaDboWrapper
+import chat.sphinx.features.repository.model.message.convertMessageDboToNewMessage
 import chat.sphinx.features.repository.util.*
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.logger.e
 import chat.sphinx.logger.w
 import chat.sphinx.response.*
+import chat.sphinx.utils.ServersUrlsHelper
 import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.chat.*
@@ -86,13 +85,33 @@ import chat.sphinx.wrapper.contact.*
 import chat.sphinx.wrapper.dashboard.*
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.invite.Invite
+import chat.sphinx.wrapper.invite.InviteCode
 import chat.sphinx.wrapper.invite.InviteStatus
+import chat.sphinx.wrapper.invite.InviteString
 import chat.sphinx.wrapper.lightning.*
+import chat.sphinx.wrapper.lsat.Lsat
+import chat.sphinx.wrapper.lsat.LsatIdentifier
+import chat.sphinx.wrapper.lsat.LsatIssuer
+import chat.sphinx.wrapper.lsat.LsatStatus
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
 import chat.sphinx.wrapper.message.*
+import chat.sphinx.wrapper.message.Message
+import chat.sphinx.wrapper.message.Msg.Companion.toMsg
+import chat.sphinx.wrapper.message.MsgSender.Companion.toMsgSender
+import chat.sphinx.wrapper.message.MsgSender.Companion.toMsgSenderNull
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.message.media.token.MediaHost
 import chat.sphinx.wrapper.message.media.token.toMediaUrlOrNull
+import chat.sphinx.wrapper.mqtt.*
+import chat.sphinx.wrapper.mqtt.LastReadMessages.Companion.toLastReadMap
+import chat.sphinx.wrapper.mqtt.MsgsCounts.Companion.toMsgsCounts
+import chat.sphinx.wrapper.mqtt.MuteLevels.Companion.toMuteLevelsMap
+import chat.sphinx.wrapper.mqtt.NewCreateTribe.Companion.toNewCreateTribe
+import chat.sphinx.wrapper.mqtt.NewSentStatus.Companion.toNewSentStatus
+import chat.sphinx.wrapper.mqtt.Payment.Companion.toPaymentsList
+import chat.sphinx.wrapper.mqtt.TagMessageList.Companion.toTagsList
+import chat.sphinx.wrapper.mqtt.TransactionDto
+import chat.sphinx.wrapper.mqtt.TribeMembersResponse.Companion.toTribeMembersList
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
@@ -102,25 +121,32 @@ import chat.sphinx.wrapper.rsa.RsaPublicKey
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.Subscription
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper.user.UserState
+import chat.sphinx.wrapper.user.UserStateId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_message.ThreadUUID
+import chat.sphinx.wrapper_message.toThreadUUID
+import com.ensarsarajcic.kotlinx.serialization.msgpack.MsgPack
+import com.ensarsarajcic.kotlinx.serialization.msgpack.MsgPackDynamicSerializer
 import com.soywiz.klock.DateTimeTz
 import com.squareup.sqldelight.android.paging3.QueryPagingSource
 import com.squareup.sqldelight.runtime.coroutines.asFlow
 import com.squareup.sqldelight.runtime.coroutines.mapToList
 import com.squareup.sqldelight.runtime.coroutines.mapToOneOrNull
-import io.ktor.http.parsing.*
 import io.matthewnelson.component.base64.encodeBase64
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toOkioPath
+import org.json.JSONException
+import org.json.JSONObject
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.LinkedHashMap
 import kotlin.math.absoluteValue
 
 abstract class SphinxRepository(
@@ -137,17 +163,12 @@ abstract class SphinxRepository(
     private val networkQueryMemeServer: NetworkQueryMemeServer,
     private val networkQueryChat: NetworkQueryChat,
     private val networkQueryContact: NetworkQueryContact,
-    private val networkQueryLightning: NetworkQueryLightning,
-    private val networkQueryMessage: NetworkQueryMessage,
-    private val networkQueryInvite: NetworkQueryInvite,
     private val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal,
     private val networkQuerySaveProfile: NetworkQuerySaveProfile,
     private val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken,
-    private val networkQuerySubscription: NetworkQuerySubscription,
     private val networkQueryFeedSearch: NetworkQueryFeedSearch,
-    private val networkQueryRelayKeys: NetworkQueryRelayKeys,
+    private val connectManager: ConnectManager,
     private val rsa: RSA,
-    private val socketIOManager: SocketIOManager,
     private val sphinxNotificationManager: SphinxNotificationManager,
     protected val LOG: SphinxLogger,
 ) : ChatRepository,
@@ -158,8 +179,10 @@ abstract class SphinxRepository(
     RepositoryDashboard,
     RepositoryMedia,
     FeedRepository,
+    ConnectManagerRepository,
     CoroutineDispatchers by dispatchers,
-    SphinxSocketIOMessageListener {
+    ConnectManagerListener
+{
 
     companion object {
         const val TAG: String = "SphinxRepository"
@@ -181,150 +204,1548 @@ abstract class SphinxRepository(
         const val AUTHORIZE_EXTERNAL_BASE_64 = "U3BoaW54IFZlcmlmaWNhdGlvbg=="
     }
 
-    ////////////////
-    /// SocketIO ///
-    ////////////////
-    init {
-        socketIOManager.addListener(this)
+    private val serversUrls = ServersUrlsHelper()
+
+    ////////////////////////
+    /// Connect Manager ///
+    //////////////////////
+
+
+    override val connectionManagerState: MutableStateFlow<OwnerRegistrationState?> by lazy {
+        MutableStateFlow(null)
     }
 
-    override var updatedContactIds: MutableList<ContactId> = mutableListOf()
+    override val networkStatus: MutableStateFlow<NetworkStatus> by lazy {
+        MutableStateFlow(NetworkStatus.Loading)
+    }
 
-    /**
-     * Call is made on [Dispatchers.IO]
-     * */
-    @Suppress("BlockingMethodInNonBlockingContext")
-    override suspend fun onSocketIOMessageReceived(msg: SphinxSocketIOMessage) {
-        coreDB.getSphinxDatabaseQueriesOrNull()?.let { queries ->
-            Exhaustive@
-            when (msg) {
-                is SphinxSocketIOMessage.Type.Contact -> {
-                    // TODO: Contact Refresh...
-                    contactLock.withLock {
-                        queries.transaction {
-                            updatedContactIds.add(ContactId(msg.dto.id))
-                            upsertContact(msg.dto, queries)
-                        }
-                    }
-                }
-                is SphinxSocketIOMessage.Type.ChatSeen -> {
-                    readMessagesImpl(
-                        chatId = ChatId(msg.dto.id),
-                        queries = queries,
-                        executeNetworkRequest = false
+    override val restoreProcessState: MutableStateFlow<RestoreProcessState?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val connectManagerErrorState: MutableStateFlow<ConnectManagerError?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val transactionDtoState: MutableStateFlow<List<TransactionDto>?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val userStateFlow: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val tribeMembersState: MutableStateFlow<TribeMembersResponse?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val restoreProgress: MutableStateFlow<RestoreProgress?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val webViewPaymentHash: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val processingInvoice: MutableStateFlow<Pair<String, String>?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val webViewPreImage: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val restoreMinIndex: MutableStateFlow<Long?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val mnemonicWords: MutableStateFlow<String?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override val profileSetInfoRestore: MutableStateFlow<Boolean?> by lazy {
+        MutableStateFlow(null)
+    }
+
+    override fun setInviteCode(inviteString: String) {
+        connectManager.setInviteCode(inviteString)
+    }
+
+    override fun setMnemonicWords(words: List<String>?) {
+        connectManager.setMnemonicWords(words)
+    }
+
+    override fun setNetworkType(isTestEnvironment: Boolean) {
+        connectManager.setNetworkType(isTestEnvironment)
+    }
+
+    override fun signChallenge(challenge: String): String? {
+        return connectManager.processChallengeSignature(challenge)
+    }
+
+    override fun createInvite(
+        nickname: String,
+        welcomeMessage: String,
+        sats: Long
+    ) {
+        val serverDefaultTribe = serversUrls.getDefaultTribe()?.ifEmpty { null }
+        val tribeServerIp = serversUrls.getTribeServerIp()?.ifEmpty { null }
+        val mixerIp = serversUrls.getNetworkMixerIp()?.ifEmpty { null }
+
+        connectManager.createInvite(
+            nickname,
+            welcomeMessage,
+            sats,
+            serverDefaultTribe,
+            tribeServerIp,
+            mixerIp
+        )
+    }
+
+    override fun joinTribe(
+        tribeHost: String,
+        tribePubKey: String,
+        tribeRouteHint: String,
+        tribeName: String,
+        tribePicture: String?,
+        isPrivate: Boolean,
+        userAlias: String,
+        pricePerMessage: Long,
+        escrowAmount: Long,
+        priceToJoin: Long
+    ) {
+        connectManager.joinToTribe(
+            tribeHost,
+            tribePubKey,
+            tribeRouteHint,
+            isPrivate,
+            userAlias,
+            priceToJoin
+        )
+
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
+            val tribeId = queries.chatGetLastTribeId().executeAsOneOrNull()?.let { it.MIN?.minus(1) }
+                ?: (Long.MAX_VALUE)
+            val now: String = DateTime.nowUTC()
+
+            val newTribe = Chat(
+                id = ChatId(tribeId),
+                uuid = ChatUUID(tribePubKey),
+                name = ChatName( tribeName ?: "unknown"),
+                photoUrl = tribePicture?.toPhotoUrl(),
+                type = ChatType.Tribe,
+                status = ChatStatus.Approved,
+                contactIds = listOf(ContactId(0), ContactId(tribeId)),
+                isMuted = ChatMuted.False,
+                createdAt = now.toDateTime(),
+                groupKey = null,
+                host = ChatHost(tribeHost),
+                pricePerMessage = pricePerMessage.toSat(),
+                escrowAmount = escrowAmount.toSat(),
+                unlisted = ChatUnlisted.False,
+                privateTribe = ChatPrivate.False,
+                ownerPubKey = LightningNodePubKey(tribePubKey),
+                seen = Seen.False,
+                metaData = null,
+                myPhotoUrl = null,
+                myAlias = userAlias.toChatAlias(),
+                pendingContactIds = emptyList(),
+                latestMessageId = null,
+                contentSeenAt = null,
+                notify = NotificationLevel.SeeAll,
+                secondBrainUrl = null,
+                pinedMessage = null,
+                timezoneEnabled = null,
+                timezoneIdentifier = null,
+                remoteTimezoneIdentifier = null,
+                timezoneUpdated = null
+            )
+
+            chatLock.withLock {
+                queries.transaction {
+                    upsertNewChat(
+                        newTribe,
+                        SynchronizedMap<ChatId, Seen>(),
+                        queries,
+                        null,
+                        accountOwner.value?.nodePubKey
                     )
                 }
-                is SphinxSocketIOMessage.Type.Invite -> {
-                    // TODO: Contact Refresh
-                    contactLock.withLock {
-                        queries.transaction {
-                            updatedContactIds.add(ContactId(msg.dto.contact_id))
-                            upsertInvite(msg.dto, queries)
+            }
+        }
+    }
+
+    override fun getTribeMembers(tribeServerPubKey: String, tribePubKey: String) {
+        connectManager.retrieveTribeMembersList(tribeServerPubKey, tribePubKey)
+    }
+
+    override fun getTribeServerPubKey(): String? {
+        return connectManager.getTribeServerPubKey()
+    }
+
+    override fun getPayments(lastMessageDate: Long, limit: Int) {
+        connectManager.getPayments(
+            lastMessageDate,
+            limit,
+            null,
+            null,
+            null,
+            true
+        )
+    }
+
+    override fun getTagsByChatId(chatId: ChatId) {
+        applicationScope.launch(io) {
+            getSentConfirmedMessagesByChatId(chatId).collect { messages ->
+                if (messages.isNotEmpty()) {
+                    val tags = messages.mapNotNull { it.tagMessage?.value }.distinct()
+                    connectManager.getMessagesStatusByTags(tags)
+                }
+            }
+        }
+    }
+
+    override suspend fun payContactPaymentRequest(
+        paymentRequest: LightningPaymentRequest?
+    ) {
+        applicationScope.launch(mainImmediate) {
+            paymentRequest?.value?.let {
+                connectManager.processContactInvoicePayment(it)
+            }
+        }
+    }
+
+    override suspend fun payInvoice(
+        paymentRequest: LightningPaymentRequest,
+        endHops: String?,
+        routerPubKey: String?,
+        milliSatAmount: Long,
+        isSphinxInvoice: Boolean,
+        paymentHash: String?,
+        callback: (() -> Unit)?
+    ) {
+        if (paymentHash != null) {
+            webViewPaymentHash.value = paymentHash
+        }
+
+        if (endHops?.isNotEmpty() == true && routerPubKey != null) {
+            connectManager.concatNodesFromResponse(
+                endHops,
+                routerPubKey,
+                milliSatAmount
+            )
+        }
+        val tag = connectManager.processInvoicePayment(
+            paymentRequest.value,
+            milliSatAmount
+        )
+        if (!isSphinxInvoice) {
+            tag?.let {
+                callback?.invoke()
+                processingInvoice.value = Pair(paymentRequest.value, it)
+
+                val timer = Timer("OneTimeTimer", true)
+                timer.schedule(object : TimerTask() {
+                    override fun run() {
+                        processingInvoice.value = null
+                    }
+                }, 60000)
+            }
+        }
+    }
+
+    override suspend fun payInvoiceFromLSP(paymentRequest: LightningPaymentRequest) {
+        connectManager.payInvoiceFromLSP(paymentRequest.value)
+    }
+
+    override fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean {
+        return connectManager.isRouteAvailable(pubKey, routeHint, milliSat)
+    }
+
+    override fun createInvoice(amount: Long, memo: String): Pair<String, String>? {
+        return connectManager.createInvoice(amount, memo)
+    }
+
+    override fun clearWebViewPreImage() {
+        webViewPreImage.value = null
+    }
+
+    override fun getInvoiceInfo(invoice: String): String? {
+        return connectManager.getInvoiceInfo(invoice)
+    }
+
+    override fun getIdFromMacaroon(macaroon: String): String? {
+        return connectManager.getIdFromMacaroon(macaroon)
+    }
+
+    override fun retrieveRouterUrl(): String? {
+        return serversUrls.getRouterUrl()
+    }
+
+    override fun retrieveRouterPubKey(): String? {
+        return serversUrls.getRouterPubkey()
+    }
+
+    override fun cancelRestore() {
+        connectManager.cancelRestore()
+        onRestoreFinished(isRestoreCancelled = true)
+    }
+
+    override fun reconnectMqtt() {
+        applicationScope.launch(mainImmediate) {
+            delay(1000L)
+            connectManager.reconnectWithBackOff()
+        }
+    }
+
+    override fun cleanMnemonic() {
+        mnemonicWords.value = null
+    }
+
+    fun getUserStateFromDb(): Flow<UserState?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.userStateGet()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it?.user_state }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun disconnectMqtt() {
+        connectManager.disconnectMqtt()
+    }
+
+    override fun connectAndSubscribeToMqtt() {
+        applicationScope.launch(mainImmediate) {
+            val userState = getUserStateFromDb().firstOrNull() ?: return@launch
+            val mixerIp = serversUrls.getNetworkMixerIp()
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val mnemonic = relayDataHandler.retrieveWalletMnemonic()
+            var owner: Contact? = accountOwner.value
+
+            if (owner == null) {
+                try {
+                    accountOwner.collect { contact ->
+                        if (contact != null) {
+                            owner = contact
+                            throw Exception()
                         }
                     }
+                } catch (e: Exception) {
                 }
-                is SphinxSocketIOMessage.Type.InvoicePayment -> {
-                    // TODO: Implement
+                delay(25L)
+            }
+
+            val okKey = owner?.nodePubKey?.value
+            val lastMessageIndex = queries.messageGetMaxId().executeAsOneOrNull()?.MAX
+
+            val ownerInfo = OwnerInfo(
+                owner?.alias?.value ?: "",
+                owner?.photoUrl?.value ?: "",
+                userState.value,
+                lastMessageIndex
+            )
+
+            if (mnemonic != null && okKey != null && mixerIp != null) {
+                connectManager.initializeMqttAndSubscribe(
+                    mixerIp,
+                    mnemonic,
+                    ownerInfo
+                )
+            } else {
+                val logMixerIp = !mixerIp.isNullOrEmpty()
+                val logMnemonic = !mnemonic?.value.isNullOrEmpty()
+                val logOkKey = !okKey.isNullOrEmpty()
+
+                connectManagerErrorState.value = ConnectManagerError.MqttInitError(
+                    "mixerIp: $logMixerIp mnemonic: $logMnemonic okKey: $logOkKey"
+                )
+            }
+        }
+
+    }
+
+    override fun createOwnerAccount(ownerAlias: String) {
+        connectManager.createAccount(ownerAlias)
+    }
+
+    override fun startRestoreProcess() {
+        applicationScope.launch(mainImmediate) {
+            var msgCounts: MsgsCounts? = null
+
+            restoreProcessState.asStateFlow().collect{ restoreProcessState ->
+                when (restoreProcessState) {
+                    is RestoreProcessState.MessagesCounts -> {
+                        msgCounts = restoreProcessState.msgsCounts
+                        connectManager.fetchFirstMessagesPerKey(0L, msgCounts?.first_for_each_scid)
+                    }
+                    is RestoreProcessState.RestoreMessages -> {
+                        delay(100L)
+                        connectManager.fetchMessagesOnRestoreAccount(
+                            msgCounts?.total_highest_index,
+                            msgCounts?.total
+                        )
+
+                    }
+                    else -> {}
                 }
-                is SphinxSocketIOMessage.Type.MessageType, is SphinxSocketIOMessage.Type.Group -> {
+            }
+        }
+    }
 
-                    // TODO: Message refresh
-                    val messageDto: MessageDto? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto
-                        is SphinxSocketIOMessage.Type.Group -> msg.dto.message
-                        else -> null
-                    }
+    override fun createContact(contact: NewContact) {
+        applicationScope.launch(mainImmediate) {
+            createNewContact(contact)
+            connectManager.createContact(contact)
+            println("CREATE_CONTACT: createContact (SPHINX REPO)")
+        }
+    }
 
-                    val contactDto: ContactDto? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto.contact
-                        is SphinxSocketIOMessage.Type.Group -> msg.dto.contact
-                        else -> null
-                    }
+    // ConnectManagerListener Callbacks implemented
+    init {
+        connectManager.addListener(this)
+        memeServerTokenHandler.addListener(this)
+    }
 
-                    val chatDto: ChatDto? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto.chat
-                        is SphinxSocketIOMessage.Type.Group -> msg.dto.chat
-                        else -> null
-                    }
+    private val userStateLock = Mutex()
 
-                    val chatDtoId: ChatId? = when (msg) {
-                        is SphinxSocketIOMessage.Type.MessageType -> msg.dto.chat_id?.toChatId()
-                        else -> null
-                    }
+    // Account Management
+    override fun onUpdateUserState(userState: ByteArray) {
+        storeUserState(userState)
+    }
 
-                    messageDto?.let { nnMessageDto ->
-                        val supervisor = SupervisorJob(currentCoroutineContext().job)
-                        val scope = CoroutineScope(supervisor)
+    override fun onRemoveKeysFromUserState(userState: List<String>) {
+        applicationScope.launch {
+            val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
 
-                        decryptMessageDtoContentIfAvailable(
-                            nnMessageDto,
-                            scope,
-                            io
-                        )?.join()
+            for (key in userState) {
+                existingUserState.remove(key)
+            }
 
-                        decryptMessageDtoMediaKeyIfAvailable(
-                            nnMessageDto,
-                            scope,
-                            io
-                        )?.join()
+            val encodedString = encodeMapToBase64(existingUserState)
 
-                        val isAttachmentMessage = nnMessageDto.type.toMessageType().isAttachment()
-                        delay(if (isAttachmentMessage) 500L else 0L)
+            connectManager.updateOwnerInfoUserState(encodedString)
 
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                contactLock.withLock {
-                                    queries.transaction {
+            val queries = coreDB.getSphinxDatabaseQueries()
 
-                                        upsertMessage(nnMessageDto, queries)
-
-                                        var chatId: ChatId? = null
-
-                                        contactDto?.let { nnContactDto ->
-                                            upsertContact(nnContactDto, queries)
-                                        }
-
-                                        chatDto?.let { nnChatDto ->
-                                            upsertChat(
-                                                nnChatDto,
-                                                chatSeenMap,
-                                                queries,
-                                                contactDto
-                                            )
-
-                                            chatId = ChatId(nnChatDto.id)
-                                        }
-
-                                        chatDtoId?.let { nnChatDtoId ->
-                                            chatId = nnChatDtoId
-                                        }
-
-                                        chatId?.let { nnChatId ->
-                                            updateChatDboLatestMessage(
-                                                nnMessageDto,
-                                                nnChatId,
-                                                latestMessageUpdatedTimeMap,
-                                                queries
-                                            )
-
-                                            if (msg !is SphinxSocketIOMessage.Type.MessageType.Confirmation) {
-                                                showNotification(
-                                                    nnChatId,
-                                                    chatDto,
-                                                    nnMessageDto,
-                                                    contactDto
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+            userStateLock.withLock {
+                withContext(io) {
+                    queries.transaction {
+                        upsertUserState(
+                            UserStateId(1L),
+                            UserState(encodedString),
+                            queries
+                        )
                     }
                 }
             }
         }
     }
+
+    private fun storeUserState(state: ByteArray) {
+        try {
+            val decoded = MsgPack.decodeFromByteArray(MsgPackDynamicSerializer, state)
+            (decoded as? MutableMap<String, ByteArray>)?.let {
+                storeUserStateOnSharedPreferences(it)
+            }
+
+        } catch (e: Exception) {
+        }
+    }
+
+    private fun encodeMapToBase64(map: MutableMap<String, ByteArray>): String {
+        val encodedMap = mutableMapOf<String, String>()
+
+        for ((key, value) in map) {
+            encodedMap[key] = Base64.getEncoder().withoutPadding().encodeToString(value)
+        }
+
+        val result = (encodedMap as Map<*, *>?)?.let { JSONObject(it).toString() } ?: ""
+
+
+        return result
+    }
+
+
+    private fun retrieveUserStateMap(encodedString: String?): MutableMap<String, ByteArray> {
+        val result = encodedString?.let {
+            decodeBase64ToMap(it)
+        } ?: mutableMapOf()
+
+        return result
+    }
+
+    private fun decodeBase64ToMap(encodedString: String): MutableMap<String, ByteArray> {
+        if (encodedString.isEmpty()) {
+            return mutableMapOf()
+        }
+
+        val decodedMap = mutableMapOf<String, ByteArray>()
+
+        try {
+            val jsonObject = JSONObject(encodedString)
+            val keys = jsonObject.keys()
+
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val encodedValue = jsonObject.getString(key.toString())
+                val decodedValue = Base64.getDecoder().decode(encodedValue)
+                decodedMap[key.toString()] = decodedValue
+            }
+        } catch (e: JSONException) {
+        }
+
+        return decodedMap
+    }
+
+    private fun storeUserStateOnSharedPreferences(newUserState: MutableMap<String, ByteArray>) {
+        applicationScope.launch {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            val existingUserState = retrieveUserStateMap(connectManager.ownerInfoStateFlow.value?.userState)
+            existingUserState.putAll(newUserState)
+
+            val encodedString = encodeMapToBase64(existingUserState)
+
+            connectManager.updateOwnerInfoUserState(encodedString)
+
+            userStateLock.withLock {
+                withContext(io) {
+                    queries.transaction {
+                        upsertUserState(
+                            UserStateId(1L),
+                            UserState(encodedString),
+                            queries
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onMnemonicWords(words: String, isRestore: Boolean) {
+        applicationScope.launch(io) {
+            words.toWalletMnemonic()?.let {
+                relayDataHandler.persistWalletMnemonic(it)
+            }
+        }
+        if (!isRestore) {
+            mnemonicWords.value = words
+        }
+    }
+
+    override fun onOwnerRegistered(
+        okKey: String,
+        routeHint: String,
+        isRestoreAccount: Boolean,
+        mixerServerIp: String?,
+        tribeServerHost: String?,
+        isProductionEnvironment: Boolean,
+        routerUrl: String?,
+        defaultTribe: String?,
+        ownerAlias: String?
+    ) {
+
+        applicationScope.launch(mainImmediate) {
+            val scid = routeHint.toLightningRouteHint()?.getScid()
+
+            if (scid != null) {
+                val alias = if(!isRestoreAccount) ownerAlias else null
+
+                if (accountOwner.value?.nodePubKey == null) {
+                    createOwner(okKey, routeHint, scid, alias)
+                }
+
+                mixerServerIp?.let { serversUrls.storeNetworkMixerIp(it) }
+                defaultTribe?.let { serversUrls.storeDefaultTribe(it) }
+                serversUrls.storeEnvironmentType(isProductionEnvironment)
+
+                val needsToFetchConfig = routerUrl.isNullOrEmpty() || tribeServerHost.isNullOrEmpty()
+
+                if (needsToFetchConfig) {
+                    fetchMissingAccountConfig(
+                        isProductionEnvironment,
+                        routerUrl,
+                        tribeServerHost,
+                        defaultTribe
+                    )
+                } else {
+                    serversUrls.storeRouterUrl(routerUrl)
+                    serversUrls.storeTribeServerIp(tribeServerHost)
+                }
+
+                delay(100L)
+
+                if (isRestoreAccount) {
+                    startRestoreProcess()
+                }
+
+                connectionManagerState.value = OwnerRegistrationState.OwnerRegistered
+            }
+        }
+    }
+
+    private fun fetchMissingAccountConfig(
+        isProductionEnvironment: Boolean,
+        routerUrl: String?,
+        tribeServerHost: String?,
+        defaultTribe: String?
+    ) {
+        applicationScope.launch(mainImmediate) {
+            networkQueryContact.getAccountConfig(isProductionEnvironment).collect { loadResponse ->
+                when (loadResponse) {
+                    is Response.Success -> {
+                        loadResponse.value.router.takeIf { it.isNotEmpty() && routerUrl.isNullOrEmpty() }?.let {
+                            serversUrls.storeRouterUrl(it)
+                        }
+                        loadResponse.value.tribe_host.takeIf { it.isNotEmpty() && tribeServerHost.isNullOrEmpty() }
+                            ?.let {
+                                serversUrls.storeTribeServerIp(it)
+                            }
+                        loadResponse.value.tribe.takeIf { it.isNotEmpty() && defaultTribe.isNullOrEmpty() }?.let {
+                            serversUrls.storeDefaultTribe(it)
+                        }
+                        delay(100L)
+                    }
+
+                    is Response.Error -> {
+                        // Handle the error, e.g., show a notification or log the error
+                        // Navigate to the next screen or perform the next action
+                    }
+                    LoadResponse.Loading -> {}
+                }
+            }
+        }
+    }
+
+    override fun onRestoreAccount(isProductionEnvironment: Boolean) {
+        applicationScope.launch(mainImmediate) {
+            networkQueryContact.getAccountConfig(isProductionEnvironment).collect { loadResponse ->
+                when (loadResponse) {
+                    is Response.Success -> {
+                        connectManager.restoreAccount(
+                            loadResponse.value.tribe,
+                            loadResponse.value.tribe_host,
+                            loadResponse.value.default_lsp,
+                            loadResponse.value.router
+                        )
+                    }
+                    LoadResponse.Loading -> {}
+                    is Response.Error -> {
+                        connectManagerErrorState.value = ConnectManagerError.InternetConnectionError
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onUpsertContacts(
+        contacts: List<Pair<String?, Long?>>,
+        callback: (() -> Unit)?
+    ) {
+        if (contacts.isEmpty()) {
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
+            return
+        }
+        applicationScope.launch(mainImmediate) {
+            val contactList: List<Pair<MsgSender?, DateTime?>> = contacts.mapNotNull { contact ->
+                Pair(contact?.first?.toMsgSenderNull(), contact.second?.toDateTime())
+            }.groupBy { it.first?.pubkey }
+                .map { (_, group) ->
+                    group.find { it.first?.confirmed == true } ?: group.first()
+                }
+
+            val newContactList = contactList.map { contactInfo ->
+                NewContact(
+                    contactAlias = contactInfo.first?.alias?.toContactAlias(),
+                    lightningNodePubKey = contactInfo.first?.pubkey?.toLightningNodePubKey(),
+                    lightningRouteHint = contactInfo.first?.route_hint?.toLightningRouteHint(),
+                    photoUrl = contactInfo.first?.photo_url?.toPhotoUrl(),
+                    confirmed = contactInfo.first?.confirmed == true,
+                    null,
+                    inviteCode = contactInfo.first?.code,
+                    invitePrice = null,
+                    null,
+                    contactInfo.second
+                )
+            }
+
+            newContactList.forEach { newContact ->
+                delay(100L)
+                if (newContact.inviteCode != null) {
+                    updateNewContactInvited(newContact)
+                } else {
+                    createNewContact(newContact)
+                }
+            }
+
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
+        }
+    }
+
+    override fun onRestoreMessages() {
+        restoreProcessState.value = RestoreProcessState.RestoreMessages
+    }
+
+    override fun onUpsertTribes(
+        tribes: List<Pair<String?, Boolean?>>,
+        isProductionEnvironment: Boolean,
+        callback: (() -> Unit)?
+    )  {
+        if (tribes.isEmpty()) {
+            callback?.let { nnCallback ->
+                nnCallback()
+            }
+            return
+        }
+
+        applicationScope.launch(io) {
+            val total = tribes.count();
+            var index = 0
+
+            val tribeList = tribes.mapNotNull { tribes ->
+                try {
+                    Pair(
+                        tribes.first?.toMsgSender(),
+                        tribes.second
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            tribeList.forEach { tribe ->
+                val isAdmin = (tribe.first?.role == 0 && tribe.second == true)
+                tribe.first?.let {
+                    joinTribeOnRestoreAccount(it, isAdmin, isProductionEnvironment) {
+                        if (index == total - 1) {
+                            callback?.let { nnCallback ->
+                                nnCallback()
+                            }
+                        } else {
+                            index += 1
+                        }
+                    }
+                } ?: run {
+                    if (index == total - 1) {
+                        callback?.let { nnCallback ->
+                            nnCallback()
+                        }
+                    } else {
+                        index += 1
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onNewBalance(balance: Long) {
+        applicationScope.launch(io) {
+
+            balanceLock.withLock {
+                accountBalanceStateFlow.value = balance.toNodeBalance()
+                networkRefreshBalance.value = balance
+
+                authenticationStorage.putString(
+                    REPOSITORY_LIGHTNING_BALANCE,
+                    balance.toString()
+                )
+            }
+        }
+    }
+
+    override fun onSignedChallenge(sign: String) {
+        connectionManagerState.value = OwnerRegistrationState.SignedChallenge(sign)
+    }
+
+    override fun onInitialTribe(tribe: String, isProductionEnvironment: Boolean) {
+        applicationScope.launch(io) {
+            val (host, tribePubKey) = extractUrlParts(tribe)
+
+            if (host == null || tribePubKey == null) {
+                return@launch
+            }
+
+            networkQueryChat.getTribeInfo(ChatHost(host), LightningNodePubKey(tribePubKey), isProductionEnvironment)
+                .collect { loadResponse ->
+                    when (loadResponse) {
+                        is LoadResponse.Loading -> {}
+                        is Response.Error -> {}
+                        is Response.Success -> {
+                            val queries = coreDB.getSphinxDatabaseQueries()
+
+                            connectManager.joinToTribe(
+                                host,
+                                tribePubKey,
+                                loadResponse.value.route_hint,
+                                loadResponse.value.private ?: false,
+                                accountOwner.value?.alias?.value ?: "unknown",
+                                loadResponse.value.getPriceToJoinInSats()
+                            )
+
+                            // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
+                            val tribeId = queries.chatGetLastTribeId().executeAsOneOrNull()
+                                ?.let { it.MIN?.minus(1) }
+                                ?: (Long.MAX_VALUE)
+
+                            val now: String = DateTime.nowUTC()
+
+                            val newTribe = Chat(
+                                id = ChatId(tribeId),
+                                uuid = ChatUUID(tribePubKey),
+                                name = ChatName(loadResponse.value.name ?: "unknown"),
+                                photoUrl = loadResponse.value.img?.toPhotoUrl(),
+                                type = ChatType.Tribe,
+                                status = ChatStatus.Approved,
+                                contactIds = listOf(ContactId(0), ContactId(tribeId)),
+                                isMuted = ChatMuted.False,
+                                createdAt = now.toDateTime(),
+                                groupKey = null,
+                                host = ChatHost(host),
+                                pricePerMessage = loadResponse.value.getPricePerMessageInSats().toSat(),
+                                escrowAmount = loadResponse.value.getEscrowAmountInSats().toSat(),
+                                unlisted = ChatUnlisted.False,
+                                privateTribe = ChatPrivate.False,
+                                ownerPubKey = LightningNodePubKey(tribePubKey),
+                                seen = Seen.False,
+                                metaData = null,
+                                myPhotoUrl = null,
+                                myAlias = null,
+                                pendingContactIds = emptyList(),
+                                latestMessageId = null,
+                                contentSeenAt = null,
+                                notify = NotificationLevel.SeeAll,
+                                secondBrainUrl = null,
+                                pinedMessage = loadResponse.value.pin?.toMessageUUID(),
+                                timezoneEnabled = null,
+                                timezoneIdentifier = null,
+                                remoteTimezoneIdentifier = null,
+                                timezoneUpdated = null
+                            )
+
+                            chatLock.withLock {
+                                queries.transaction {
+                                    upsertNewChat(
+                                        newTribe,
+                                        SynchronizedMap<ChatId, Seen>(),
+                                        queries,
+                                        null,
+                                        accountOwner.value?.nodePubKey
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
+    private suspend fun joinTribeOnRestoreAccount(
+        contactInfo: MsgSender,
+        isAdmin: Boolean,
+        isProductionEnvironment: Boolean,
+        callback: (() -> Unit)? = null
+    ) {
+        val host = contactInfo.host ?: return
+
+        withContext(dispatchers.io) {
+            networkQueryChat.getTribeInfo(ChatHost(host), LightningNodePubKey(contactInfo.pubkey), isProductionEnvironment)
+                .collect { loadResponse ->
+                    when (loadResponse) {
+                        is LoadResponse.Loading -> {}
+                        is Response.Error -> {
+                            callback?.let {nnCallback ->
+                                nnCallback()
+                            }
+                        }
+                        is Response.Success -> {
+                            val queries = coreDB.getSphinxDatabaseQueries()
+
+                            // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
+                            val tribeId = queries.chatGetLastTribeId().executeAsOneOrNull()
+                                ?.let { it.MIN?.minus(1) }
+                                ?: (Long.MAX_VALUE)
+
+                            val now: String = DateTime.nowUTC()
+
+                            val newTribe = Chat(
+                                id = ChatId(tribeId),
+                                uuid = ChatUUID(contactInfo.pubkey),
+                                name = ChatName(loadResponse.value.name),
+                                photoUrl = loadResponse.value.img?.toPhotoUrl(),
+                                type = ChatType.Tribe,
+                                status = ChatStatus.Approved,
+                                contactIds = listOf(ContactId(0), ContactId(tribeId)),
+                                isMuted = ChatMuted.False,
+                                createdAt = now.toDateTime(),
+                                groupKey = null,
+                                host = contactInfo.host?.toChatHost(),
+                                pricePerMessage = loadResponse.value.getPricePerMessageInSats().toSat(),
+                                escrowAmount = loadResponse.value.getEscrowAmountInSats().toSat(),
+                                unlisted = loadResponse.value.unlisted?.toChatUnlisted() ?: ChatUnlisted.False,
+                                privateTribe = loadResponse.value.private.toChatPrivate(),
+                                ownerPubKey = if (isAdmin) accountOwner.value?.nodePubKey else LightningNodePubKey(contactInfo.pubkey),
+                                seen = Seen.False,
+                                metaData = null,
+                                myPhotoUrl = null,
+                                myAlias = null,
+                                pendingContactIds = emptyList(),
+                                latestMessageId = null,
+                                contentSeenAt = null,
+                                notify = NotificationLevel.SeeAll,
+                                secondBrainUrl = loadResponse.value.second_brain_url?.toSecondBrainUrl(),
+                                pinedMessage = loadResponse.value.pin?.toMessageUUID(),
+                                timezoneEnabled = null,
+                                timezoneIdentifier = null,
+                                remoteTimezoneIdentifier = null,
+                                timezoneUpdated = null
+                            )
+
+                            messageLock.withLock {
+                                chatLock.withLock {
+                                    queries.transaction {
+                                        upsertNewChat(
+                                            newTribe,
+                                            SynchronizedMap<ChatId, Seen>(),
+                                            queries,
+                                            null,
+                                            accountOwner.value?.nodePubKey
+                                        )
+                                    }
+                                }
+                            }
+
+                            callback?.let {nnCallback ->
+                                nnCallback()
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
+
+    override fun onLastReadMessages(lastReadMessages: String) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            val lastReadMessagesMap = lastReadMessages.toLastReadMap()
+            val pubKeys = lastReadMessagesMap?.keys
+
+            val contactPubkey = pubKeys?.map { it.toLightningNodePubKey() }
+            val tribePubKey = pubKeys?.map { it.toChatUUID() }
+
+            val contacts = contactPubkey?.filterNotNull()?.let { queries.contactGetAllByPubKeys(it).executeAsList() }
+            val tribes = tribePubKey?.filterNotNull()?.let { queries.chatGetAllByUUIDS(it).executeAsList() }
+
+            // Create a new map for mapping chatId to lastMsgIndex
+            val chatIdToLastMsgIndexMap = mutableMapOf<ChatId, MessageId>()
+
+            contacts?.forEach { contact ->
+                val lastMsgIndex = lastReadMessagesMap.get(contact.node_pub_key?.value)
+                if (lastMsgIndex != null) {
+                    chatIdToLastMsgIndexMap[ChatId(contact.id.value)] = MessageId(lastMsgIndex)
+                }
+            }
+
+            tribes?.forEach { tribe ->
+                val lastMsgIndex = lastReadMessagesMap.get(tribe.uuid.value)
+                if (lastMsgIndex != null) {
+                    chatIdToLastMsgIndexMap[tribe.id] = MessageId(lastMsgIndex)
+                }
+            }
+
+            messageLock.withLock {
+                queries.transaction {
+                    chatIdToLastMsgIndexMap.forEach { (chatId, lastMsgIndex) ->
+                        queries.messageUpdateSeenByChatIdAndId(chatId, lastMsgIndex)
+                    }
+                }
+            }
+
+            chatLock.withLock {
+                chatIdToLastMsgIndexMap.forEach { (chatId, lastMsgIndex) ->
+                    queries.chatUpdateSeenByLastMessage(chatId, lastMsgIndex)
+                }
+            }
+        }
+    }
+
+    override fun onUpdateMutes(mutes: String) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            val mutesMap = mutes.toMuteLevelsMap()
+            val pubKeys = mutesMap?.keys
+
+            val contactPubkey = pubKeys?.map { it.toLightningNodePubKey() }
+            val tribePubKey = pubKeys?.map { it.toChatUUID() }
+
+            val contacts = contactPubkey?.filterNotNull()?.let { queries.contactGetAllByPubKeys(it).executeAsList() }
+            val tribes = tribePubKey?.filterNotNull()?.let { queries.chatGetAllByUUIDS(it).executeAsList() }
+
+            val notificationMap = mutableMapOf<ChatId, NotificationLevel>()
+
+            contacts?.forEach { contact ->
+                mutesMap[contact.node_pub_key?.value]?.let { level ->
+                    notificationMap[ChatId(contact.id.value)] = when (level) {
+                        NotificationLevel.SEE_ALL -> NotificationLevel.SeeAll
+                        NotificationLevel.ONLY_MENTIONS -> NotificationLevel.OnlyMentions
+                        NotificationLevel.MUTE_CHAT -> NotificationLevel.MuteChat
+                        else -> NotificationLevel.Unknown(level)
+                    }
+                }
+            }
+
+            tribes?.forEach { tribe ->
+                mutesMap[tribe.uuid.value]?.let { level ->
+                    notificationMap[ChatId(tribe.id.value)] = when (level) {
+                        NotificationLevel.SEE_ALL -> NotificationLevel.SeeAll
+                        NotificationLevel.ONLY_MENTIONS -> NotificationLevel.OnlyMentions
+                        NotificationLevel.MUTE_CHAT -> NotificationLevel.MuteChat
+                        else -> NotificationLevel.Unknown(level)
+                    }
+                }
+            }
+
+            chatLock.withLock {
+                queries.transaction {
+                    notificationMap.forEach { (chatId, level) ->
+                        queries.chatUpdateNotificationLevel(level, chatId)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onGetNodes() {
+//        connectionManagerState.value = OwnerRegistrationState.GetNodes
+    }
+
+    override fun listenToOwnerCreation(callback: () -> Unit) {
+        applicationScope.launch(mainImmediate) {
+            accountOwner.filter { contact ->
+                contact != null && !contact.routeHint?.value.isNullOrEmpty()
+            }
+                .map { true }
+                .first()
+
+            withContext(dispatchers.mainImmediate) {
+                delay(1000L)
+                callback.invoke()
+            }
+        }
+    }
+
+    override fun onConnectManagerError(error: ConnectManagerError) {
+        connectManagerErrorState.value = error
+    }
+
+    override fun onRestoreProgress(progress: Int) {
+        if (progress < 100) {
+            restoreProgress.value = RestoreProgress(true, progress)
+        }
+    }
+
+    override fun onRestoreFinished(isRestoreCancelled: Boolean) {
+        restoreProgress.value = if (isRestoreCancelled) null else RestoreProgress(false, 100)
+
+        if (isRestoreCancelled) {
+            connectManager.getReadMessages()
+            return
+        }
+
+        applicationScope.launch(io) {
+            val messageId = restoreMinIndex.value?.let { MessageId(it) }
+
+            if (messageId != null) {
+                val message = getMessageById(messageId).firstOrNull()
+                if (message != null) {
+                    connectManager.getReadMessages()
+                    restoreMinIndex.value = null
+                }
+            }
+            val owner = getOwner()
+            if (owner?.alias?.value?.trim().isNullOrEmpty()) {
+                profileSetInfoRestore.value = true
+            }
+        }
+    }
+
+    override fun updatePaidInvoices() {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            queries.messageGetAllPayments().executeAsList().forEach { message ->
+                messageLock.withLock {
+                    queries.messageUpdateInvoiceAsPaidByPaymentHash(message.payment_hash)
+                }
+            }
+        }
+    }
+
+    // Messaging Callbacks
+    override fun onMessage(
+        msg: String,
+        msgSender: String,
+        msgType: Int,
+        msgUuid: String,
+        msgIndex: String,
+        msgTimestamp: Long?,
+        sentTo: String,
+        amount: Long?,
+        fromMe: Boolean?,
+        tag: String?,
+        date: Long?,
+        isRestore: Boolean
+    ) {
+        applicationScope.launch(io) {
+            try {
+                val messageType = msgType.toMessageType()
+                val messageSender = if (msgSender.isNotEmpty()) msgSender.toMsgSender() else null
+
+                if (messageSender != null ) {
+
+                    val contactTribePubKey = if (fromMe == true) {
+                        sentTo
+                    } else {
+                        messageSender.pubkey
+                    }
+
+                    when (messageType) {
+                        is MessageType.ContactKeyRecord -> {
+                            saveNewContactRegistered(msgSender, date, isRestore)
+                        }
+                        else -> {
+                            val message = if (msg.isNotEmpty()) msg.toMsg() else Msg(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                            )
+
+                            when (messageType) {
+                                is MessageType.Purchase.Processing -> {
+                                    amount?.toSat()?.let { paidAmount ->
+                                        sendMediaKeyOnPaidPurchase(
+                                            message,
+                                            messageSender,
+                                            paidAmount
+                                        )
+                                    }
+                                }
+
+                                is MessageType.ContactKeyConfirmation -> {
+                                    saveNewContactRegistered(msgSender, date, isRestore)
+                                }
+
+                                is MessageType.ContactKey -> {
+                                    saveNewContactRegistered(msgSender, date, isRestore)
+                                }
+
+                                is MessageType.Delete -> {
+                                    msg.toMsg().replyUuid?.toMessageUUID()?.let { replyUuid ->
+                                        deleteMqttMessage(replyUuid)
+                                    }
+                                }
+
+                                else -> {}
+                            }
+
+                            val messageId = if (msgIndex.isNotEmpty()) MessageId(msgIndex.toLong()) else return@launch
+                            val messageUuid = msgUuid.toMessageUUID() ?: return@launch
+                            val originalUUID = message.originalUuid?.toMessageUUID()
+                            val timestamp = msgTimestamp?.toDateTime()
+                            val date = message.date?.toDateTime()
+                            val paymentRequest = message.invoice?.toLightningPaymentRequestOrNull()
+                            val bolt11 = paymentRequest?.let { Bolt11.decode(it) }
+                            val paymentHash = paymentRequest?.let {
+                                connectManager.retrievePaymentHash(it.value)?.toLightningPaymentHash()
+                            }
+                            val msgTag = tag?.toTagMessage()
+
+                            upsertMqttMessage(
+                                message,
+                                messageSender,
+                                contactTribePubKey,
+                                messageType,
+                                messageUuid,
+                                messageId,
+                                message.amount?.milliSatsToSats(),
+                                originalUUID,
+                                timestamp,
+                                date,
+                                fromMe ?: false,
+                                amount?.toSat(),
+                                paymentRequest,
+                                paymentHash,
+                                bolt11,
+                                msgTag,
+                                isRestore
+                            )
+                        }
+                    }
+                } else {
+                    val message = if (msg.isNotEmpty()) msg.toMsg() else Msg(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    )
+
+                    if (msgIndex.isNotEmpty() && message.content?.isNotEmpty() == true) {
+                        val messageId = MessageId(msgIndex.toLong())
+
+                        upsertGenericPaymentMsg(
+                            msg = message,
+                            msgType = msgType.toMessageType(),
+                            msgIndex = messageId,
+                            msgAmount = amount?.toSat(),
+                            timestamp = msgTimestamp?.toDateTime(),
+                            paymentHash = message.paymentHash?.toLightningPaymentHash()
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                LOG.e(TAG, "onMessage: ${e.message}", e)
+            }
+        }
+    }
+
+    override fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val tagMessage = tag?.let { TagMessage(it) }
+
+            // messageUpdateTagAndUUID also updates the Status to CONFIRMED
+            messageLock.withLock {
+                queries.messageUpdateTagAndUUID(tagMessage, MessageUUID(msgUUID), MessageId(provisionalId))
+            }
+        }
+    }
+
+    override fun onMessagesCounts(msgsCounts: String) {
+        try {
+            msgsCounts.toMsgsCounts()?.let {
+                restoreProcessState.value = RestoreProcessState.MessagesCounts(it)
+                connectManager.saveMessagesCounts(it)
+            }
+        } catch (e: Exception) {
+            LOG.e(TAG, "onMessagesCounts: ${e.message}", e)
+        }
+    }
+
+    override fun onSentStatus(sentStatus: String) {
+        applicationScope.launch(io) {
+            val newSentStatus = sentStatus.toNewSentStatus()
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            if (newSentStatus.tag == processingInvoice.value?.second) {
+                if (newSentStatus.isFailedMessage()) {
+                    processingInvoice.value?.first?.toLightningPaymentRequestOrNull()?.let {
+                        payInvoiceFromLSP(it)
+                    }
+                }
+                processingInvoice.value = null
+            } else {
+                if (newSentStatus.isFailedMessage()) {
+                    queries.messageUpdateStatusAndPaymentHashByTag(
+                        MessageStatus.Failed,
+                        newSentStatus.payment_hash?.toLightningPaymentHash(),
+                        newSentStatus.message?.toErrorMessage(),
+                        newSentStatus.tag?.toTagMessage()
+                    )
+                } else {
+                    queries.messageUpdateStatusAndPaymentHashByTag(
+                        MessageStatus.Received,
+                        newSentStatus.payment_hash?.toLightningPaymentHash(),
+                        newSentStatus.message?.toErrorMessage(),
+                        newSentStatus.tag?.toTagMessage()
+                    )
+
+                    // Check if web view payment hash matches
+                    if (newSentStatus.payment_hash == webViewPaymentHash.value) {
+                        webViewPreImage.value = newSentStatus.preimage
+                        webViewPaymentHash.value = null
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onMessageTagList(tags: String) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val tagsList = tags.toTagsList()
+
+            queries.transaction {
+                tagsList?.forEach { tag ->
+                    tag.status?.toMessageStatus()?.let { messageStatus ->
+                        queries.messageUpdateStatusByTag(
+                            messageStatus,
+                            tag.error?.toErrorMessage(),
+                            tag.tag?.toTagMessage()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onRestoreMinIndex(minIndex: Long) {
+        restoreMinIndex.value = minIndex
+    }
+
+    // Tribe Management Callbacks
+    override fun onNewTribeCreated(newTribe: String) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val newCreateTribe = newTribe.toNewCreateTribe()
+            newCreateTribe.pubkey?.let { tribePubKey ->
+
+                val existingTribe = tribePubKey.toChatUUID()?.let { getChatByUUID(it) }?.firstOrNull()
+                // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
+                val tribeId = existingTribe?.id?.value ?: queries.chatGetLastTribeId().executeAsOneOrNull()?.let { it.MIN?.minus(1) }
+                ?: (Long.MAX_VALUE)
+                val now: String = DateTime.nowUTC()
+
+                val chatTribe = Chat(
+                    id = ChatId(tribeId),
+                    uuid = ChatUUID(tribePubKey),
+                    name = ChatName(newCreateTribe.name),
+                    photoUrl = newCreateTribe.img?.toPhotoUrl(),
+                    type = ChatType.Tribe,
+                    status = ChatStatus.Approved,
+                    contactIds = listOf(ContactId(0), ContactId(tribeId)),
+                    isMuted = ChatMuted.False,
+                    createdAt = newCreateTribe.created?.toDateTime() ?: now.toDateTime(),
+                    groupKey = existingTribe?.groupKey,
+                    host = existingTribe?.host,
+                    pricePerMessage = newCreateTribe.getPricePerMessageInSats().toSat(),
+                    escrowAmount = newCreateTribe.getEscrowAmountInSats().toSat(),
+                    unlisted = if (newCreateTribe.unlisted == true) ChatUnlisted.True else ChatUnlisted.False,
+                    privateTribe = if (newCreateTribe.private == true) ChatPrivate.True else ChatPrivate.False,
+                    ownerPubKey = accountOwner.value?.nodePubKey,
+                    seen = Seen.False,
+                    metaData = existingTribe?.metaData,
+                    myPhotoUrl = accountOwner.value?.photoUrl,
+                    myAlias = ChatAlias(newCreateTribe.owner_alias),
+                    pendingContactIds = emptyList(),
+                    latestMessageId = existingTribe?.latestMessageId,
+                    contentSeenAt = existingTribe?.contentSeenAt,
+                    notify = NotificationLevel.SeeAll,
+                    secondBrainUrl = existingTribe?.secondBrainUrl,
+                    pinedMessage = existingTribe?.pinedMessage,
+                    timezoneEnabled = existingTribe?.timezoneEnabled,
+                    timezoneIdentifier = existingTribe?.timezoneIdentifier,
+                    remoteTimezoneIdentifier = existingTribe?.remoteTimezoneIdentifier,
+                    timezoneUpdated = existingTribe?.timezoneUpdated
+                )
+
+                chatLock.withLock {
+                    queries.transaction {
+                        upsertNewChat(
+                            chatTribe,
+                            SynchronizedMap<ChatId, Seen>(),
+                            queries,
+                            null,
+                            accountOwner.value?.nodePubKey
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onTribeMembersList(tribeMembers: String) {
+        applicationScope.launch(mainImmediate) {
+            try {
+                tribeMembers.toTribeMembersList()?.let { members ->
+                    tribeMembersState.value = members
+                }
+            } catch (e: Exception) {
+
+            }
+        }
+    }
+
+    // Invoice and Payment Management Callbacks
+
+    override fun onPayments(payments: String) {
+        applicationScope.launch(io) {
+            val paymentsJson = payments.toPaymentsList()
+
+            val paymentsReceived = paymentsJson?.mapNotNull {
+                it.msg_idx?.let { msgId -> MessageId(msgId) }
+            }
+            val paymentsSent = paymentsJson?.mapNotNull {
+                it.rhash?.let { hash -> LightningPaymentHash(hash) }
+            }
+
+            val paymentsReceivedMsgs = paymentsReceived?.let {
+                getMessagesByIds(it).firstOrNull()
+            }
+            val paymentsSentMsgs = paymentsSent?.let {
+                getMessagesByPaymentHashes(it).firstOrNull()
+            }
+
+            val combinedMessages: List<Message?> = paymentsReceivedMsgs.orEmpty() + paymentsSentMsgs.orEmpty()
+
+            val tribeBoostMessages = paymentsSentMsgs.orEmpty().filter { it?.isTribeChat() == true && it.type.isBoost() }
+            val replyUUIDs = tribeBoostMessages.mapNotNull { it?.replyUUID?.value }
+            val repliedMessages = if (replyUUIDs.isNotEmpty()) {
+                getAllMessagesByUUID(replyUUIDs.mapNotNull { it.toMessageUUID() })
+
+            } else emptyList()
+            val replyUUIDToSenderAlias = repliedMessages.associateBy(
+                keySelector = { it.uuid?.value },
+                valueTransform = { it.senderAlias?.value }
+            )
+
+            val directPaymentMessages = paymentsSentMsgs.orEmpty()
+                .filter { it?.type?.isDirectPayment() == true }
+            val chatIds = directPaymentMessages.mapNotNull { it?.chatId }
+            val chats = if (chatIds.isNotEmpty()) getAllChatsByIds(chatIds) else emptyList()
+            val chatIdToChatName = chats.associateBy(
+                keySelector = { it.id },
+                valueTransform = { it.name?.value }
+            )
+
+            val transactionDtoList = paymentsJson?.map { payment ->
+                val dbMessage = combinedMessages.firstOrNull {
+                    it?.id?.value == payment.msg_idx || it?.paymentHash?.value == payment.rhash
+                }
+
+                dbMessage?.takeIf { it.type !is MessageType.Invoice }?.let { message ->
+                    val senderAlias = when {
+                        message.isTribeChat() && message.type.isBoost() ->
+                            replyUUIDToSenderAlias[message.replyUUID?.value]
+                        message.type.isDirectPayment() ->
+                            chatIdToChatName[message.chatId]
+                        else -> message.senderAlias?.value
+                    }
+                    TransactionDto(
+                        id = message.id.value,
+                        chat_id = message.chatId.value,
+                        type = message.type.value,
+                        sender = message.sender.value,
+                        sender_alias = senderAlias,
+                        receiver = message.receiver?.value,
+                        amount = message.amount.value,
+                        payment_hash = message.paymentHash?.value,
+                        payment_request = message.paymentRequest?.value,
+                        date = message.date.time,
+                        reply_uuid = message.replyUUID?.value,
+                        error_message = message.errorMessage?.value
+                    )
+                } ?: run {
+                    TransactionDto(
+                        id = payment.msg_idx ?: 0L,
+                        chat_id = null,
+                        type = MessageType.DirectPayment.value,
+                        sender = 0L,
+                        sender_alias = null,
+                        receiver = null,
+                        amount = payment.amt_msat?.milliSatsToSats()?.value ?: 0L,
+                        payment_hash = payment.rhash,
+                        payment_request = null,
+                        date = payment.ts,
+                        reply_uuid = null,
+                        error_message = payment.error
+                    )
+                }
+            }.orEmpty()
+
+            transactionDtoState.value = transactionDtoList
+                .sortedByDescending { it.date }
+                .distinct()
+        }
+    }
+
+    override fun onNetworkStatusChange(
+        isConnected: Boolean,
+        isLoading: Boolean
+    ) {
+        if (isConnected) {
+            networkStatus.value = NetworkStatus.Connected
+        } else if (isLoading) {
+            networkStatus.value = NetworkStatus.Loading
+        } else {
+            networkStatus.value = NetworkStatus.Disconnected
+            reconnectMqtt()
+        }
+    }
+    override fun onNewInviteCreated(
+        nickname: String,
+        inviteString: String,
+        inviteCode: String,
+        sats: Long
+    ) {
+        applicationScope.launch(mainImmediate) {
+            val newInvitee = NewContact(
+                contactAlias = nickname.toContactAlias(),
+                lightningNodePubKey = null,
+                lightningRouteHint = null,
+                photoUrl = null,
+                confirmed = false,
+                inviteString = inviteString,
+                inviteCode = inviteCode,
+                invitePrice = sats.toSat(),
+                inviteStatus = InviteStatus.Pending,
+                null
+            )
+            createNewContact(newInvitee)
+            println("CREATE_CONTACT: onNewInviteCreated")
+        }
+    }
+
+    override fun onPerformDelay(delay: Long, callback: () -> Unit) {
+        applicationScope.launch(mainImmediate) {
+            delay(delay)
+            callback.invoke()
+        }
+    }
+
+    fun extractUrlParts(url: String): Pair<String?, String?> {
+        val cleanUrl = url.replace(Regex("^[a-zA-Z]+://"), "")
+        val separatorIndex = cleanUrl.indexOf("/")
+
+        if (separatorIndex == -1) return null to null
+        val host = cleanUrl.substring(0, separatorIndex).takeIf { it.isNotEmpty() }
+        val tribePubKey = cleanUrl.substring(separatorIndex + 1).split("/").lastOrNull()?.takeIf { it.isNotEmpty() }
+
+        return host to tribePubKey
+    }
+
+
+    /**
+     * V1 code below this comment
+     * */
+
+    override var updatedContactIds: MutableList<ContactId> = mutableListOf()
+
 
     private fun showNotification(
         chatId: ChatId,
@@ -602,84 +2023,73 @@ abstract class SphinxRepository(
         )
     }
 
-    override val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
-        flow {
-            networkQueryChat.getChats().collect { loadResponse ->
-
-                Exhaustive@
-                when (loadResponse) {
-                    is Response.Error -> {
-                        emit(loadResponse)
-                    }
-                    is Response.Success -> {
-                        emit(processChatDtos(loadResponse.value))
-                    }
-                    is LoadResponse.Loading -> {
-                        emit(loadResponse)
+    override fun getSentConfirmedMessagesByChatId(chatId: ChatId): Flow<List<Message>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetSentConfirmedMessages(chatId)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
                     }
                 }
-
-            }
-        }
+                .distinctUntilChanged()
+        )
     }
 
-    private suspend fun processChatDtos(
-        chats: List<ChatDto>,
-        contacts: Map<ContactId, ContactDto>? = null
-    ): Response<Boolean, ResponseError> {
-        val queries = coreDB.getSphinxDatabaseQueries()
-        try {
-
-            var error: Throwable? = null
-            val handler = CoroutineExceptionHandler { _, throwable ->
-                error = throwable
-            }
-
-            applicationScope.launch(io + handler) {
-                chatLock.withLock {
-
-                    messageLock.withLock {
-
-                        queries.transaction {
-                            for (dto in chats) {
-                                if (dto.deletedActual) {
-                                    LOG.d(TAG, "Removing Chats/Messages for ${ChatId(dto.id)}")
-                                    deleteChatById(ChatId(dto.id), queries, latestMessageUpdatedTimeMap)
-                                } else {
-                                    val contactDto: ContactDto? =
-                                        if (dto.type == ChatType.CONVERSATION) {
-                                            dto.contact_ids.elementAtOrNull(1)?.let { contactId ->
-                                                contacts?.get(ContactId(contactId))
-                                            }
-                                        } else {
-                                            null
-                                        }
-
-                                    upsertChat(dto, chatSeenMap, queries, contactDto)
-                                }
-
-                            }
-                        }
-
+    override fun getThreadUUIDMessagesByChatId(chatId: ChatId): Flow<List<Message>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messagesGetAllThreadUUIDByChatId(chatId, ::MessageDbo)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
                     }
-
                 }
-            }.join()
+                .distinctUntilChanged()
+        )
+    }
 
-            error?.let {
-                throw it
-            }
+    override fun getThreadUUIDMessagesByUUID(
+        chatId: ChatId,
+        threadUUID: ThreadUUID
+    ): Flow<List<Message>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetAllMessagesByThreadUUID(chatId, listOf(threadUUID))
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
 
-            return Response.Success(true)
-
-        } catch (e: IllegalArgumentException) {
-            val msg = "Failed to convert Json from Relay while processing Chats"
-            LOG.e(TAG, msg, e)
-            return Response.Error(ResponseError(msg, e))
-        } catch (e: ParseException) {
-            val msg = "Failed to convert date/time from Relay while processing Chats"
-            LOG.e(TAG, msg, e)
-            return Response.Error(ResponseError(msg, e))
+    override val networkRefreshChatsFlow: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
+        flow {
+            // TODO V2 getChats
+//            networkQueryChat.getChats().collect { loadResponse ->
+//
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is Response.Error -> {
+//                        emit(loadResponse)
+//                    }
+//                    is Response.Success -> {
+//                        emit(processChatDtos(loadResponse.value))
+//                    }
+//                    is LoadResponse.Loading -> {
+//                        emit(loadResponse)
+//                    }
+//                }
+//
+//            }
         }
     }
 
@@ -718,10 +2128,7 @@ abstract class SphinxRepository(
 
             if (shouldSync) {
                 try {
-                    networkQueryChat.updateChat(
-                        chatId,
-                        PutChatDto(meta = metaData.toJson())
-                    ).collect {}
+                    // TODO V2 updateChat
                 } catch (e: AssertionError) {
                 }
             }
@@ -778,9 +2185,10 @@ abstract class SphinxRepository(
             )
 
             try {
-                networkQueryChat.streamSats(
-                    postStreamSatsDto
-                ).collect {}
+                // TODO V2 stremSats
+//                networkQueryChat.streamSats(
+//                    postStreamSatsDto
+//                ).collect {}
             } catch (e: AssertionError) {
             }
         }
@@ -878,87 +2286,99 @@ abstract class SphinxRepository(
         )
     }
 
+    override fun getInviteByString(inviteString: InviteString): Flow<Invite?> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries().inviteGetByInviteString(inviteString)
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it?.let { inviteDboPresenterMapper.mapFrom(it) } }
+                .distinctUntilChanged()
+        )
+    }
+
     override val networkRefreshContacts: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
         flow {
-            networkQueryContact.getContacts().collect { loadResponse ->
+            // TODO V2 getContacts
 
-                Exhaustive@
-                when (loadResponse) {
-                    is Response.Error -> {
-                        emit(loadResponse)
-                    }
-                    is Response.Success -> {
-
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        try {
-                            var error: Throwable? = null
-                            val handler = CoroutineExceptionHandler { _, throwable ->
-                                error = throwable
-                            }
-
-                            var processChatsResponse: Response<Boolean, ResponseError> =
-                                Response.Success(true)
-
-                            applicationScope.launch(io + handler) {
-
-                                val contactMap: MutableMap<ContactId, ContactDto> =
-                                    LinkedHashMap(loadResponse.value.contacts.size)
-
-                                chatLock.withLock {
-                                    messageLock.withLock {
-                                        contactLock.withLock {
-
-                                            val contactIdsToRemove = queries.contactGetAllIds()
-                                                .executeAsList()
-                                                .toMutableSet()
-
-                                            queries.transaction {
-                                                for (dto in loadResponse.value.contacts) {
-
-                                                    upsertContact(dto, queries)
-                                                    contactMap[ContactId(dto.id)] = dto
-
-                                                    contactIdsToRemove.remove(ContactId(dto.id))
-
-                                                }
-
-                                                for (contactId in contactIdsToRemove) {
-                                                    deleteContactById(contactId, queries)
-                                                }
-
-                                            }
-
-                                        }
-                                    }
-
-                                }
-
-                                processChatsResponse = processChatDtos(
-                                    loadResponse.value.chats,
-                                    contactMap,
-                                )
-                            }.join()
-
-                            error?.let {
-                                throw it
-                            }
-
-                            emit(processChatsResponse)
-
-                        } catch (e: ParseException) {
-                            val msg =
-                                "Failed to convert date/time from Relay while processing Contacts"
-                            LOG.e(TAG, msg, e)
-                            emit(Response.Error(ResponseError(msg, e)))
-                        }
-
-                    }
-                    is LoadResponse.Loading -> {
-                        emit(loadResponse)
-                    }
-                }
-            }
+//            networkQueryContact.getContacts().collect { loadResponse ->
+//
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is Response.Error -> {
+//                        emit(loadResponse)
+//                    }
+//                    is Response.Success -> {
+//
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        try {
+//                            var error: Throwable? = null
+//                            val handler = CoroutineExceptionHandler { _, throwable ->
+//                                error = throwable
+//                            }
+//
+//                            var processChatsResponse: Response<Boolean, ResponseError> =
+//                                Response.Success(true)
+//
+//                            applicationScope.launch(io + handler) {
+//
+//                                val contactMap: MutableMap<ContactId, ContactDto> =
+//                                    LinkedHashMap(loadResponse.value.contacts.size)
+//
+//                                chatLock.withLock {
+//                                    messageLock.withLock {
+//                                        contactLock.withLock {
+//
+//                                            val contactIdsToRemove = queries.contactGetAllIds()
+//                                                .executeAsList()
+//                                                .toMutableSet()
+//
+//                                            queries.transaction {
+//                                                for (dto in loadResponse.value.contacts) {
+//
+//                                                    upsertContact(dto, queries)
+//                                                    contactMap[ContactId(dto.id)] = dto
+//
+//                                                    contactIdsToRemove.remove(ContactId(dto.id))
+//
+//                                                }
+//
+//                                                for (contactId in contactIdsToRemove) {
+//                                                    deleteContactById(contactId, queries)
+//                                                }
+//
+//                                            }
+//
+//                                        }
+//                                    }
+//
+//                                }
+//
+//                                processChatsResponse = processChatDtos(
+//                                    loadResponse.value.chats,
+//                                    contactMap,
+//                                )
+//                            }.join()
+//
+//                            error?.let {
+//                                throw it
+//                            }
+//
+//                            emit(processChatsResponse)
+//
+//                        } catch (e: ParseException) {
+//                            val msg =
+//                                "Failed to convert date/time from Relay while processing Contacts"
+//                            LOG.e(TAG, msg, e)
+//                            emit(Response.Error(ResponseError(msg, e)))
+//                        }
+//
+//                    }
+//                    is LoadResponse.Loading -> {
+//                        emit(loadResponse)
+//                    }
+//                }
+//            }
         }
     }
 
@@ -982,113 +2402,115 @@ abstract class SphinxRepository(
                     RestoreProgress(restoring, 2)
                 )
             )
-
-            networkQueryContact.getLatestContacts(
-                lastSeenContactsDateResolved
-            ).collect { loadResponse ->
-
-                Exhaustive@
-                when (loadResponse) {
-                    is Response.Error -> {
-                        emit(loadResponse)
-                    }
-                    is Response.Success -> {
-
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        try {
-                            var error: Throwable? = null
-                            val handler = CoroutineExceptionHandler { _, throwable ->
-                                error = throwable
-                            }
-
-                            var processChatsResponse: Response<Boolean, ResponseError> =
-                                Response.Success(true)
-
-                            applicationScope.launch(io + handler) {
-
-                                val contactsToInsert = loadResponse.value.contacts.filter { dto -> !dto.deletedActual && !dto.fromGroupActual }
-                                val contactMap: MutableMap<ContactId, ContactDto> =
-                                    LinkedHashMap(contactsToInsert.size)
-
-                                contactLock.withLock {
-                                    inviteLock.withLock {
-                                        queries.transaction {
-                                            for (dto in loadResponse.value.contacts) {
-                                                if (dto.deletedActual || dto.fromGroupActual) {
-                                                    deleteContactById(ContactId(dto.id), queries)
-                                                } else {
-                                                    upsertContact(dto, queries)
-                                                    contactMap[ContactId(dto.id)] = dto
-                                                }
-                                            }
-
-                                            for (dto in loadResponse.value.invites) {
-                                                updatedContactIds.add(ContactId(dto.contact_id))
-                                                upsertInvite(dto, queries)
-                                            }
-                                        }
-                                    }
-                                }
-
-                                processChatsResponse = processChatDtos(
-                                    loadResponse.value.chats,
-                                    contactMap,
-                                )
-
-                                subscriptionLock.withLock {
-                                    queries.transaction {
-                                        for (dto in loadResponse.value.subscriptions) {
-                                            upsertSubscription(dto, queries)
-                                        }
-                                    }
-                                }
-
-                            }.join()
-
-                            error?.let {
-                                throw it
-                            } ?: run {
-                                if (
-                                    loadResponse.value.contacts.size > 1 ||
-                                    loadResponse.value.chats.isNotEmpty()
-                                ) {
-                                    authenticationStorage.putString(
-                                        REPOSITORY_LAST_SEEN_CONTACTS_DATE,
-                                        now
-                                    )
-                                }
-                            }
-
-                            emit(
-                                if (processChatsResponse is Response.Success) {
-                                    Response.Success(
-                                        RestoreProgress(restoring, 4)
-                                    )
-                                } else {
-                                    Response.Error(ResponseError("Failed to refresh contacts and chats"))
-                                }
-                            )
-
-                        } catch (e: ParseException) {
-                            val msg =
-                                "Failed to convert date/time from Relay while processing Contacts"
-                            LOG.e(TAG, msg, e)
-                            emit(Response.Error(ResponseError(msg, e)))
-                        }
-
-                    }
-                    is LoadResponse.Loading -> {
-                        emit(loadResponse)
-                    }
-                }
-
-            }
+            // TODO V2 getLatestContacts
+//            networkQueryContact.getLatestContacts(
+//                lastSeenContactsDateResolved
+//            ).collect { loadResponse ->
+//
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is Response.Error -> {
+//                        emit(loadResponse)
+//                    }
+//                    is Response.Success -> {
+//
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        try {
+//                            var error: Throwable? = null
+//                            val handler = CoroutineExceptionHandler { _, throwable ->
+//                                error = throwable
+//                            }
+//
+//                            var processChatsResponse: Response<Boolean, ResponseError> =
+//                                Response.Success(true)
+//
+//                            applicationScope.launch(io + handler) {
+//
+//                                val contactsToInsert = loadResponse.value.contacts.filter { dto -> !dto.deletedActual && !dto.fromGroupActual }
+//                                val contactMap: MutableMap<ContactId, ContactDto> =
+//                                    LinkedHashMap(contactsToInsert.size)
+//
+//                                contactLock.withLock {
+//                                    inviteLock.withLock {
+//                                        queries.transaction {
+//                                            for (dto in loadResponse.value.contacts) {
+//                                                if (dto.deletedActual || dto.fromGroupActual) {
+//                                                    deleteContactById(ContactId(dto.id), queries)
+//                                                } else {
+//                                                    upsertContact(dto, queries)
+//                                                    contactMap[ContactId(dto.id)] = dto
+//                                                }
+//                                            }
+//
+//                                            for (dto in loadResponse.value.invites) {
+//                                                updatedContactIds.add(ContactId(dto.contact_id))
+//                                                upsertInvite(dto, queries)
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//
+//                                processChatsResponse = processChatDtos(
+//                                    loadResponse.value.chats,
+//                                    contactMap,
+//                                )
+//
+//                                subscriptionLock.withLock {
+//                                    queries.transaction {
+//                                        for (dto in loadResponse.value.subscriptions) {
+//                                            upsertSubscription(dto, queries)
+//                                        }
+//                                    }
+//                                }
+//
+//                            }.join()
+//
+//                            error?.let {
+//                                throw it
+//                            } ?: run {
+//                                if (
+//                                    loadResponse.value.contacts.size > 1 ||
+//                                    loadResponse.value.chats.isNotEmpty()
+//                                ) {
+//                                    authenticationStorage.putString(
+//                                        REPOSITORY_LAST_SEEN_CONTACTS_DATE,
+//                                        now
+//                                    )
+//                                }
+//                            }
+//
+//                            emit(
+//                                if (processChatsResponse is Response.Success) {
+//                                    Response.Success(
+//                                        RestoreProgress(restoring, 4)
+//                                    )
+//                                } else {
+//                                    Response.Error(ResponseError("Failed to refresh contacts and chats"))
+//                                }
+//                            )
+//
+//                        } catch (e: ParseException) {
+//                            val msg =
+//                                "Failed to convert date/time from Relay while processing Contacts"
+//                            LOG.e(TAG, msg, e)
+//                            emit(Response.Error(ResponseError(msg, e)))
+//                        }
+//
+//                    }
+//                    is LoadResponse.Loading -> {
+//                        emit(loadResponse)
+//                    }
+//                }
+//
+//            }
         }
     }
 
     override suspend fun deleteContactById(contactId: ContactId): Response<Any, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
+        val contact = queries.contactGetById(contactId).executeAsOneOrNull()
+        val pubKeyToDelete = "c/${contact?.node_pub_key?.value}"
 
         var owner: Contact? = accountOwner.value
 
@@ -1111,32 +2533,28 @@ abstract class SphinxRepository(
             return Response.Error(ResponseError(msg))
         }
 
-        var deleteContactResponse: Response<Any, ResponseError> = Response.Success(Any())
+        if (contact != null) {
+            //delete all messages
+            contact.id.value.toChatId()?.let { chatId ->
+                contact.node_pub_key?.value?.let { pubKey -> deleteAllMessagesAndPubKey(pubKey, chatId) }
+            }
 
-        applicationScope.launch(mainImmediate) {
-            val response = networkQueryContact.deleteContact(contactId)
-            deleteContactResponse = response
-
-            if (response is Response.Success) {
-
-                chatLock.withLock {
-                    messageLock.withLock {
-                        contactLock.withLock {
-
-                            val chat: ChatDbo? =
-                                queries.chatGetConversationForContact(listOf(owner!!.id, contactId))
-                                    .executeAsOneOrNull()
-
-                            queries.transaction {
-                                deleteChatById(chat?.id, queries, latestMessageUpdatedTimeMap)
-                                deleteContactById(contactId, queries)
-                            }
-
-                        }
-                    }
+            contactLock.withLock {
+                queries.transaction {
+                    deleteContactById(contactId, queries)
                 }
             }
-        }.join()
+
+            chatLock.withLock {
+                queries.transaction {
+                    deleteChatById(contactId.value.toChatId(), queries, null)
+                }
+            }
+            onRemoveKeysFromUserState(listOf(pubKeyToDelete))
+        }
+
+
+        var deleteContactResponse: Response<Any, ResponseError> = Response.Success(Any())
 
         return deleteContactResponse
     }
@@ -1164,27 +2582,29 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
 
-            networkQueryContact.createContact(postContactDto).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        sharedFlow.emit(loadResponse)
-                    }
-                    is Response.Success -> {
-                        contactLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertContact(loadResponse.value, queries)
-                                }
-                            }
-                        }
+            // TODO V2 createContact
 
-                        sharedFlow.emit(Response.Success(true))
-                    }
-                }
-            }
+//            networkQueryContact.createContact(postContactDto).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        sharedFlow.emit(loadResponse)
+//                    }
+//                    is Response.Success -> {
+//                        contactLock.withLock {
+//                            withContext(io) {
+//                                queries.transaction {
+//                                    upsertContact(loadResponse.value, queries)
+//                                }
+//                            }
+//                        }
+//
+//                        sharedFlow.emit(Response.Success(true))
+//                    }
+//                }
+//            }
 
         }
 
@@ -1256,49 +2676,25 @@ abstract class SphinxRepository(
     }
 
     override suspend fun updateOwner(
-        alias: String?, privatePhoto: PrivatePhoto?, tipAmount: Sat?
+        alias: String?, privatePhoto: PrivatePhoto, tipAmount: Sat
     ): Response<Any, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
-        var response: Response<Any, ResponseError> = Response.Success(Any())
 
-        try {
-            accountOwner.collect { owner ->
-
-                if (owner != null) {
-                    networkQueryContact.updateContact(
-                        owner.id,
-                        PutContactDto(
-                            alias = alias,
-                            private_photo = privatePhoto?.isTrue(),
-                            tip_amount = tipAmount?.value
-                        )
-                    ).collect { loadResponse ->
-                        Exhaustive@
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {
-                            }
-                            is Response.Error -> {
-                                response = loadResponse
-                            }
-                            is Response.Success -> {
-                                contactLock.withLock {
-                                    queries.transaction {
-                                        upsertContact(loadResponse.value, queries)
-                                    }
-                                }
-                                LOG.d(TAG, "Owner has been successfully updated")
-                            }
-                        }
-                    }
-
-                    throw Exception()
-                }
-
-            }
-        } catch (e: Exception) {
+        contactLock.withLock {
+            queries.contactUpdateOwnerInfo(
+                alias?.toContactAlias(),
+                privatePhoto ?: PrivatePhoto.False,
+                tipAmount
+            )
         }
 
-        return response
+        connectManager.ownerInfoStateFlow.value?.let {
+            connectManager.setOwnerInfo(
+                it.copy(alias = alias)
+            )
+        }
+
+        return Response.Success(Any())
     }
 
     override suspend fun updateContact(
@@ -1311,33 +2707,35 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             try {
-                networkQueryContact.updateContact(
-                    contactId,
-                    PutContactDto(
-                        alias = alias?.value,
-                        route_hint = routeHint?.value
-                    )
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                            response = loadResponse
-                        }
-                        is Response.Success -> {
-                            contactLock.withLock {
-                                queries.transaction {
-                                    updatedContactIds.add(ContactId(loadResponse.value.id))
-                                    upsertContact(loadResponse.value, queries)
-                                }
-                            }
-                            response = loadResponse
+                // TODO V2 updateContact
 
-                            LOG.d(TAG, "Contact has been successfully updated")
-                        }
-                    }
-                }
+//                networkQueryContact.updateContact(
+//                    contactId,
+//                    PutContactDto(
+//                        alias = alias?.value,
+//                        route_hint = routeHint?.value
+//                    )
+//                ).collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//                        is Response.Error -> {
+//                            response = loadResponse
+//                        }
+//                        is Response.Success -> {
+//                            contactLock.withLock {
+//                                queries.transaction {
+//                                    updatedContactIds.add(ContactId(loadResponse.value.id))
+//                                    upsertContact(loadResponse.value, queries)
+//                                }
+//                            }
+//                            response = loadResponse
+//
+//                            LOG.d(TAG, "Contact has been successfully updated")
+//                        }
+//                    }
+//                }
             } catch (e: Exception) {
                 LOG.e(TAG, "Failed to update contact", e)
 
@@ -1353,16 +2751,18 @@ abstract class SphinxRepository(
     ) {
         applicationScope.launch(mainImmediate) {
             try {
-                networkQueryContact.exchangeKeys(
-                    contactId,
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> { }
-                        is Response.Error -> { }
-                        is Response.Success -> { }
-                    }
-                }
+
+                // TODO V2 exchangeKeys
+//                networkQueryContact.exchangeKeys(
+//                    contactId,
+//                ).collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> { }
+//                        is Response.Error -> { }
+//                        is Response.Success -> { }
+//                    }
+//                }
             } catch (e: Exception) {
                 LOG.e(TAG, "Failed to update contact", e)
             }
@@ -1380,30 +2780,32 @@ abstract class SphinxRepository(
 
                     if (owner.deviceId != deviceId) {
 
-                        networkQueryContact.updateContact(
-                            owner.id,
-                            PutContactDto(device_id = deviceId.value)
-                        ).collect { loadResponse ->
-                            Exhaustive@
-                            when (loadResponse) {
-                                is LoadResponse.Loading -> {
-                                }
-                                is Response.Error -> {
-                                    response = loadResponse
-                                    throw Exception()
-                                }
-                                is Response.Success -> {
-                                    contactLock.withLock {
-                                        queries.transaction {
-                                            upsertContact(loadResponse.value, queries)
-                                        }
-                                    }
-                                    LOG.d(TAG, "DeviceId has been successfully updated")
+                        // TODO V2 updateContact
 
-                                    throw Exception()
-                                }
-                            }
-                        }
+//                        networkQueryContact.updateContact(
+//                            owner.id,
+//                            PutContactDto(device_id = deviceId.value)
+//                        ).collect { loadResponse ->
+//                            Exhaustive@
+//                            when (loadResponse) {
+//                                is LoadResponse.Loading -> {
+//                                }
+//                                is Response.Error -> {
+//                                    response = loadResponse
+//                                    throw Exception()
+//                                }
+//                                is Response.Success -> {
+//                                    contactLock.withLock {
+//                                        queries.transaction {
+//                                            upsertContact(loadResponse.value, queries)
+//                                        }
+//                                    }
+//                                    LOG.d(TAG, "DeviceId has been successfully updated")
+//
+//                                    throw Exception()
+//                                }
+//                            }
+//                        }
                     } else {
                         LOG.d(TAG, "DeviceId is up to date")
                         throw Exception()
@@ -1434,33 +2836,36 @@ abstract class SphinxRepository(
         try {
             accountOwner.collect { owner ->
                 if (owner != null) {
-                    networkQueryContact.updateContact(
-                        owner.id,
-                        PutContactDto(
-                            alias = name,
-                            contact_key = publicKey
-                        )
-                    ).collect { loadResponse ->
-                        Exhaustive@
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {
-                            }
-                            is Response.Error -> {
-                                response = loadResponse
-                                throw Exception()
-                            }
-                            is Response.Success -> {
-                                contactLock.withLock {
-                                    queries.transaction {
-                                        upsertContact(loadResponse.value, queries)
-                                    }
-                                }
-                                LOG.d(TAG, "Owner name and key has been successfully updated")
 
-                                throw Exception()
-                            }
-                        }
-                    }
+                    // TODO V2 updateContact
+
+//                    networkQueryContact.updateContact(
+//                        owner.id,
+//                        PutContactDto(
+//                            alias = name,
+//                            contact_key = publicKey
+//                        )
+//                    ).collect { loadResponse ->
+//                        Exhaustive@
+//                        when (loadResponse) {
+//                            is LoadResponse.Loading -> {
+//                            }
+//                            is Response.Error -> {
+//                                response = loadResponse
+//                                throw Exception()
+//                            }
+//                            is Response.Success -> {
+//                                contactLock.withLock {
+//                                    queries.transaction {
+//                                        upsertContact(loadResponse.value, queries)
+//                                    }
+//                                }
+//                                LOG.d(TAG, "Owner name and key has been successfully updated")
+//
+//                                throw Exception()
+//                            }
+//                        }
+//                    }
 
                 }
 
@@ -1522,32 +2927,23 @@ abstract class SphinxRepository(
 
                         owner?.let { nnOwner ->
 
-                            networkQueryContact.updateContact(
-                                nnOwner.id,
-                                PutContactDto(photo_url = newUrl.value)
-                            ).collect { loadResponse ->
+                            val queries = coreDB.getSphinxDatabaseQueries()
 
-                                Exhaustive@
-                                when (loadResponse) {
-                                    is LoadResponse.Loading -> {
-                                    }
-                                    is Response.Error -> {
-                                        response = loadResponse
-                                    }
-                                    is Response.Success -> {
-                                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                                        contactLock.withLock {
-                                            withContext(io) {
-                                                queries.contactUpdatePhotoUrl(
-                                                    newUrl,
-                                                    nnOwner.id,
-                                                )
-                                            }
-                                        }
-                                    }
+                            contactLock.withLock {
+                                withContext(io) {
+                                    queries.contactUpdatePhotoUrl(
+                                        newUrl,
+                                        nnOwner.id,
+                                    )
                                 }
                             }
+
+                            connectManager.ownerInfoStateFlow.value?.let {
+                                connectManager.setOwnerInfo(
+                                    it.copy(picture = newUrl.value)
+                                )
+                            }
+
                         } ?: throw IllegalStateException("Failed to retrieve account owner")
                     }
                 }
@@ -1577,29 +2973,31 @@ abstract class SphinxRepository(
                 }
             }
 
-            networkQueryContact.toggleBlockedContact(
-                contact.id,
-                contact.blocked
-            ).collect { loadResponse ->
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {}
+            // TODO V2 toggleBlockedContact
 
-                    is Response.Error -> {
-                        response = loadResponse
-
-                        contactLock.withLock {
-                            withContext(io) {
-                                queries.contactUpdateBlocked(
-                                    currentBlockedValue,
-                                    contact.id
-                                )
-                            }
-                        }
-                    }
-
-                    is Response.Success -> {}
-                }
-            }
+//            networkQueryContact.toggleBlockedContact(
+//                contact.id,
+//                contact.blocked
+//            ).collect { loadResponse ->
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {}
+//
+//                    is Response.Error -> {
+//                        response = loadResponse
+//
+//                        contactLock.withLock {
+//                            withContext(io) {
+//                                queries.contactUpdateBlocked(
+//                                    currentBlockedValue,
+//                                    contact.id
+//                                )
+//                            }
+//                        }
+//                    }
+//
+//                    is Response.Success -> {}
+//                }
+//            }
         }.join()
 
         return response
@@ -1613,44 +3011,6 @@ abstract class SphinxRepository(
             ResponseError("generate Github PAT failed to execute")
         )
 
-        relayDataHandler.retrieveRelayTransportKey()?.let { key ->
-
-            applicationScope.launch(mainImmediate) {
-
-                val encryptionResponse = rsa.encrypt(
-                    key,
-                    UnencryptedString(pat),
-                    formatOutput = false,
-                    dispatcher = default,
-                )
-
-                Exhaustive@
-                when (encryptionResponse) {
-                    is Response.Error -> {}
-
-                    is Response.Success -> {
-                        networkQueryContact.generateGithubPAT(
-                            GithubPATDto(
-                                encryptionResponse.value.value
-                            )
-                        ).collect { loadResponse ->
-                            Exhaustive@
-                            when (loadResponse) {
-                                is LoadResponse.Loading -> {}
-
-                                is Response.Error -> {
-                                    response = loadResponse
-                                }
-                                is Response.Success -> {
-                                    response = Response.Success(true)
-                                }
-                            }
-                        }
-                    }
-                }
-            }.join()
-        }
-
         return response
     }
 
@@ -1658,15 +3018,12 @@ abstract class SphinxRepository(
         chatId: ChatId,
         alias: ChatAlias?,
         profilePic: PublicAttachmentInfo?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
-            ResponseError("updateChatProfileInfo failed to execute")
-        )
-
+    ) {
         if (alias != null) {
-            response = updateChatProfileAlias(chatId, alias)
-        } else if (profilePic != null) {
-            response = updateChatProfilePic(
+            updateChatProfileAlias(chatId, alias)
+        }
+        if (profilePic != null) {
+            updateChatProfilePic(
                 chatId,
                 profilePic.path,
                 profilePic.mediaType,
@@ -1674,8 +3031,210 @@ abstract class SphinxRepository(
                 profilePic.contentLength
             )
         }
+    }
+
+    override suspend fun togglePinMessage(
+        chatId: ChatId,
+        message: Message,
+        isUnpinMessage: Boolean,
+        errorMessage: String,
+        isProductionEnvironment: Boolean
+    ): Response<Any, ResponseError> {
+        var response: Response<Any, ResponseError> = Response.Error(ResponseError(errorMessage))
+
+        applicationScope.launch(mainImmediate) {
+            val tribe = getChatById(chatId)
+            val host = tribe?.host
+            val pubKey = tribe?.uuid?.value?.toLightningNodePubKey()
+
+            if (host != null && pubKey != null) {
+
+                networkQueryChat.getTribeInfo(host, pubKey, isProductionEnvironment).collect { loadResponse ->
+                    when (loadResponse) {
+                        is LoadResponse.Loading -> {}
+                        is Response.Error -> {
+                            response = loadResponse
+                        }
+                        is Response.Success -> {
+                            val pinUpdatedTribeInfo = if (isUnpinMessage) {
+                                loadResponse.value.copy(pin = null).toJsonString()
+                            } else {
+                                loadResponse.value.copy(pin = message.uuid?.value).toJsonString()
+                            }
+
+                            connectManager.editTribe(pinUpdatedTribeInfo)
+
+                            val queries = coreDB.getSphinxDatabaseQueries()
+                            response = Response.Success(loadResponse)
+
+                            chatLock.withLock {
+                                messageLock.withLock {
+                                    withContext(io) {
+                                        queries.chatUpdatePinMessage(
+                                            if (isUnpinMessage) null else message.uuid,
+                                            chatId
+                                        )
+                                        queries.messageUpdateStatus(message.status, message.id)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }.join()
 
         return response
+    }
+
+    override suspend fun updateTimezoneEnabledStatus(
+        isTimezoneEnabled: TimezoneEnabled,
+        chatId: ChatId
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneEnabled(
+                    timezone_enabled = isTimezoneEnabled,
+                    id = chatId
+                )
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateTimezoneIdentifier(
+        timezoneIdentifier: TimezoneIdentifier?,
+        chatId: ChatId
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneIdentifier(
+                    timezone_identifier = timezoneIdentifier,
+                    id = chatId
+                )
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateTimezoneUpdated(
+        timezoneUpdated: TimezoneUpdated,
+        chatId: ChatId
+    ) {
+        updateTimezoneFlag(timezoneUpdated, chatId)
+    }
+
+    private suspend fun updateTimezoneFlag(
+        timezoneUpdated: TimezoneUpdated,
+        chatId: ChatId
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneUpdated(
+                    timezone_updated = timezoneUpdated,
+                    id = chatId
+                )
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateTimezoneUpdatedOnSystemChange() {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateTimezoneUpdatedOnSystemChanged()
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    override suspend fun updateChatRemoteTimezoneIdentifier(
+        remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
+        chatId: ChatId,
+        isRestore: Boolean
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                if (isRestore) {
+                    queries.chatUpdateRemoteTimezoneIdentifierIfNull(
+                        remote_timezone_identifier = remoteTimezoneIdentifier,
+                        id = chatId
+                    )
+                } else {
+                    queries.chatUpdateRemoteTimezoneIdentifier(
+                        remote_timezone_identifier = remoteTimezoneIdentifier,
+                        id = chatId
+                    )
+                }
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
+    private val lsatDboPresenterMapper: LsatDboPresenterMapper by lazy {
+        LsatDboPresenterMapper(dispatchers)
+    }
+
+    override suspend fun getLastLsatByIssuer(issuer: LsatIssuer): Flow<Lsat?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.lsatGetLastActiveByIssuer(issuer)
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map {
+                    it?.let { lsatDboPresenterMapper.mapFrom(it) }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override suspend fun getLastLsatActive(): Flow<Lsat?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.lsatGetLastActive()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it?.let { lsatDboPresenterMapper.mapFrom(it) } }
+                .distinctUntilChanged()
+        )
+    }
+
+    override suspend fun getLsatByIdentifier(identifier: LsatIdentifier): Flow<Lsat?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.lsatGetById(identifier)
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it?.let { lsatDboPresenterMapper.mapFrom(it) } }
+                .distinctUntilChanged()
+        )
+    }
+
+    override suspend fun upsertLsat(lsat: Lsat) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        queries.transaction {
+            upsertLsat(lsat, queries)
+        }
+    }
+
+    override suspend fun updateLsatStatus(identifier: LsatIdentifier, status: LsatStatus) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        queries.lsatUpdateStatus(status, identifier)
     }
 
     suspend fun updateChatProfilePic(
@@ -1684,10 +3243,7 @@ abstract class SphinxRepository(
         mediaType: MediaType,
         fileName: String,
         contentLength: Long?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
-            ResponseError("updateChatProfilePic failed to execute")
-        )
+    ) {
         val memeServerHost = MediaHost.DEFAULT
 
         applicationScope.launch(mainImmediate) {
@@ -1706,105 +3262,38 @@ abstract class SphinxRepository(
 
                 Exhaustive@
                 when (networkResponse) {
-                    is Response.Error -> {
-                        response = networkResponse
-                    }
+                    is Response.Error -> {}
+
                     is Response.Success -> {
                         val newUrl = PhotoUrl(
                             "https://${memeServerHost.value}/public/${networkResponse.value.muid}"
                         )
+                        // TODO V2 updateChat
+                        val queries = coreDB.getSphinxDatabaseQueries()
 
-                        networkQueryChat.updateChat(
-                            chatId,
-                            PutChatDto(
-                                my_photo_url = newUrl.value,
-                            )
-                        ).collect { loadResponse ->
-
-                            Exhaustive@
-                            when (loadResponse) {
-                                is LoadResponse.Loading -> {
-                                }
-                                is Response.Error -> {
-                                    response = loadResponse
-                                }
-                                is Response.Success -> {
-                                    response = loadResponse
-                                    val queries = coreDB.getSphinxDatabaseQueries()
-
-                                    chatLock.withLock {
-                                        withContext(io) {
-                                            queries.transaction {
-                                                upsertChat(
-                                                    loadResponse.value,
-                                                    chatSeenMap,
-                                                    queries,
-                                                    null
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
+                        chatLock.withLock {
+                            withContext(io) {
+                                queries.chatUpdateMyPhotoUrl(newUrl, chatId)
                             }
                         }
                     }
                 }
-            } catch (e: Exception) {
-                response = Response.Error(
-                    ResponseError("Failed to update Chat Profile", e)
-                )
-            }
-        }.join()
-
-        LOG.d(TAG, "Completed Upload Returning: $response")
-        return response
+            }catch (e: Exception) {}
+        }
     }
 
     private suspend fun updateChatProfileAlias(
         chatId: ChatId,
         alias: ChatAlias?
-    ): Response<ChatDto, ResponseError> {
-        var response: Response<ChatDto, ResponseError> = Response.Error(
-            ResponseError("updateChatProfilePic failed to execute")
-        )
+    ) {
+        // TODO V2 updateChat
+        val queries = coreDB.getSphinxDatabaseQueries()
 
-        applicationScope.launch(mainImmediate) {
-            networkQueryChat.updateChat(
-                chatId,
-                PutChatDto(
-                    my_alias = alias?.value
-                )
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        chatLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertChat(
-                                        loadResponse.value,
-                                        chatSeenMap,
-                                        queries,
-                                        null
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+        chatLock.withLock {
+            withContext(io) {
+                queries.chatUpdateMyAlias(alias, chatId)
             }
-        }.join()
-
-        LOG.d(TAG, "Completed Upload Returning: $response")
-        return response
+        }
     }
 
     /////////////////
@@ -1824,172 +3313,92 @@ abstract class SphinxRepository(
                 authenticationStorage
                     .getString(REPOSITORY_LIGHTNING_BALANCE, null)
                     ?.let { balanceJsonString ->
-
-                        val balanceDto: BalanceDto? = try {
-                            withContext(default) {
-                                SphinxJson.decodeFromString(balanceJsonString)
-                            }
-                        } catch (e: Exception) {
-                            null
-                        }
-
-                        balanceDto?.toNodeBalanceOrNull()?.let { nodeBalance ->
+                        balanceJsonString.toLong().toNodeBalance()?.let { nodeBalance ->
                             accountBalanceStateFlow.value = nodeBalance
                         }
                     }
             }
-
         }
-
         return accountBalanceStateFlow.asStateFlow()
     }
 
-    override val networkRefreshBalance: Flow<LoadResponse<Boolean, ResponseError>> by lazy {
-        flow {
-            networkQueryLightning.getBalance().collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                        emit(loadResponse)
-                    }
-                    is Response.Error -> {
-                        emit(loadResponse)
-                    }
-                    is Response.Success -> {
-
-                        try {
-                            val jsonString: String = withContext(default) {
-                                Json.encodeToString(loadResponse.value)
-                            } ?: throw NullPointerException("Converting BalanceDto to Json failed")
-
-                            balanceLock.withLock {
-                                accountBalanceStateFlow.value = loadResponse.value.toNodeBalance()
-
-                                authenticationStorage.putString(
-                                    REPOSITORY_LIGHTNING_BALANCE,
-                                    jsonString
-                                )
-                            }
-
-                            emit(Response.Success(true))
-                        } catch (e: Exception) {
-
-                            // this should _never_ happen, as if the network call was
-                            // successful, it went from json -> dto, and we're just going
-                            // back from dto -> json to persist it...
-                            emit(
-                                Response.Error(
-                                    ResponseError(
-                                        """
-                                        Network Fetching of balance was successful, but
-                                        conversion to a string for persisting failed.
-                                        ${loadResponse.value}
-                                    """.trimIndent(),
-                                        e
-                                    )
-                                )
-                            )
-                        }
-
-                    }
-                }
-            }
-        }
-    }
-
-    override suspend fun getAccountBalanceAll(
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<NodeBalanceAll, ResponseError>> = flow {
-
-        networkQueryLightning.getBalanceAll(
-            relayData
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
-                    emit(loadResponse)
-                }
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-                is Response.Success -> {
-                    val nodeBalanceAll = NodeBalanceAll(
-                        Sat(loadResponse.value.local_balance),
-                        Sat(loadResponse.value.remote_balance)
-                    )
-                    emit(Response.Success(nodeBalanceAll))
-                }
-            }
-        }
+    override val networkRefreshBalance: MutableStateFlow<Long?> by lazy {
+        MutableStateFlow(null)
     }
 
     override suspend fun getActiveLSat(
         issuer: String,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<ActiveLsatDto, ResponseError>> = flow {
-        networkQueryLightning.getActiveLSat(
-            issuer,
-            relayData
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
+        // TODO V2 getActiveLSat
+
+//        networkQueryLightning.getActiveLSat(
+//            issuer,
+//            relayData
+//        ).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+////                    emit(loadResponse)
+//                }
+//                is Response.Error -> {
 //                    emit(loadResponse)
-                }
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-                is Response.Success -> {
-                    emit(loadResponse)
-                }
-            }
-        }
+//                }
+//                is Response.Success -> {
+//                    emit(loadResponse)
+//                }
+//            }
+//        }
     }
 
     override suspend fun signChallenge(
         challenge: String,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<SignChallengeDto, ResponseError>> = flow {
-        networkQueryLightning.signChallenge(
-            challenge,
-            relayData
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
+        // TODO V2 checkRoute signChallenge
+
+//        networkQueryLightning.signChallenge(
+//            challenge,
+//            relayData
+//        ).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+////                    emit(loadResponse)
+//                }
+//                is Response.Error -> {
 //                    emit(loadResponse)
-                }
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-                is Response.Success -> {
-                    emit(loadResponse)
-                }
-            }
-        }
+//                }
+//                is Response.Success -> {
+//                    emit(loadResponse)
+//                }
+//            }
+//        }
     }
 
     override suspend fun payLSat(
         payLSatDto: PayLsatDto,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<PayLsatResponseDto, ResponseError>> = flow {
-        networkQueryLightning.payLSat(
-            payLSatDto,
-            relayData
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
+        // TODO V2 payLsat
+
+//        networkQueryLightning.payLSat(
+//            payLSatDto,
+//            relayData
+//        ).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+////                    emit(loadResponse)
+//                }
+//                is Response.Error -> {
 //                    emit(loadResponse)
-                }
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-                is Response.Success -> {
-                    emit(loadResponse)
-                }
-            }
-        }
+//                }
+//                is Response.Success -> {
+//                    emit(loadResponse)
+//                }
+//            }
+//        }
     }
 
     override suspend fun updateLSat(
@@ -1997,46 +3406,442 @@ abstract class SphinxRepository(
         updateLSatDto: UpdateLsatDto,
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<String, ResponseError>> = flow {
-        networkQueryLightning.updateLSat(
-            identifier,
-            updateLSatDto,
-            relayData
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
+        // TODO V2 updateLSat
+//        networkQueryLightning.updateLSat(
+//            identifier,
+//            updateLSatDto,
+//            relayData
+//        ).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+////                    emit(loadResponse)
+//                }
+//                is Response.Error -> {
 //                    emit(loadResponse)
+//                }
+//                is Response.Success -> {
+//                    emit(loadResponse)
+//                }
+//            }
+//        }
+    }
+
+    private var payInvoiceJob: Job? = null
+
+
+    override suspend fun processLightningPaymentRequest(
+        lightningPaymentRequest: LightningPaymentRequest,
+        invoiceBolt11: InvoiceBolt11,
+        callback: ((String) -> Unit)?
+    ) {
+        if (payInvoiceJob?.isActive == true) {
+            return
+        }
+
+        payInvoiceJob = applicationScope.launch(mainImmediate) {
+            val balance = getAccountBalanceStateFlow().firstOrNull() ?: return@launch
+
+            val invoiceAmount = invoiceBolt11.getSatsAmount()?.value
+            if (invoiceAmount != null && invoiceAmount > balance.balance.value) {
+                return@launch
+            }
+
+            val invoicePayeePubKey = invoiceBolt11.getPubKey()
+            val invoiceAmountMilliSat = invoiceBolt11.getMilliSatsAmount()?.value
+
+            if (invoicePayeePubKey == null || invoiceAmountMilliSat == null) {
+                return@launch
+            }
+
+            var payeeLspPubKey = invoiceBolt11.hop_hints?.getOrNull(0)?.substringBefore('_')
+            val ownerLsp = getOwner()?.routeHint?.getLspPubKey()
+
+            var payeeRouteHint = invoiceBolt11.hop_hints?.getOrNull((invoiceBolt11.hop_hints?.size ?: 1) - 1)
+            var payeeHasRouteHint = payeeRouteHint != null
+
+
+            if (payeeLspPubKey == null) {
+                val contact = getContactByPubKey(invoicePayeePubKey).firstOrNull()
+                payeeLspPubKey = contact?.routeHint?.getLspPubKey()
+            }
+
+            if (payeeLspPubKey == null || payeeLspPubKey != ownerLsp) {
+
+                val isRouteAvailable = isRouteAvailable(
+                    invoicePayeePubKey.value,
+                    null,
+                    invoiceAmountMilliSat
+                )
+
+                if (isRouteAvailable) {
+                    payInvoice(
+                        lightningPaymentRequest,
+                        null,
+                        null,
+                        invoiceAmountMilliSat,
+                        callback = {
+                            callback?.invoke("Processing payment: This process could take up to 60 seconds. Please be patient")
+                        }
+                    )
+                } else {
+                    val routerUrl = serversUrls.getRouterUrl()
+
+                    if (routerUrl == null) {
+                        return@launch
+                    }
+
+                    networkQueryContact.getRoutingNodes(
+                        routerUrl,
+                        invoicePayeePubKey,
+                        invoiceAmountMilliSat
+                    ).collect { response ->
+                        when (response) {
+                            is LoadResponse.Loading -> {}
+                            is Response.Error -> {
+                                if (payeeHasRouteHint) {
+                                    callback?.invoke("Error getting route")
+                                } else {
+                                    payInvoiceFromLSP(lightningPaymentRequest)
+                                }
+                            }
+
+                            is Response.Success -> {
+                                try {
+                                    val routerPubKey = serversUrls.getRouterPubkey() ?: "true"
+
+                                    payInvoice(
+                                        lightningPaymentRequest,
+                                        response.value,
+                                        routerPubKey,
+                                        invoiceAmountMilliSat
+                                    )
+                                } catch (e: Exception) {
+                                }
+                            }
+                        }
+                    }
                 }
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-                is Response.Success -> {
-                    emit(loadResponse)
-                }
+            } else {
+                payInvoice(
+                    lightningPaymentRequest,
+                    null,
+                    null,
+                    invoiceAmountMilliSat,
+                    isSphinxInvoice = payeeHasRouteHint,
+                    callback = {
+                        callback?.invoke("Processing payment: This process could take up to 60 seconds. Please be patient")
+                    }
+
+                )
             }
         }
+
     }
 
     override suspend fun getPersonData(
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<PersonDataDto, ResponseError>> = flow {
-        networkQueryContact.getPersonData(
-            relayData
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
+
+        // TODO V2 getPersonData
+
+//        networkQueryContact.getPersonData(
+//            relayData
+//        ).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+////                    emit(loadResponse)
+//                }
+//                is Response.Error -> {
 //                    emit(loadResponse)
+//                }
+//                is Response.Success -> {
+//                    emit(loadResponse)
+//                }
+//            }
+//        }
+    }
+
+    override suspend fun createOwner(
+        okKey: String,
+        routeHint: String,
+        shortChannelId: String,
+        ownerAlias: String?
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val now = DateTime.nowUTC()
+
+        val owner = Contact(
+            id = ContactId(0L),
+            routeHint = routeHint.toLightningRouteHint(),
+            nodePubKey = okKey.toLightningNodePubKey(),
+            nodeAlias = null,
+            alias = ownerAlias?.toContactAlias(),
+            photoUrl = null,
+            privatePhoto = PrivatePhoto.False,
+            isOwner = Owner.True,
+            status = ContactStatus.AccountOwner,
+            rsaPublicKey = null,
+            deviceId = null,
+            createdAt = now.toDateTime(),
+            updatedAt = now.toDateTime(),
+            fromGroup = ContactFromGroup.False,
+            notificationSound = null,
+            tipAmount = null,
+            inviteId = null,
+            inviteStatus = null,
+            blocked = Blocked.False
+        )
+        contactLock.withLock {
+            queries.transaction {
+                upsertNewContact(owner, queries)
+            }
+        }
+    }
+
+    override suspend fun createNewContact(contact: NewContact) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val now = DateTime.nowUTC()
+        val contactId = getNewContactIndex().firstOrNull()?.value
+
+        try {
+            if (contactId == null || contactId < 0) {
+                // Log and throw an exception if a valid contactId cannot be generated
+                println("Error: Invalid contactId generated. Contact creation aborted.")
+                return
+            }
+
+            val existingContact = contact.lightningNodePubKey
+                ?.let { getContactByPubKey(it).firstOrNull() }
+
+            val status = (contact.confirmed || existingContact?.status?.isConfirmed() == true)
+            val contactStatus = if (status) ContactStatus.Confirmed else ContactStatus.Pending
+            val chatStatus = if (status) ChatStatus.Approved else ChatStatus.Pending
+
+            if (existingContact?.nodePubKey != null) {
+                withContext(dispatchers.io) {
+                    contactLock.withLock {
+                        queries.contactUpdateDetails(
+                            contact.contactAlias,
+                            contact.photoUrl,
+                            contactStatus,
+                            existingContact.id
+                        )
+                    }
+                    chatLock.withLock {
+                        queries.chatUpdateDetails(
+                            contact.photoUrl,
+                            chatStatus,
+                            ChatId(existingContact.id.value)
+                        )
+                    }
                 }
-                is Response.Error -> {
-                    emit(loadResponse)
+            } else {
+                // Initialize invite if applicable
+                val invite = if (contact.invitePrice != null && contact.inviteCode != null) {
+                    Invite(
+                        id = InviteId(contactId),
+                        inviteString = InviteString(contact.inviteString ?: "null"),
+                        paymentRequest = null,
+                        contactId = ContactId(contactId),
+                        status = InviteStatus.Pending,
+                        price = contact.invitePrice,
+                        createdAt = now.toDateTime(),
+                        inviteCode = InviteCode(contact.inviteCode ?: "")
+                    )
+                } else {
+                    null
                 }
-                is Response.Success -> {
-                    emit(loadResponse)
+
+                // Create new contact and chat
+                val newContact = Contact(
+                    id = ContactId(contactId),
+                    routeHint = contact.lightningRouteHint,
+                    nodePubKey = contact.lightningNodePubKey,
+                    nodeAlias = null,
+                    alias = existingContact?.alias ?: contact.contactAlias,
+                    photoUrl = contact.photoUrl,
+                    privatePhoto = PrivatePhoto.False,
+                    isOwner = Owner.False,
+                    status = contactStatus,
+                    rsaPublicKey = null,
+                    deviceId = null,
+                    createdAt = contact.createdAt ?: now.toDateTime(),
+                    updatedAt = contact.createdAt ?: now.toDateTime(),
+                    fromGroup = ContactFromGroup.False,
+                    notificationSound = null,
+                    tipAmount = null,
+                    inviteId = invite?.id,
+                    inviteStatus = invite?.status,
+                    blocked = Blocked.False
+                )
+
+                val newChat = Chat(
+                    id = ChatId(contactId),
+                    uuid = ChatUUID("${UUID.randomUUID()}"),
+                    name = ChatName(existingContact?.alias?.value ?: contact.contactAlias?.value ?: "unknown"),
+                    photoUrl = contact.photoUrl,
+                    type = ChatType.Conversation,
+                    status = chatStatus,
+                    contactIds = listOf(ContactId(0), ContactId(contactId)),
+                    isMuted = ChatMuted.False,
+                    createdAt = contact.createdAt ?: now.toDateTime(),
+                    groupKey = null,
+                    host = null,
+                    pricePerMessage = null,
+                    escrowAmount = null,
+                    unlisted = ChatUnlisted.False,
+                    privateTribe = ChatPrivate.False,
+                    ownerPubKey = null,
+                    seen = Seen.False,
+                    metaData = null,
+                    myPhotoUrl = null,
+                    myAlias = null,
+                    pendingContactIds = emptyList(),
+                    latestMessageId = null,
+                    contentSeenAt = null,
+                    notify = NotificationLevel.SeeAll,
+                    secondBrainUrl = null,
+                    pinedMessage = null,
+                    timezoneEnabled = null,
+                    timezoneIdentifier = null,
+                    remoteTimezoneIdentifier = null,
+                    timezoneUpdated = null
+                )
+
+                withContext(dispatchers.io) {
+                    queries.transaction {
+                        upsertNewContact(newContact, queries)
+                    }
+                    chatLock.withLock {
+                        queries.transaction {
+                            upsertNewChat(
+                                newChat,
+                                SynchronizedMap<ChatId, Seen>(),
+                                queries,
+                                newContact,
+                                accountOwner.value?.nodePubKey
+                            )
+                        }
+                    }
+                    inviteLock.withLock {
+                        invite?.let {
+                            queries.transaction {
+                                upsertNewInvite(it, queries)
+                            }
+                        }
+                    }
+                }
+            }
+            println("CREATE_CONTACT: Contact and chat creation process completed.")
+        } catch (e: Exception) {
+            println("CREATE_CONTACT: Error creating contact: ${e.message}")
+        }
+    }
+
+    override suspend fun getNewContactIndex(): Flow<ContactId?> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries().contactGetLastContactIndex()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { dbContactId ->
+                    dbContactId?.value?.let {
+                        ContactId(it + 1)
+                    }
+                }
+        )
+    }
+
+    override suspend fun updateOwnerAlias(alias: ContactAlias) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val now = DateTime.nowUTC().toDateTime()
+
+        val updatedOwner = accountOwner.value?.copy(
+            alias = alias,
+            updatedAt = now
+        )
+
+        connectManager.ownerInfoStateFlow.value?.let { ownerInfo ->
+            connectManager.setOwnerInfo(
+                ownerInfo.copy(alias = alias.value)
+            )
+        }
+
+        if (updatedOwner != null) {
+            applicationScope.launch(mainImmediate) {
+                contactLock.withLock {
+                    queries.transaction {
+                        upsertNewContact(updatedOwner, queries)
+                    }
                 }
             }
         }
     }
+
+    override fun saveNewContactRegistered(
+        msgSender: String,
+        date: Long?,
+        isRestoreAccount: Boolean,
+    ) {
+        applicationScope.launch(mainImmediate) {
+            val contactInfo = msgSender.toMsgSender()
+            val contact = NewContact(
+                contactAlias = contactInfo.alias?.toContactAlias(),
+                lightningNodePubKey = contactInfo.pubkey.toLightningNodePubKey(),
+                lightningRouteHint = contactInfo.route_hint?.toLightningRouteHint(),
+                photoUrl = contactInfo.photo_url?.toPhotoUrl(),
+                confirmed = contactInfo.confirmed,
+                null,
+                inviteCode = contactInfo.code,
+                invitePrice = null,
+                null,
+                date?.toDateTime()
+            )
+
+            if (contactInfo.code != null && !isRestoreAccount) {
+                updateNewContactInvited(contact)
+            } else {
+                createNewContact(contact)
+                println("CREATE_CONTACT: saveNewContactRegistered")
+            }
+        }
+    }
+
+    override fun updateNewContactInvited(contact: NewContact) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val invite = queries.inviteGetByCode(contact.inviteCode?.let { InviteCode(it) }).executeAsOneOrNull()
+
+            if (invite != null) {
+                val contactId = invite.contact_id
+
+                queries.contactUpdateInvitee(
+                    contact.contactAlias,
+                    contact.photoUrl,
+                    contact.lightningNodePubKey,
+                    ContactStatus.Confirmed,
+                    contact.lightningRouteHint,
+                    ContactId(invite.id.value)
+                )
+
+                queries.inviteUpdateStatus(InviteStatus.Complete, invite.id)
+                queries.chatUpdateNameAndStatus(
+                    ChatName(contact.contactAlias?.value ?: "unknown"),
+                    ChatStatus.Approved,
+                    ChatId(contactId.value)
+                )
+                queries.dashboardUpdateConversation(
+                    contact.contactAlias?.value,
+                    contact.photoUrl,
+                    contactId
+                )
+
+            } else {
+            }
+        }
+    }
+
 
     ////////////////
     /// Messages ///
@@ -2086,6 +3891,7 @@ abstract class SphinxRepository(
         thread: List<Message>? = null,
         purchaseItems: List<Message>? = null,
         replyMessage: ReplyUUID? = null,
+        chat: ChatDbo? = null
     ): Message {
 
         val message: MessageDboWrapper = messageDbo.message_content?.let { messageContent ->
@@ -2236,8 +4042,7 @@ abstract class SphinxRepository(
             }
                else {
                    queries.messageGetAllToShowByChatId(chatId, limit)
-               }
-                    )
+               })
                 .asFlow()
                 .mapToList(io)
                 .map { listMessageDbo ->
@@ -2249,6 +4054,9 @@ abstract class SphinxRepository(
                             LinkedHashMap(listMessageDbo.size)
 
                         val purchaseItemsMap: MutableMap<MessageMUID, ArrayList<Message>> =
+                            LinkedHashMap(listMessageDbo.size)
+
+                        val requestResponsesMap: MutableMap<MessageUUID, Boolean?> =
                             LinkedHashMap(listMessageDbo.size)
 
                         for (dbo in listMessageDbo) {
@@ -2268,6 +4076,22 @@ abstract class SphinxRepository(
                         val threadUUID = threadMap.keys.map { ThreadUUID(it.value) }
 
                         val purchaseItemsMUIDs = purchaseItemsMap.keys.map { MessageMUID(it.value) }
+
+                        val memberRequestsUUID = listMessageDbo.filter({ it.type.isMemberRequest() && it.uuid != null }).map { ReplyUUID(it.uuid!!.value) }
+
+                        memberRequestsUUID.chunked(500).forEach { chunkedIds ->
+                            queries.messageGetAllRequestResponseItemsByReplyUUID(
+                                chatId,
+                                chunkedIds,
+                            ).executeAsList()
+                                .let { response ->
+                                    response.forEach { dbo ->
+                                        dbo.reply_uuid?.let { uuid ->
+                                            requestResponsesMap[MessageUUID(uuid.value)] = true
+                                        }
+                                    }
+                                }
+                        }
 
                         replyUUIDs.chunked(500).forEach { chunkedIds ->
                             queries.messageGetAllReactionsByUUID(
@@ -2296,7 +4120,7 @@ abstract class SphinxRepository(
                                             threadMap[MessageUUID(uuid.value)]?.add(
                                                 mapMessageDboAndDecryptContentIfNeeded(
                                                     queries,
-                                                    dbo
+                                                    dbo,
                                                 )
                                             )
                                         }
@@ -2325,7 +4149,21 @@ abstract class SphinxRepository(
                                 }
                         }
 
-                        listMessageDbo.reversed().map { dbo ->
+                        val chat = queries.chatGetById(chatId).executeAsOneOrNull()
+
+                        val filteredMemberRequests = listMessageDbo.filter { dbo ->
+                            if (!dbo.type.isMemberRequest()) {
+                                true
+                            } else {
+                                val hasResponse = dbo.uuid?.let { uuid ->
+                                    requestResponsesMap[MessageUUID(uuid.value)] == true
+                                } ?: false
+
+                                !hasResponse
+                            }
+                        }
+
+                        filteredMemberRequests.reversed().map { dbo ->
                             mapMessageDboAndDecryptContentIfNeeded(
                                 queries,
                                 dbo,
@@ -2333,6 +4171,7 @@ abstract class SphinxRepository(
                                 dbo.uuid?.let { threadMap[it] },
                                 dbo.muid?.let { purchaseItemsMap[it] },
                                 dbo.reply_uuid,
+                                chat
                             )
                         }
 
@@ -2344,6 +4183,46 @@ abstract class SphinxRepository(
     override fun getMessageById(messageId: MessageId): Flow<Message?> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
         emitAll(getMessageByIdImpl(messageId, queries))
+    }
+
+    override fun getMessagesByIds(messagesIds: List<MessageId>): Flow<List<Message?>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetMessagesByIds(messagesIds)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun messageGetOkKeysByChatId(chatId: ChatId): Flow<List<MessageId>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetOkKeysByChatId(chatId)
+                .asFlow()
+                .mapToList(io)
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getMessagesByPaymentHashes(paymentHashes: List<LightningPaymentHash>): Flow<List<Message?>> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetByPaymentHashes(paymentHashes)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
     }
 
     private fun getMessageByIdImpl(
@@ -2380,24 +4259,32 @@ abstract class SphinxRepository(
 
     override fun getMessageByUUID(messageUUID: MessageUUID): Flow<Message?> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
-        emitAll(
-            queries.messageGetByUUID(messageUUID)
-                .asFlow()
-                .mapToOneOrNull(io)
-                .map {
-                    it?.let { messageDbo ->
-                        mapMessageDboAndDecryptContentIfNeeded(queries, messageDbo)
-                    }
-                }
-                .distinctUntilChanged()
-        )
+
+        val messageDbo = queries.messageGetByUUID(messageUUID)
+            .executeAsOneOrNull()
+
+        messageDbo?.let { dbo ->
+            val reactions = queries.messageGetAllReactionsByUUID(dbo.chat_id, listOf(ReplyUUID(dbo.uuid!!.value)))
+                .executeAsList()
+                .map { reactionDbo -> mapMessageDboAndDecryptContentIfNeeded(queries, reactionDbo) }
+
+            emit(
+                mapMessageDboAndDecryptContentIfNeeded(
+                    queries,
+                    dbo,
+                    reactions = reactions
+                )
+            )
+        } ?: emit(null)
     }
 
     override suspend fun getAllMessagesByUUID(messageUUIDs: List<MessageUUID>): List<Message> {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
         return coreDB.getSphinxDatabaseQueries()
             .messageGetAllByUUID(messageUUIDs)
             .executeAsList()
-            .map { messageDboPresenterMapper.mapFrom(it) }
+            .map { mapMessageDboAndDecryptContentIfNeeded(queries, it) }
     }
 
     override fun updateMessageContentDecrypted(
@@ -2441,29 +4328,23 @@ abstract class SphinxRepository(
         queries: SphinxDatabaseQueries,
         executeNetworkRequest: Boolean
     ) {
-        val wasMarkedSeen: Boolean =
-            chatLock.withLock {
-                messageLock.withLock {
-                    withContext(io) {
-                        chatSeenMap.withLock { map ->
+        withContext(io) {
+            queries.updateSeen(chatId)
+        }
 
-                            if (map[chatId]?.isTrue() != true) {
+        chatLock.withLock {
+            messageLock.withLock {
+                val message = queries.messageGetMaxIdByChatId(chatId).executeAsOneOrNull()
+                val contact = queries.contactGetById(ContactId(chatId.value)).executeAsOneOrNull()
+                val chat = queries.chatGetById(chatId).executeAsOneOrNull()
 
-                                queries.updateSeen(chatId)
-                                LOG.d(TAG, "Chat [$chatId] marked as Seen")
-                                map[chatId] = Seen.True
-
-                                true
-                            } else {
-                                false
-                            }
-                        }
+                if (message != null) {
+                    val pubKey = contact?.node_pub_key?.value ?: chat?.uuid?.value
+                    pubKey?.let {
+                        connectManager.setReadMessage(it, message.id.value)
                     }
                 }
             }
-
-        if (executeNetworkRequest && wasMarkedSeen) {
-            networkQueryMessage.readMessages(chatId).collect { _ -> }
         }
     }
 
@@ -2493,18 +4374,15 @@ abstract class SphinxRepository(
         return sendMessage.text
     }
 
-    // TODO: Rework to handle different message types
     @OptIn(RawPasswordAccess::class)
     override fun sendMessage(sendMessage: SendMessage?) {
         if (sendMessage == null) return
 
         applicationScope.launch(mainImmediate) {
-
             val queries = coreDB.getSphinxDatabaseQueries()
 
-            // TODO: Update SendMessage to accept a Chat && Contact instead of just IDs
             val chat: Chat? = sendMessage.chatId?.let {
-                getChatByIdFlow(it).firstOrNull()
+                getChatById(it)
             }
 
             val contact: Contact? = sendMessage.contactId?.let {
@@ -2528,7 +4406,7 @@ abstract class SphinxRepository(
                     owner
                 }
 
-            val ownerPubKey = owner?.rsaPublicKey
+            val ownerPubKey = owner?.nodePubKey
 
             if (owner == null) {
                 LOG.w(TAG, "Owner returned null")
@@ -2536,92 +4414,41 @@ abstract class SphinxRepository(
             }
 
             if (ownerPubKey == null) {
-                LOG.w(TAG, "Owner's RSA public key was null")
+                LOG.w(TAG, "Owner's public key was null")
                 return@launch
             }
 
-            // encrypt text
-            val message: Pair<MessageContentDecrypted, MessageContent>? =
-                messageText(sendMessage)?.let { msgText ->
-
-                    val response = rsa.encrypt(
-                        ownerPubKey,
-                        UnencryptedString(msgText),
-                        formatOutput = false,
-                        dispatcher = default,
-                    )
-
-                    Exhaustive@
-                    when (response) {
-                        is Response.Error -> {
-                            LOG.e(TAG, response.message, response.exception)
-                            null
-                        }
-                        is Response.Success -> {
-                            Pair(
-                                MessageContentDecrypted(msgText),
-                                MessageContent(response.value.value)
-                            )
-                        }
-                    }
-                }
-
-            // media attachment
-            val media: Triple<Password, MediaKey, AttachmentInfo>? =
-                if (sendMessage.giphyData == null) {
-                    sendMessage.attachmentInfo?.let { info ->
-                        val password = PasswordGenerator(MEDIA_KEY_SIZE).password
-
-                        val response = rsa.encrypt(
-                            ownerPubKey,
-                            UnencryptedString(password.value.joinToString("")),
-                            formatOutput = false,
-                            dispatcher = default,
-                        )
-
-                        Exhaustive@
-                        when (response) {
-                            is Response.Error -> {
-                                LOG.e(TAG, response.message, response.exception)
-                                null
-                            }
-                            is Response.Success -> {
-                                Triple(password, MediaKey(response.value.value), info)
-                            }
-                        }
-                    }
-                } else {
-                    null
-                }
-
-            if (message == null && media == null && !sendMessage.isTribePayment) {
-                return@launch
-            }
+            val message = messageText(sendMessage)
+            val isPaidMessage: Boolean = (sendMessage.paidMessagePrice?.value ?: 0) > 0
+            val media: AttachmentInfo? = sendMessage.attachmentInfo
 
             val pricePerMessage = chat?.pricePerMessage?.value ?: 0
             val escrowAmount = chat?.escrowAmount?.value ?: 0
             val priceToMeet = sendMessage.priceToMeet?.value ?: 0
-            val messagePrice = (pricePerMessage + escrowAmount + priceToMeet).toSat() ?: Sat(0)
+            val messagePrice = (pricePerMessage + escrowAmount).toSat() ?: Sat(0)
 
             val messageType = when {
                 (media != null) -> {
                     MessageType.Attachment
                 }
+                (sendMessage.groupAction != null) -> {
+                    sendMessage.groupAction
+                }
                 (sendMessage.isBoost) -> {
                     MessageType.Boost
                 }
-                (sendMessage.isTribePayment) -> {
-                    MessageType.DirectPayment
-                }
                 (sendMessage.isCall) -> {
                     MessageType.CallLink
+                }
+                (sendMessage.isTribePayment) -> {
+                    MessageType.DirectPayment
                 }
                 else -> {
                     MessageType.Message
                 }
             }
 
-            //If is tribe payment, reply UUID is sent to identify recipient. But it's not a response
+//            //If is tribe payment, reply UUID is sent to identify recipient. But it's not a response
             val replyUUID = when {
                 (sendMessage.isTribePayment) -> {
                     null
@@ -2631,45 +4458,44 @@ abstract class SphinxRepository(
                 }
             }
 
-            val threadUUID = when {
-                (sendMessage.isTribePayment) -> {
-                    null
-                }
-                else -> {
-                    sendMessage.threadUUID
-                }
+            val threadUUID = sendMessage.threadUUID
+
+            val metadata: String? = if(
+                chat?.timezoneUpdated?.toBoolean() == true &&
+                chat.timezoneEnabled?.toBoolean() == true
+            ) {
+                val timezoneAbbreviation = DateTime.getTimezoneAbbreviationFrom(chat.timezoneIdentifier?.value)
+                MessageMetadata(tz = timezoneAbbreviation).toJson()
+            } else {
+                null
+            }
+
+            if (metadata != null && chat?.id != null) {
+                updateTimezoneFlag(
+                    timezoneUpdated = TimezoneUpdated.False,
+                    chatId = chat.id
+                )
             }
 
             val provisionalMessageId: MessageId? = chat?.let { chatDbo ->
                 // Build provisional message and insert
                 provisionalMessageLock.withLock {
+
                     val currentProvisionalId: MessageId? = withContext(io) {
                         queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
                     }
-
                     val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
 
                     withContext(io) {
-
                         queries.transaction {
 
-                            if (media != null) {
-                                queries.messageMediaUpsert(
-                                    media.second,
-                                    media.third.mediaType,
-                                    MediaToken.PROVISIONAL_TOKEN,
-                                    provisionalId,
-                                    chatDbo.id,
-                                    MediaKeyDecrypted(media.first.value.joinToString("")),
-                                    media.third.filePath,
-                                    media.third.fileName
-                                )
-                            }
+                            // The following parms are set to null to make the upsert to work
+                            // type, message_content, message_decrypted, status
 
                             queries.messageUpsert(
                                 MessageStatus.Pending,
                                 Seen.True,
-                                chatDbo.myAlias?.value?.toSenderAlias(),
+                                sendMessage.senderAlias ?: chatDbo.myAlias?.value?.toSenderAlias(),
                                 chatDbo.myPhotoUrl,
                                 null,
                                 replyUUID,
@@ -2679,142 +4505,174 @@ abstract class SphinxRepository(
                                 Push.False,
                                 null,
                                 threadUUID,
+                                null,
+                                null,
                                 provisionalId,
                                 null,
                                 chatDbo.id,
                                 owner.id,
                                 sendMessage.contactId,
-                                messagePrice,
+                                sendMessage.tribePaymentAmount ?: sendMessage.paidMessagePrice ?: messagePrice ,
                                 null,
                                 null,
                                 DateTime.nowUTC().toDateTime(),
                                 null,
-                                message?.second,
-                                message?.first,
                                 null,
-                                false.toFlagged()
+                                message?.toMessageContentDecrypted() ?: sendMessage.text?.toMessageContentDecrypted(),
+                                null,
+                                false.toFlagged(),
+                                if (chat.timezoneEnabled?.toBoolean() == true) chat.timezoneIdentifier?.value?.toRemoteTimezoneIdentifier() else null
                             )
-
-                            if (media != null) {
-                                queries.messageMediaUpsert(
-                                    media.second,
-                                    media.third.mediaType,
-                                    MediaToken.PROVISIONAL_TOKEN,
-                                    provisionalId,
-                                    chatDbo.id,
-                                    MediaKeyDecrypted(media.first.value.joinToString("")),
-                                    media.third.filePath,
-                                    media.third.fileName
-                                )
-                            }
                         }
+                        provisionalId
                     }
-
-                    provisionalId
                 }
             }
 
-            val isPaidTextMessage =
-                sendMessage.attachmentInfo?.mediaType?.isSphinxText == true &&
-                        sendMessage.paidMessagePrice?.value ?: 0 > 0
-
-            val messageContent: String? = if (isPaidTextMessage) null else message?.second?.value
-
-            val remoteTextMap: Map<String, String>? =
-                if (isPaidTextMessage) null else getRemoteTextMap(
-                    UnencryptedString(message?.first?.value ?: ""),
-                    contact,
-                    chat
-                )
-
-            val mediaKeyMap: Map<String, String>? = if (media != null) {
-                getMediaKeyMap(
-                    owner.id,
-                    media.second,
-                    UnencryptedString(media.first.value.joinToString("")),
-                    contact,
-                    chat
-                )
-            } else {
-                null
-            }
-
-            val postMemeServerDto: PostMemeServerUploadDto? = if (media != null) {
-                val token = memeServerTokenHandler.retrieveAuthenticationToken(MediaHost.DEFAULT)
-                    ?: provisionalMessageId?.let { provId ->
-                        withContext(io) {
-                            queries.messageUpdateStatus(MessageStatus.Failed, provId)
-                        }
-
-                        return@launch
-                    } ?: return@launch
-
-                val response = networkQueryMemeServer.uploadAttachmentEncrypted(
-                    token,
-                    media.third.mediaType,
-                    media.third.filePath,
-                    media.first,
-                    MediaHost.DEFAULT,
-                )
-
-                Exhaustive@
-                when (response) {
-                    is Response.Error -> {
-                        LOG.e(TAG, response.message, response.exception)
-
-                        provisionalMessageId?.let { provId ->
+            if (contact != null || chat != null) {
+                if (media != null) {
+                    val password = PasswordGenerator(MEDIA_KEY_SIZE).password
+                    val token = memeServerTokenHandler.retrieveAuthenticationToken(MediaHost.DEFAULT)
+                        ?: provisionalMessageId?.let { provId ->
                             withContext(io) {
                                 queries.messageUpdateStatus(MessageStatus.Failed, provId)
                             }
+                            return@launch
+                        } ?: return@launch
+
+                    val response = networkQueryMemeServer.uploadAttachmentEncrypted(
+                        token,
+                        media.mediaType,
+                        media.filePath,
+                        password,
+                        MediaHost.DEFAULT,
+                    )
+
+                    when (response) {
+                        is Response.Error -> {
+                            LOG.e(TAG, response.message, response.exception)
+
+                            provisionalMessageId?.let { provId ->
+                                withContext(io) {
+                                    queries.messageUpdateStatus(MessageStatus.Failed, provId)
+                                }
+                            }
+                            return@launch
                         }
 
-                        return@launch
+                        is Response.Success -> {
+                            val pubKey = contact?.nodePubKey?.value ?: chat?.uuid?.value
+
+                            pubKey?.let { nnPubKey ->
+
+                                val amount = sendMessage.paidMessagePrice?.value
+
+                                val mediaTokenValue = connectManager.generateMediaToken(
+                                    nnPubKey,
+                                    response.value.muid,
+                                    MediaHost.DEFAULT.value,
+                                    null,
+                                    amount,
+                                )
+
+                                val mediaKey = MediaKey(password.value.copyOf().joinToString(""))
+
+                                queries.messageMediaUpsert(
+                                    mediaKey,
+                                    media.mediaType,
+                                    mediaTokenValue?.toMediaToken() ?: MediaToken.PROVISIONAL_TOKEN,
+                                    provisionalMessageId ?: MessageId(Long.MIN_VALUE),
+                                    chat?.id ?: ChatId(ChatId.NULL_CHAT_ID.toLong()),
+                                    MediaKeyDecrypted(password.value.copyOf().joinToString("")),
+                                    media.filePath,
+                                    sendMessage.attachmentInfo?.fileName
+                                )
+
+                                sendNewMessage(
+                                    contact?.nodePubKey?.value ?: chat?.uuid?.value ?: "",
+                                    message ?: sendMessage.text ?: "",
+                                    media,
+                                    mediaTokenValue?.toMediaToken(),
+                                    if (isPaidMessage && chat?.isTribe() == false) null else mediaKey,
+                                    messageType,
+                                    provisionalMessageId,
+                                    sendMessage.tribePaymentAmount ?: messagePrice,
+                                    replyUUID,
+                                    threadUUID,
+                                    chat?.isTribe() ?: false,
+                                    sendMessage.memberPubKey,
+                                    chat?.myAlias,
+                                    chat?.myPhotoUrl,
+                                    metadata
+                                )
+
+                                LOG.d("MQTT_MESSAGES", "Media Message was sent. mediatoken=$mediaTokenValue mediakey$mediaKey" )
+                            }
+                        }
                     }
-                    is Response.Success -> {
-                        response.value
-                    }
+                } else {
+                    sendNewMessage(
+                        contact?.nodePubKey?.value ?: chat?.uuid?.value ?: "",
+                        message ?: sendMessage.text ?: "",
+                        null,
+                        null,
+                        null,
+                        messageType,
+                        provisionalMessageId,
+                        sendMessage.tribePaymentAmount ?: messagePrice,
+                        replyUUID,
+                        threadUUID,
+                        chat?.isTribe() ?: false,
+                        sendMessage.memberPubKey,
+                        chat?.myAlias,
+                        chat?.myPhotoUrl,
+                        metadata
+                    )
                 }
-            } else {
-                null
             }
+        }
+    }
 
-            val amount = messagePrice.value + (sendMessage.tribePaymentAmount ?: Sat(0)).value
+    fun sendNewMessage(
+        contact: String,
+        messageContent: String,
+        attachmentInfo: AttachmentInfo?,
+        mediaToken: MediaToken?,
+        mediaKey: MediaKey?,
+        messageType: MessageType?,
+        provisionalId: MessageId?,
+        amount: Sat?,
+        replyUUID: ReplyUUID?,
+        threadUUID: ThreadUUID?,
+        isTribe: Boolean,
+        memberPubKey: LightningNodePubKey?,
+        chatAlias: ChatAlias?,
+        chatProfilePic: PhotoUrl?,
+        metadata: String?
+    ) {
+        val newMessage = chat.sphinx.wrapper.mqtt.Message(
+            messageContent,
+            null,
+            mediaToken?.value,
+            mediaKey?.value,
+            attachmentInfo?.mediaType?.value,
+            replyUUID?.value,
+            threadUUID?.value,
+            memberPubKey?.value,
+            null,
+            metadata
+        ).toJson()
 
-            val postMessageDto: PostMessageDto = try {
-                PostMessageDto(
-                    sendMessage.chatId?.value,
-                    sendMessage.contactId?.value,
-                    amount,
-                    messagePrice.value,
-                    sendMessage.replyUUID?.value,
-                    messageContent,
-                    remoteTextMap,
-                    mediaKeyMap,
-                    postMemeServerDto?.mime,
-                    postMemeServerDto?.muid,
-                    sendMessage.paidMessagePrice?.value,
-                    sendMessage.isBoost,
-                    sendMessage.isCall,
-                    sendMessage.isTribePayment,
-                    sendMessage.threadUUID?.value
-                )
-            } catch (e: IllegalArgumentException) {
-                LOG.e(TAG, "Failed to create PostMessageDto", e)
-
-                provisionalMessageId?.let { provId ->
-                    withContext(io) {
-                        queries.messageUpdateStatus(MessageStatus.Failed, provId)
-                    }
-                }
-
-                return@launch
-            }
-
-            sendMessage(
-                provisionalMessageId,
-                postMessageDto,
-                message?.first,
-                media
+        provisionalId?.value?.let {
+            connectManager.sendMessage(
+                newMessage,
+                contact,
+                it,
+                messageType?.value ?: 0,
+                amount?.value,
+                isTribe,
+                chatAlias?.value,
+                chatProfilePic?.value
             )
         }
     }
@@ -2941,74 +4799,75 @@ abstract class SphinxRepository(
         media: Triple<Password, MediaKey, AttachmentInfo>?,
     ) {
         val queries = coreDB.getSphinxDatabaseQueries()
+        // TODO V2 sendMessage
 
-        networkQueryMessage.sendMessage(postMessageDto).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
-                }
-                is Response.Error -> {
-                    LOG.e(TAG, loadResponse.message, loadResponse.exception)
-
-                    messageLock.withLock {
-                        provisionalMessageId?.let { provId ->
-                            withContext(io) {
-                                queries.messageUpdateStatus(MessageStatus.Failed, provId)
-                            }
-                        }
-                    }
-
-                }
-                is Response.Success -> {
-
-                    loadResponse.value.apply {
-                        if (media != null) {
-                            setMediaKeyDecrypted(media.first.value.joinToString(""))
-                            setMediaLocalFile(media.third.filePath)
-                        }
-
-                        if (messageContentDecrypted != null) {
-                            setMessageContentDecrypted(messageContentDecrypted.value)
-                        }
-                    }
-
-                    chatLock.withLock {
-                        messageLock.withLock {
-                            contactLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        // chat is returned only if this is the
-                                        // first message sent to a new contact
-                                        loadResponse.value.chat?.let { chatDto ->
-                                            upsertChat(
-                                                chatDto,
-                                                chatSeenMap,
-                                                queries,
-                                                loadResponse.value.contact,
-                                            )
-                                        }
-
-                                        loadResponse.value.contact?.let { contactDto ->
-                                            upsertContact(contactDto, queries)
-                                        }
-
-                                        upsertMessage(
-                                            loadResponse.value,
-                                            queries,
-                                            media?.third?.fileName
-                                        )
-
-                                        provisionalMessageId?.let { provId ->
-                                            deleteMessageById(provId, queries)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//        networkQueryMessage.sendMessage(postMessageDto).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+//                }
+//                is Response.Error -> {
+//                    LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//
+//                    messageLock.withLock {
+//                        provisionalMessageId?.let { provId ->
+//                            withContext(io) {
+//                                queries.messageUpdateStatus(MessageStatus.Failed, provId)
+//                            }
+//                        }
+//                    }
+//
+//                }
+//                is Response.Success -> {
+//
+//                    loadResponse.value.apply {
+//                        if (media != null) {
+//                            setMediaKeyDecrypted(media.first.value.joinToString(""))
+//                            setMediaLocalFile(media.third.filePath)
+//                        }
+//
+//                        if (messageContentDecrypted != null) {
+//                            setMessageContentDecrypted(messageContentDecrypted.value)
+//                        }
+//                    }
+//
+//                    chatLock.withLock {
+//                        messageLock.withLock {
+//                            contactLock.withLock {
+//                                withContext(io) {
+//                                    queries.transaction {
+//                                        // chat is returned only if this is the
+//                                        // first message sent to a new contact
+//                                        loadResponse.value.chat?.let { chatDto ->
+//                                            upsertChat(
+//                                                chatDto,
+//                                                chatSeenMap,
+//                                                queries,
+//                                                loadResponse.value.contact,
+//                                            )
+//                                        }
+//
+//                                        loadResponse.value.contact?.let { contactDto ->
+//                                            upsertContact(contactDto, queries)
+//                                        }
+//
+//                                        upsertMessage(
+//                                            loadResponse.value,
+//                                            queries,
+//                                            media?.third?.fileName
+//                                        )
+//
+//                                        provisionalMessageId?.let { provId ->
+//                                            deleteMessageById(provId, queries)
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     override fun resendMessage(message: Message, chat: Chat) {
@@ -3111,11 +4970,13 @@ abstract class SphinxRepository(
         }
     }
 
-    override suspend fun deleteMessage(message: Message): Response<Any, ResponseError> {
+    override suspend fun deleteMessage(message: Message) {
         var response: Response<Any, ResponseError> = Response.Success(true)
 
         applicationScope.launch(mainImmediate) {
             val queries = coreDB.getSphinxDatabaseQueries()
+            val contact = getContactById(ContactId(message.chatId.value)).firstOrNull()
+            val chatTribe = getChatById(message.chatId)
 
             if (message.id.isProvisionalMessage) {
                 messageLock.withLock {
@@ -3126,31 +4987,44 @@ abstract class SphinxRepository(
                     }
                 }
             } else {
-                networkQueryMessage.deleteMessage(message.id).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                            response = Response.Error(
-                                ResponseError(loadResponse.message, loadResponse.exception)
-                            )
-                        }
-                        is Response.Success -> {
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        upsertMessage(loadResponse.value, queries)
-                                    }
-                                }
-                            }
-                        }
+                messageLock.withLock {
+                    withContext(io) {
+                        queries.messageUpdateStatus(MessageStatus.Deleted, message.id)
                     }
                 }
-            }
-        }.join()
 
-        return response
+                val newMessage = chat.sphinx.wrapper.mqtt.Message(
+                    "",
+                    null,
+                    null,
+                    null,
+                    null,
+                    message.uuid?.value,
+                    null,
+                    null,
+                    null
+                ).toJson()
+
+                val contactPubKey = contact?.nodePubKey?.value ?: chatTribe?.uuid?.value
+                val isTribe = (chatTribe != null)
+
+                if (contactPubKey != null) {
+                    connectManager.deleteMessage(
+                        newMessage,
+                        contactPubKey,
+                        isTribe
+                    )
+                }
+            }
+        }
+    }
+
+    override suspend fun deleteAllMessagesAndPubKey(pubKey: String, chatId: ChatId) {
+        val messagesIds = messageGetOkKeysByChatId(chatId).firstOrNull()
+        if (messagesIds != null) {
+            connectManager.deleteContactMessages(messagesIds.map { it.value })
+            connectManager.deletePubKeyMessages(pubKey)
+        }
     }
 
     override suspend fun sendPayment(
@@ -3199,138 +5073,107 @@ abstract class SphinxRepository(
                 return@launch
             }
 
-            var encryptedText: MessageContent? = null
-            var encryptedRemoteText: MessageContent? = null
+            val text = sendPayment.text
 
-            sendPayment.text?.let { msgText ->
-                encryptedText = owner
-                    .rsaPublicKey
-                    ?.let { pubKey ->
-                        val encResponse = rsa.encrypt(
-                            pubKey,
-                            UnencryptedString(msgText),
-                            formatOutput = false,
-                            dispatcher = default,
-                        )
+            val currentProvisionalId: MessageId? = withContext(io) {
+                queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+            }
+            val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
 
-                        Exhaustive@
-                        when (encResponse) {
-                            is Response.Error -> {
-                                LOG.e(TAG, encResponse.message, encResponse.exception)
-                                null
-                            }
-                            is Response.Success -> {
-                                MessageContent(encResponse.value.value)
-                            }
+            val newPayment = NewMessage(
+                id = provisionalId,
+                uuid = null,
+                chatId = sendPayment.chatId ?: ChatId(ChatId.NULL_CHAT_ID.toLong()),
+                type = MessageType.DirectPayment,
+                sender = owner.id,
+                receiver = null,
+                amount = Sat(sendPayment.amount),
+                date = DateTime.nowUTC().toDateTime(),
+                expirationDate = null,
+                messageContent = null,
+                status = MessageStatus.Pending,
+                seen = Seen.True,
+                senderAlias = null,
+                senderPic = null,
+                originalMUID = sendPayment.paymentTemplate?.muid?.toMessageMUID(),
+                replyUUID = null,
+                flagged = false.toFlagged(),
+                recipientAlias = null,
+                recipientPic = null,
+                person = null,
+                threadUUID = null,
+                errorMessage = null,
+                messageContentDecrypted = text?.toMessageContentDecrypted(),
+                messageDecryptionError = false,
+                messageDecryptionException = null,
+                messageMedia = null,
+                feedBoost = null,
+                callLinkMessage = null,
+                podcastClip = null,
+                giphyData = null,
+                reactions = null,
+                purchaseItems = null,
+                replyMessage = null,
+                thread = null
+            )
+
+            var mediaTokenValue: String? = null
+
+            sendPayment.paymentTemplate?.let { template ->
+
+                mediaTokenValue = connectManager.generateMediaToken(
+                    contact?.node_pub_key?.value ?: "",
+                    sendPayment.paymentTemplate?.muid ?: "",
+                    MediaHost.DEFAULT.value,
+                    sendPayment.paymentTemplate?.getDimensions(),
+                    null
+                )
+
+                queries.messageMediaUpsert(
+                    null,
+                    MediaType.IMAGE.toMediaType(),
+                    mediaTokenValue?.toMediaToken() ?: MediaToken.PROVISIONAL_TOKEN,
+                    provisionalId,
+                    ChatId(contact?.id?.value ?: ChatId.NULL_CHAT_ID.toLong()),
+                    null,
+                    null,
+                    null
+                )
+
+            }
+
+            val newPaymentMessage = chat.sphinx.wrapper.mqtt.Message(
+                text,
+                null,
+                mediaTokenValue,
+                null,
+                MediaType.IMAGE,
+                null,
+                null,
+                null,
+                null
+            ).toJson()
+
+
+            chatLock.withLock {
+                messageLock.withLock {
+                    withContext(io) {
+
+                        queries.transaction {
+                            upsertNewMessage(newPayment, queries, null)
                         }
                     }
-
-                contact?.let { contact ->
-                    encryptedRemoteText = contact
-                        .public_key
-                        ?.let { pubKey ->
-                            val encResponse = rsa.encrypt(
-                                pubKey,
-                                UnencryptedString(msgText),
-                                formatOutput = false,
-                                dispatcher = default,
-                            )
-
-                            Exhaustive@
-                            when (encResponse) {
-                                is Response.Error -> {
-                                    LOG.e(TAG, encResponse.message, encResponse.exception)
-                                    null
-                                }
-                                is Response.Success -> {
-                                    MessageContent(encResponse.value.value)
-                                }
-                            }
-                        }
                 }
             }
 
-            val postPaymentDto: PostPaymentDto = try {
-                PostPaymentDto(
-                    chat_id = sendPayment.chatId?.value,
-                    contact_id = sendPayment.contactId?.value,
-                    amount = sendPayment.amount,
-                    text = encryptedText?.value,
-                    remote_text = encryptedRemoteText?.value,
-                    destination_key = sendPayment.destinationKey?.value,
-                    muid = sendPayment.paymentTemplate?.muid,
-                    dimensions = sendPayment.paymentTemplate?.getDimensions(),
-                    media_type = sendPayment.paymentTemplate?.getMediaType()
+            contact?.let { nnContact ->
+                connectManager.sendMessage(
+                    newPaymentMessage,
+                    contact.node_pub_key?.value ?: "",
+                    provisionalId.value,
+                    MessageType.DIRECT_PAYMENT,
+                    sendPayment.amount
                 )
-            } catch (e: IllegalArgumentException) {
-                response = Response.Error(
-                    ResponseError("Failed to create PostPaymentDto")
-                )
-                return@launch
-            }
-
-            if (postPaymentDto.isKeySendPayment) {
-                networkQueryMessage.sendKeySendPayment(
-                    postPaymentDto,
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                            LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                            response = loadResponse
-                        }
-                        is Response.Success -> {
-                            response = loadResponse
-                        }
-                    }
-                }
-            } else {
-                networkQueryMessage.sendPayment(
-                    postPaymentDto,
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                            LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                            response = loadResponse
-                        }
-                        is Response.Success -> {
-                            val message = loadResponse.value
-
-                            decryptMessageDtoContentIfAvailable(
-                                message,
-                                coroutineScope { this },
-                            )
-
-                            chatLock.withLock {
-                                messageLock.withLock {
-                                    withContext(io) {
-
-                                        queries.transaction {
-                                            upsertMessage(message, queries)
-
-                                            if (message.updateChatDboLatestMessage) {
-                                                message.chat_id?.toChatId()?.let { chatId ->
-                                                    updateChatDboLatestMessage(
-                                                        message,
-                                                        chatId,
-                                                        latestMessageUpdatedTimeMap,
-                                                        queries
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
         }.join()
@@ -3348,6 +5191,10 @@ abstract class SphinxRepository(
         var response: Response<Any, ResponseError> = Response.Success(true)
 
         applicationScope.launch(mainImmediate) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val contact = getContactById(ContactId(chatId.value)).firstOrNull()
+            val currentChat = getChatById(chatId)
+
             val owner: Contact = accountOwner.value.let {
                 if (it != null) {
                     it
@@ -3378,51 +5225,92 @@ abstract class SphinxRepository(
                 }
             }
 
-            networkQueryMessage.boostMessage(
-                boostMessageDto = PostBoostMessageDto(
-                    boost = true,
-                    chat_id = chatId.value,
-                    amount = pricePerMessage.value + escrowAmount.value + (owner.tipAmount ?: Sat(20L)).value,
-                    message_price = pricePerMessage.value + escrowAmount.value,
-                    reply_uuid = messageUUID.value
-                )
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        decryptMessageDtoContentIfAvailable(
-                            loadResponse.value,
-                            coroutineScope { this },
-                        )
-                        val queries = coreDB.getSphinxDatabaseQueries()
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
+            val currentProvisionalId: MessageId? = withContext(io) {
+                queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+            }
+            val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
 
-                                    queries.transaction {
-                                        upsertMessage(loadResponse.value, queries)
+            val newBoost = NewMessage(
+                id = provisionalId,
+                uuid = null,
+                chatId = chatId,
+                type = MessageType.Boost,
+                sender = owner.id,
+                receiver = null,
+                amount = owner.tipAmount ?: Sat(20L),
+                date = DateTime.nowUTC().toDateTime(),
+                expirationDate = null,
+                messageContent = null,
+                status = MessageStatus.Confirmed,
+                seen = Seen.True,
+                senderAlias = null,
+                senderPic = null,
+                originalMUID = null,
+                replyUUID = ReplyUUID(messageUUID.value),
+                flagged = false.toFlagged(),
+                recipientAlias = null,
+                recipientPic = null,
+                person = null,
+                threadUUID = null,
+                errorMessage = null,
+                tagMessage = null,
+                messageContentDecrypted = null,
+                messageDecryptionError = false,
+                messageDecryptionException = null,
+                messageMedia = null,
+                feedBoost = null,
+                callLinkMessage = null,
+                podcastClip = null,
+                giphyData = null,
+                reactions = null,
+                purchaseItems = null,
+                replyMessage = null,
+                thread = null
+            )
 
-                                        if (loadResponse.value.updateChatDboLatestMessage) {
-                                            updateChatDboLatestMessage(
-                                                loadResponse.value,
-                                                chatId,
-                                                latestMessageUpdatedTimeMap,
-                                                queries
-                                            )
-                                        }
-                                    }
+            val newBoostMessage = chat.sphinx.wrapper.mqtt.Message(
+                null,
+                null,
+                null,
+                null,
+                null,
+                messageUUID.value,
+                null,
+                null,
+                null
+            ).toJson()
 
-                                }
-                            }
+            chatLock.withLock {
+                messageLock.withLock {
+                    withContext(io) {
+
+                        queries.transaction {
+                            upsertNewMessage(newBoost, queries, null)
                         }
                     }
+
+                    queries.transaction {
+                        updateChatNewLatestMessage(
+                            newBoost,
+                            chatId,
+                            latestMessageUpdatedTimeMap,
+                            queries
+                        )
+                    }
                 }
+            }
+
+            val contactPubKey = contact?.nodePubKey?.value ?: currentChat?.uuid?.value
+
+            if (contactPubKey != null) {
+                connectManager.sendMessage(
+                    newBoostMessage,
+                    contactPubKey,
+                    provisionalId.value,
+                    MessageType.BOOST,
+                    owner.tipAmount?.value ?: 20L,
+                    currentChat?.isTribe() ?: false
+                )
             }
         }.join()
 
@@ -3563,50 +5451,52 @@ abstract class SphinxRepository(
                 encryptedRemoteMemo?.value
             )
 
-            networkQueryMessage.sendPaymentRequest(postRequestPaymentDto).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = Response.Success(true)
+            // TODO V2 sendPaymentRequest
 
-                        val message = loadResponse.value
-
-                        decryptMessageDtoContentIfAvailable(
-                            message,
-                            coroutineScope { this },
-                        )
-
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
-
-                                    queries.transaction {
-                                        upsertMessage(message, queries)
-
-                                        if (message.updateChatDboLatestMessage) {
-                                            message.chat_id?.toChatId()?.let { chatId ->
-                                                updateChatDboLatestMessage(
-                                                    message,
-                                                    chatId,
-                                                    latestMessageUpdatedTimeMap,
-                                                    queries
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQueryMessage.sendPaymentRequest(postRequestPaymentDto).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        LOG.e(TAG, loadResponse.message, loadResponse.exception)
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = Response.Success(true)
+//
+//                        val message = loadResponse.value
+//
+//                        decryptMessageDtoContentIfAvailable(
+//                            message,
+//                            coroutineScope { this },
+//                        )
+//
+//                        chatLock.withLock {
+//                            messageLock.withLock {
+//                                withContext(io) {
+//
+//                                    queries.transaction {
+//                                        upsertMessage(message, queries)
+//
+//                                        if (message.updateChatDboLatestMessage) {
+//                                            message.chat_id?.toChatId()?.let { chatId ->
+//                                                updateChatDboLatestMessage(
+//                                                    message,
+//                                                    chatId,
+//                                                    latestMessageUpdatedTimeMap,
+//                                                    queries
+//                                                )
+//                                            }
+//                                        }
+//                                    }
+//
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError("Failed to send payment request"))
@@ -3623,45 +5513,47 @@ abstract class SphinxRepository(
                     lightningPaymentRequest.value,
                 )
 
-                networkQueryMessage.payPaymentRequest(
-                    putPaymentRequestDto,
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
+                // TODO V2 payPaymentRequest
 
-                        is Response.Error -> {
-                            response = Response.Error(
-                                ResponseError(loadResponse.message, loadResponse.exception)
-                            )
-                        }
-                        is Response.Success -> {
-                            response = loadResponse
-
-                            val message = loadResponse.value
-
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        upsertMessage(message, queries)
-
-                                        if (message.updateChatDboLatestMessage) {
-                                            message.chat_id?.toChatId()?.let { chatId ->
-                                                updateChatDboLatestMessage(
-                                                    message,
-                                                    chatId,
-                                                    latestMessageUpdatedTimeMap,
-                                                    queries
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+//                networkQueryMessage.payPaymentRequest(
+//                    putPaymentRequestDto,
+//                ).collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = Response.Error(
+//                                ResponseError(loadResponse.message, loadResponse.exception)
+//                            )
+//                        }
+//                        is Response.Success -> {
+//                            response = loadResponse
+//
+//                            val message = loadResponse.value
+//
+//                            messageLock.withLock {
+//                                withContext(io) {
+//                                    queries.transaction {
+//                                        upsertMessage(message, queries)
+//
+//                                        if (message.updateChatDboLatestMessage) {
+//                                            message.chat_id?.toChatId()?.let { chatId ->
+//                                                updateChatDboLatestMessage(
+//                                                    message,
+//                                                    chatId,
+//                                                    latestMessageUpdatedTimeMap,
+//                                                    queries
+//                                                )
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             }.join()
         }
 
@@ -3673,90 +5565,166 @@ abstract class SphinxRepository(
     ): Flow<LoadResponse<Any, ResponseError>>  = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
 
-        networkQueryMessage.payPaymentRequest(
-            putPaymentRequestDto,
-        ).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
-                }
+        // TODO V2 payPaymentRequest
 
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-
-                is Response.Success -> {
-                    emit(loadResponse)
-
-                    val message = loadResponse.value
-
-                    messageLock.withLock {
-                        withContext(io) {
-                            queries.transaction {
-                                upsertMessage(message, queries)
-
-                                if (message.updateChatDboLatestMessage) {
-                                    message.chat_id?.toChatId()?.let { chatId ->
-                                        updateChatDboLatestMessage(
-                                            message,
-                                            chatId,
-                                            latestMessageUpdatedTimeMap,
-                                            queries
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//        networkQueryMessage.payPaymentRequest(
+//            putPaymentRequestDto,
+//        ).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+//                }
+//
+//                is Response.Error -> {
+//                    emit(loadResponse)
+//                }
+//
+//                is Response.Success -> {
+//                    emit(loadResponse)
+//
+//                    val message = loadResponse.value
+//
+//                    messageLock.withLock {
+//                        withContext(io) {
+//                            queries.transaction {
+//                                upsertMessage(message, queries)
+//
+//                                if (message.updateChatDboLatestMessage) {
+//                                    message.chat_id?.toChatId()?.let { chatId ->
+//                                        updateChatDboLatestMessage(
+//                                            message,
+//                                            chatId,
+//                                            latestMessageUpdatedTimeMap,
+//                                            queries
+//                                        )
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
-    override suspend fun payAttachment(message: Message): Response<Any, ResponseError> {
-        var response: Response<Any, ResponseError>? = null
-
+    override suspend fun payAttachment(message: Message) {
         applicationScope.launch(mainImmediate) {
             val queries = coreDB.getSphinxDatabaseQueries()
 
             message.messageMedia?.mediaToken?.let { mediaToken ->
                 mediaToken.getPriceFromMediaToken().let { price ->
 
-                    networkQueryMessage.payAttachment(
-                        message.chatId,
-                        message.sender,
-                        price,
-                        mediaToken
-                    ).collect { loadResponse ->
-                        Exhaustive@
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {
-                            }
-
-                            is Response.Error -> {
-                                response = Response.Error(
-                                    ResponseError(loadResponse.message, loadResponse.exception)
-                                )
-                            }
-                            is Response.Success -> {
-                                response = loadResponse
-
-                                messageLock.withLock {
-                                    withContext(io) {
-                                        queries.transaction {
-                                            upsertMessage(loadResponse.value, queries)
-                                        }
+                    val owner: Contact = accountOwner.value
+                        ?: let {
+                            // TODO: Handle this better...
+                            var owner: Contact? = null
+                            try {
+                                accountOwner.collect {
+                                    if (it != null) {
+                                        owner = it
+                                        throw Exception()
                                     }
                                 }
+                            } catch (e: Exception) {}
+                            delay(25L)
+                            owner
+                        } ?: return@launch
+
+                    val contact: Contact? = message.chatId.let { chatId ->
+                        getContactById(ContactId(chatId.value)).firstOrNull()
+                    }
+
+                    val currentChat = getChatById(message.chatId)
+
+                    val currentProvisionalId: MessageId? = withContext(io) {
+                        queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+                    }
+                    val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
+
+                    val newPurchase = NewMessage(
+                        id = provisionalId,
+                        uuid = null,
+                        chatId = message.chatId,
+                        type = MessageType.Purchase.Processing,
+                        sender = owner.id,
+                        receiver = null,
+                        amount = price,
+                        date = DateTime.nowUTC().toDateTime(),
+                        expirationDate = null,
+                        messageContent = null,
+                        status = MessageStatus.Confirmed,
+                        seen = Seen.True,
+                        senderAlias = null,
+                        senderPic = null,
+                        originalMUID = message.originalMUID,
+                        replyUUID = null,
+                        flagged = false.toFlagged(),
+                        recipientAlias = null,
+                        recipientPic = null,
+                        person = null,
+                        threadUUID = null,
+                        errorMessage = null,
+                        messageContentDecrypted = null,
+                        messageDecryptionError = false,
+                        messageDecryptionException = null,
+                        messageMedia = null,
+                        feedBoost = null,
+                        callLinkMessage = null,
+                        podcastClip = null,
+                        giphyData = null,
+                        reactions = null,
+                        purchaseItems = null,
+                        replyMessage = null,
+                        thread = null
+                    )
+
+                    val newPurchaseMessage = chat.sphinx.wrapper.mqtt.Message(
+                        null,
+                        null,
+                        mediaToken.value,
+                        null,
+                        null,
+                        message.uuid?.value,
+                        null,
+                        null,
+                        null
+                    ).toJson()
+
+
+                    chatLock.withLock {
+                        messageLock.withLock {
+                            withContext(io) {
+                                queries.transaction {
+                                    upsertNewMessage(newPurchase, queries, null)
+                                }
+                            }
+
+                            queries.transaction {
+                                updateChatNewLatestMessage(
+                                    newPurchase,
+                                    message.chatId,
+                                    latestMessageUpdatedTimeMap,
+                                    queries
+                                )
                             }
                         }
                     }
 
+                    val contactPubKey = contact?.nodePubKey?.value ?: currentChat?.uuid?.value
+
+                    if (contactPubKey != null) {
+                        connectManager.sendMessage(
+                            newPurchaseMessage,
+                            contactPubKey,
+                            provisionalId.value,
+                            MessageType.PURCHASE_PROCESSING,
+                            price.value,
+                            currentChat?.isTribe() ?: false
+                        )
+                    }
                 }
             }
-        }.join()
-
-        return response ?: Response.Error(ResponseError("Failed to pay for attachment"))
+        }
     }
 
     override suspend fun setNotificationLevel(chat: Chat, level: NotificationLevel): Response<Boolean, ResponseError> {
@@ -3764,7 +5732,15 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             val queries = coreDB.getSphinxDatabaseQueries()
-            val currentNotificationLevel = chat.notifyActualValue()
+            val contact = queries.contactGetById(ContactId(chat.id.value)).executeAsOneOrNull()
+
+            if (contact != null) {
+                contact.node_pub_key?.value?.let { pubKey ->
+                    connectManager.setMute(level.value, pubKey)
+                }
+            } else {
+                connectManager.setMute(level.value, chat.uuid.value)
+            }
 
             chatLock.withLock {
                 withContext(io) {
@@ -3774,41 +5750,6 @@ abstract class SphinxRepository(
                             level,
                             queries
                         )
-                    }
-                }
-            }
-
-            networkQueryChat.setNotificationLevel(chat.id, level).collect { loadResponse ->
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {}
-                    is Response.Success -> {
-                        chatLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertChat(
-                                        loadResponse.value,
-                                        chatSeenMap,
-                                        queries,
-                                        null
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-
-                        chatLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    updateChatNotificationLevel(
-                                        chat.id,
-                                        currentNotificationLevel,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -3830,81 +5771,8 @@ abstract class SphinxRepository(
         }
     }
 
-    override fun joinTribe(
-        tribeDto: TribeDto
-    ): Flow<LoadResponse<ChatDto, ResponseError>> = flow {
-        val queries = coreDB.getSphinxDatabaseQueries()
-        var response: Response<ChatDto, ResponseError>? = null
-        val memeServerHost = MediaHost.DEFAULT
 
-        emit(LoadResponse.Loading)
-
-        applicationScope.launch(mainImmediate) {
-
-            tribeDto.myPhotoUrl = tribeDto.profileImgFile?.toFile()?.let { imgFile ->
-                // If an image file is provided we should upload it
-                val token = memeServerTokenHandler.retrieveAuthenticationToken(memeServerHost)
-                    ?: throw RuntimeException("MemeServerAuthenticationToken retrieval failure")
-
-                val networkResponse = networkQueryMemeServer.uploadAttachment(
-                    authenticationToken = token,
-                    mediaType = MediaType.Image("${MediaType.IMAGE}/${imgFile.extension}"),
-                    path = imgFile.toOkioPath(),
-                    fileName = imgFile.name,
-                    contentLength = imgFile.length(),
-                    memeServerHost = memeServerHost,
-                )
-                Exhaustive@
-                when (networkResponse) {
-                    is Response.Error -> {
-                        LOG.e(TAG, "Failed to upload image: ", networkResponse.exception)
-                        response = networkResponse
-                        null
-                    }
-                    is Response.Success -> {
-                        "https://${memeServerHost.value}/public/${networkResponse.value.muid}"
-                    }
-                }
-            }
-
-            networkQueryChat.joinTribe(tribeDto).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        chatLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertChat(
-                                        loadResponse.value,
-                                        chatSeenMap,
-                                        queries,
-                                        null
-                                    )
-                                    updateChatTribeData(
-                                        tribeDto,
-                                        ChatId(loadResponse.value.id),
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-
-                        response = loadResponse
-                    }
-                }
-            }
-
-        }.join()
-
-        emit(response ?: Response.Error(ResponseError("")))
-    }
-
-    override suspend fun updateTribeInfo(chat: Chat): TribeData? {
+    override suspend fun updateTribeInfo(chat: Chat, isProductionEnvironment: Boolean): NewTribeDto? {
         var owner: Contact? = accountOwner.value
 
         if (owner == null) {
@@ -3920,7 +5788,7 @@ abstract class SphinxRepository(
             delay(25L)
         }
 
-        var tribeData: TribeData? = null
+        var tribeData: NewTribeDto? = null
 
         chat.host?.let { chatHost ->
             val chatUUID = chat.uuid
@@ -3929,62 +5797,27 @@ abstract class SphinxRepository(
                 chatHost.toString().isNotEmpty() &&
                 chatUUID.toString().isNotEmpty()
             ) {
-
                 val queries = coreDB.getSphinxDatabaseQueries()
 
-                networkQueryChat.getTribeInfo(chatHost, chatUUID).collect { loadResponse ->
-                    when (loadResponse) {
+                networkQueryChat.getTribeInfo(chatHost, LightningNodePubKey(chatUUID.value), isProductionEnvironment)
+                    .collect { loadResponse ->
+                        when (loadResponse) {
 
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                        }
-
-                        is Response.Success -> {
-                            val tribeDto = loadResponse.value
-                            if (owner?.nodePubKey != chat.ownerPubKey) {
-                                val didChangeNameOrPhotoUrl = (
-                                    tribeDto.name != chat.name?.value ?: "" ||
-                                    tribeDto.img != chat.photoUrl?.value ?: ""
-                                )
+                            is LoadResponse.Loading -> {}
+                            is Response.Error -> {}
+                            is Response.Success -> {
+                                tribeData = loadResponse.value
 
                                 chatLock.withLock {
                                     queries.transaction {
-                                        updateChatTribeData(tribeDto, chat.id, queries)
+                                        updateNewChatTribeData(loadResponse.value, chat.id, queries)
                                     }
                                 }
-
-                                if (didChangeNameOrPhotoUrl) {
-                                    networkQueryChat.updateTribe(
-                                        chat.id,
-                                        PostGroupDto(
-                                            tribeDto.name,
-                                            tribeDto.description,
-                                            img = tribeDto.img ?: "",
-                                            tags = arrayOf()
-                                        )
-                                    ).collect {}
-                                }
-
-                            }
-
-                            chat.host.let { host ->
-                                tribeData = TribeData(
-                                    host,
-                                    chat.uuid,
-                                    tribeDto.app_url?.toAppUrl(),
-                                    tribeDto.feed_url?.toFeedUrl(),
-                                    (tribeDto.feed_type ?: 0).toFeedType()
-                                )
                             }
                         }
                     }
-                }
-            } else {
-                println("Kgothatso conditions are not met")
             }
         }
-
         return tribeData
     }
 
@@ -4535,150 +6368,152 @@ abstract class SphinxRepository(
             var offset: Int = page * MESSAGE_PAGINATION_LIMIT
             while (currentCoroutineContext().isActive && offset >= 0) {
 
-                networkQueryMessage.getMessages(
-                    MessagePagination.instantiate(
-                        limit = MESSAGE_PAGINATION_LIMIT,
-                        offset = offset,
-                        date = lastSeenMessageDateResolved
-                    )
-                ).collect { response ->
+                // TODO V2 getMessages
 
-                    Exhaustive@
-                    when (response) {
-                        is LoadResponse.Loading -> {
-                        }
-
-                        is Response.Error -> {
-
-                            offset = -1
-                            networkResponseError = response
-
-                        }
-
-                        is Response.Success -> {
-                            val newMessages = response.value.new_messages
-                            val messagesTotal = response.value.new_messages_total ?: 0
-
-                            if (restoring && messagesTotal > 0) {
-
-                                val restoreProgress = getMessagesRestoreProgress(
-                                    messagesTotal,
-                                    offset
-                                )
-
-                                emit(
-                                    Response.Success(restoreProgress)
-                                )
-                            }
-
-                            if (newMessages.isNotEmpty()) {
-
-                                for (message in newMessages) {
-
-                                    decryptMessageDtoContentIfAvailable(message, scope)
-                                        ?.let { jobList.add(it) }
-
-                                    decryptMessageDtoMediaKeyIfAvailable(message, scope)
-                                        ?.let { jobList.add(it) }
-
-                                }
-
-                                var count = 0
-                                while (currentCoroutineContext().isActive) {
-                                    jobList.elementAtOrNull(count)?.join() ?: break
-                                    count++
-                                }
-
-                                applicationScope.launch(io) {
-
-                                    chatLock.withLock {
-                                        messageLock.withLock {
-
-                                            queries.transaction {
-                                                val chatIds =
-                                                    queries.chatGetAllIds().executeAsList()
-                                                LOG.d(
-                                                    TAG,
-                                                    "Inserting Messages -" +
-                                                            " ${newMessages.firstOrNull()?.id}" +
-                                                            " - ${newMessages.lastOrNull()?.id}"
-                                                )
-
-                                                for (dto in newMessages) {
-
-                                                    val id: Long? = dto.chat_id
-
-                                                    if (id != null &&
-                                                        chatIds.contains(ChatId(id))) {
-
-                                                        if (dto.updateChatDboLatestMessage) {
-                                                            if (!latestMessageMap.containsKey(ChatId(id))) {
-                                                                latestMessageMap[ChatId(id)] = dto
-                                                            } else {
-                                                                val lastMessage = latestMessageMap[ChatId(id)]
-                                                                if (lastMessage == null ||
-                                                                    dto.created_at.toDateTime().time > lastMessage.created_at.toDateTime().time) {
-
-                                                                    latestMessageMap[ChatId(id)] = dto
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-
-                                                    upsertMessage(dto, queries)
-                                                }
-
-                                                latestMessageUpdatedTimeMap.withLock { map ->
-
-                                                    for (entry in latestMessageMap.entries) {
-
-                                                        updateChatDboLatestMessage(
-                                                            entry.value,
-                                                            entry.key,
-                                                            map,
-                                                            queries
-                                                        )
-
-                                                    }
-
-                                                }
-                                            }
-
-                                        }
-                                    }
-                                }.join()
-
-                            }
-
-                            when {
-                                offset == -1 -> {
-                                }
-                                newMessages.size >= MESSAGE_PAGINATION_LIMIT -> {
-                                    offset += MESSAGE_PAGINATION_LIMIT
-
-                                    if (lastSeenMessagesDate == null) {
-                                        val resumePageNumber =
-                                            (offset / MESSAGE_PAGINATION_LIMIT)
-                                        authenticationStorage.putString(
-                                            REPOSITORY_LAST_SEEN_MESSAGE_RESTORE_PAGE,
-                                            resumePageNumber.toString()
-                                        )
-                                        LOG.d(
-                                            TAG,
-                                            "Persisting message restore page number: $resumePageNumber"
-                                        )
-                                    }
-
-                                    jobList.clear()
-
-                                }
-                                else -> {
-                                    offset = -1
-                                }
-                            }
-                        }
-                    }
-                }
+//                networkQueryMessage.getMessages(
+//                    MessagePagination.instantiate(
+//                        limit = MESSAGE_PAGINATION_LIMIT,
+//                        offset = offset,
+//                        date = lastSeenMessageDateResolved
+//                    )
+//                ).collect { response ->
+//
+//                    Exhaustive@
+//                    when (response) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//
+//                            offset = -1
+//                            networkResponseError = response
+//
+//                        }
+//
+//                        is Response.Success -> {
+//                            val newMessages = response.value.new_messages
+//                            val messagesTotal = response.value.new_messages_total ?: 0
+//
+//                            if (restoring && messagesTotal > 0) {
+//
+//                                val restoreProgress = getMessagesRestoreProgress(
+//                                    messagesTotal,
+//                                    offset
+//                                )
+//
+//                                emit(
+//                                    Response.Success(restoreProgress)
+//                                )
+//                            }
+//
+//                            if (newMessages.isNotEmpty()) {
+//
+//                                for (message in newMessages) {
+//
+//                                    decryptMessageDtoContentIfAvailable(message, scope)
+//                                        ?.let { jobList.add(it) }
+//
+//                                    decryptMessageDtoMediaKeyIfAvailable(message, scope)
+//                                        ?.let { jobList.add(it) }
+//
+//                                }
+//
+//                                var count = 0
+//                                while (currentCoroutineContext().isActive) {
+//                                    jobList.elementAtOrNull(count)?.join() ?: break
+//                                    count++
+//                                }
+//
+//                                applicationScope.launch(io) {
+//
+//                                    chatLock.withLock {
+//                                        messageLock.withLock {
+//
+//                                            queries.transaction {
+//                                                val chatIds =
+//                                                    queries.chatGetAllIds().executeAsList()
+//                                                LOG.d(
+//                                                    TAG,
+//                                                    "Inserting Messages -" +
+//                                                            " ${newMessages.firstOrNull()?.id}" +
+//                                                            " - ${newMessages.lastOrNull()?.id}"
+//                                                )
+//
+//                                                for (dto in newMessages) {
+//
+//                                                    val id: Long? = dto.chat_id
+//
+//                                                    if (id != null &&
+//                                                        chatIds.contains(ChatId(id))) {
+//
+//                                                        if (dto.updateChatDboLatestMessage) {
+//                                                            if (!latestMessageMap.containsKey(ChatId(id))) {
+//                                                                latestMessageMap[ChatId(id)] = dto
+//                                                            } else {
+//                                                                val lastMessage = latestMessageMap[ChatId(id)]
+//                                                                if (lastMessage == null ||
+//                                                                    dto.created_at.toDateTime().time > lastMessage.created_at.toDateTime().time) {
+//
+//                                                                    latestMessageMap[ChatId(id)] = dto
+//                                                                }
+//                                                            }
+//                                                        }
+//                                                    }
+//
+//                                                    upsertMessage(dto, queries)
+//                                                }
+//
+//                                                latestMessageUpdatedTimeMap.withLock { map ->
+//
+//                                                    for (entry in latestMessageMap.entries) {
+//
+//                                                        updateChatDboLatestMessage(
+//                                                            entry.value,
+//                                                            entry.key,
+//                                                            map,
+//                                                            queries
+//                                                        )
+//
+//                                                    }
+//
+//                                                }
+//                                            }
+//
+//                                        }
+//                                    }
+//                                }.join()
+//
+//                            }
+//
+//                            when {
+//                                offset == -1 -> {
+//                                }
+//                                newMessages.size >= MESSAGE_PAGINATION_LIMIT -> {
+//                                    offset += MESSAGE_PAGINATION_LIMIT
+//
+//                                    if (lastSeenMessagesDate == null) {
+//                                        val resumePageNumber =
+//                                            (offset / MESSAGE_PAGINATION_LIMIT)
+//                                        authenticationStorage.putString(
+//                                            REPOSITORY_LAST_SEEN_MESSAGE_RESTORE_PAGE,
+//                                            resumePageNumber.toString()
+//                                        )
+//                                        LOG.d(
+//                                            TAG,
+//                                            "Persisting message restore page number: $resumePageNumber"
+//                                        )
+//                                    }
+//
+//                                    jobList.clear()
+//
+//                                }
+//                                else -> {
+//                                    offset = -1
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             }
 
             supervisor.cancelAndJoin()
@@ -4743,6 +6578,23 @@ abstract class SphinxRepository(
         )
 
         authenticationStorage.removeString(REPOSITORY_LAST_SEEN_MESSAGE_RESTORE_PAGE)
+    }
+
+    override suspend fun deleteInviteAndContact(inviteString: String) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val invite = getInviteByString(InviteString(inviteString)).firstOrNull()
+        val inviteCode = invite?.inviteCode?.value
+
+        if (inviteCode != null) {
+            withContext(io) {
+                queries.inviteDeleteById(invite.id)
+                queries.contactDeleteById(invite.contactId)
+            }
+
+            connectManager.deleteInvite(inviteCode)
+        } else {
+            onConnectManagerError(ConnectManagerError.DeleteInviteError)
+        }
     }
 
     @OptIn(UnencryptedDataAccess::class)
@@ -4847,30 +6699,32 @@ abstract class SphinxRepository(
         emit(LoadResponse.Loading)
 
         applicationScope.launch(mainImmediate) {
-            networkQueryContact.createNewInvite(nickname, welcomeMessage)
-                .collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
+            // TODO V2 createNewInvite
 
-                        is Response.Error -> {
-                            response = loadResponse
-                        }
-
-                        is Response.Success -> {
-                            contactLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        updatedContactIds.add(ContactId(loadResponse.value.id))
-                                        upsertContact(loadResponse.value, queries)
-                                    }
-                                }
-                            }
-                            response = Response.Success(true)
-                        }
-                    }
-                }
+//            networkQueryContact.createNewInvite(nickname, welcomeMessage)
+//                .collect { loadResponse ->
+//                    Exhaustive@
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = loadResponse
+//                        }
+//
+//                        is Response.Success -> {
+//                            contactLock.withLock {
+//                                withContext(io) {
+//                                    queries.transaction {
+//                                        updatedContactIds.add(ContactId(loadResponse.value.id))
+//                                        upsertContact(loadResponse.value, queries)
+//                                    }
+//                                }
+//                            }
+//                            response = Response.Success(true)
+//                        }
+//                    }
+//                }
         }.join()
 
         emit(response ?: Response.Error(ResponseError("")))
@@ -4889,49 +6743,57 @@ abstract class SphinxRepository(
         }
 
         delay(25L)
-        networkQueryInvite.payInvite(invite.inviteString).collect { loadResponse ->
-            Exhaustive@
-            when (loadResponse) {
-                is LoadResponse.Loading -> {
-                }
 
-                is Response.Error -> {
-                    contactLock.withLock {
-                        withContext(io) {
-                            queries.transaction {
-                                updatedContactIds.add(invite.contactId)
-                                updateInviteStatus(
-                                    invite.id,
-                                    InviteStatus.PaymentPending,
-                                    queries
-                                )
-                            }
-                        }
-                    }
-                }
+        // TODO V2 pay invite
 
-                is Response.Success -> {
-                }
-            }
-        }
+//        networkQueryInvite.payInvite(invite.inviteString).collect { loadResponse ->
+//            Exhaustive@
+//            when (loadResponse) {
+//                is LoadResponse.Loading -> {
+//                }
+//
+//                is Response.Error -> {
+//                    contactLock.withLock {
+//                        withContext(io) {
+//                            queries.transaction {
+//                                updatedContactIds.add(invite.contactId)
+//                                updateInviteStatus(
+//                                    invite.id,
+//                                    InviteStatus.PaymentPending,
+//                                    queries
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                is Response.Success -> {
+//                }
+//            }
+//        }
     }
 
     override suspend fun deleteInvite(invite: Invite): Response<Any, ResponseError> {
         val queries = coreDB.getSphinxDatabaseQueries()
 
-        val response = networkQueryContact.deleteContact(invite.contactId)
+        val defaultErrorResponse: Response.Error<ResponseError> = Response.Error(
+            ResponseError("Failed to delete invite", Exception("Default exception"))
+        )
 
-        contactLock.withLock {
-            withContext(io) {
-                queries.transaction {
-                    updatedContactIds.add(invite.contactId)
-                    deleteContactById(invite.contactId, queries)
-                }
-            }
+        // TODO V2 deleteContact
 
-        }
+//        val response = networkQueryContact.deleteContact(invite.contactId)
 
-        return response
+//        contactLock.withLock {
+//            withContext(io) {
+//                queries.transaction {
+//                    updatedContactIds.add(invite.contactId)
+//                    deleteContactById(invite.contactId, queries)
+//                }
+//            }
+//
+//        }
+        return defaultErrorResponse
     }
 
     override suspend fun authorizeExternal(
@@ -4942,62 +6804,66 @@ abstract class SphinxRepository(
         var response: Response<Boolean, ResponseError>? = null
 
         applicationScope.launch(mainImmediate) {
-            networkQueryAuthorizeExternal.verifyExternal().collect { loadResponse ->
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
+            // TODO V2 verifyExternal
 
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
+//            networkQueryAuthorizeExternal.verifyExternal().collect { loadResponse ->
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//
+//                    is Response.Success -> {
+//
+//                        val token = loadResponse.value.token
+//                        val info = loadResponse.value.info
 
-                    is Response.Success -> {
+                        // TODO V2 signBase64
 
-                        val token = loadResponse.value.token
-                        val info = loadResponse.value.info
-
-                        networkQueryAuthorizeExternal.signBase64(
-                            AUTHORIZE_EXTERNAL_BASE_64
-                        ).collect { sigResponse ->
-
-                            when (sigResponse) {
-                                is LoadResponse.Loading -> {
-                                }
-
-                                is Response.Error -> {
-                                    response = sigResponse
-                                }
-
-                                is Response.Success -> {
-
-                                    info.verificationSignature = sigResponse.value.sig
-                                    info.url = relayUrl
-
-                                    networkQueryAuthorizeExternal.authorizeExternal(
-                                        host,
-                                        challenge,
-                                        token,
-                                        info,
-                                    ).collect { authorizeResponse ->
-                                        when (authorizeResponse) {
-                                            is LoadResponse.Loading -> {
-                                            }
-
-                                            is Response.Error -> {
-                                                response = authorizeResponse
-                                            }
-
-                                            is Response.Success -> {
-                                                response = Response.Success(true)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//                        networkQueryAuthorizeExternal.signBase64(
+//                            AUTHORIZE_EXTERNAL_BASE_64
+//                        ).collect { sigResponse ->
+//
+//                            when (sigResponse) {
+//                                is LoadResponse.Loading -> {
+//                                }
+//
+//                                is Response.Error -> {
+//                                    response = sigResponse
+//                                }
+//
+//                                is Response.Success -> {
+//
+//                                    info.verificationSignature = sigResponse.value.sig
+//                                    info.url = relayUrl
+//
+//                                    networkQueryAuthorizeExternal.authorizeExternal(
+//                                        host,
+//                                        challenge,
+//                                        token,
+//                                        info,
+//                                    ).collect { authorizeResponse ->
+//                                        when (authorizeResponse) {
+//                                            is LoadResponse.Loading -> {
+//                                            }
+//
+//                                            is Response.Error -> {
+//                                                response = authorizeResponse
+//                                            }
+//
+//                                            is Response.Success -> {
+//                                                response = Response.Success(true)
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError("Returned before completing"))
@@ -5012,19 +6878,20 @@ abstract class SphinxRepository(
             SphinxJson.decodeFromString<DeletePeopleProfileDto>(
                 body
             ).let { deletePeopleProfileDto ->
-                networkQuerySaveProfile.deletePeopleProfile(
-                    deletePeopleProfileDto
-                ).collect { loadResponse ->
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-                        is Response.Error -> {
-                        }
-                        is Response.Success -> {
-                            response = Response.Success(true)
-                        }
-                    }
-                }
+                // TODO V2 deletePeopleProfile
+//                networkQuerySaveProfile.deletePeopleProfile(
+//                    deletePeopleProfileDto
+//                ).collect { loadResponse ->
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//                        is Response.Error -> {
+//                        }
+//                        is Response.Success -> {
+//                            response = Response.Success(true)
+//                        }
+//                    }
+//                }
             }
         }.join()
 
@@ -5038,22 +6905,23 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             SphinxJson.decodeFromString<PeopleProfileDto>(body)?.let { profile ->
-                networkQuerySaveProfile.savePeopleProfile(
-                    profile
-                ).collect { saveProfileResponse ->
-                    when (saveProfileResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-
-                        is Response.Error -> {
-                            response = saveProfileResponse
-                        }
-
-                        is Response.Success -> {
-                            response = Response.Success(true)
-                        }
-                    }
-                }
+                // TODO V2 savePeopleProfile
+//                networkQuerySaveProfile.savePeopleProfile(
+//                    profile
+//                ).collect { saveProfileResponse ->
+//                    when (saveProfileResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = saveProfileResponse
+//                        }
+//
+//                        is Response.Success -> {
+//                            response = Response.Success(true)
+//                        }
+//                    }
+//                }
             }
         }.join()
 
@@ -5067,22 +6935,23 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
             SphinxJson.decodeFromString<RedeemBadgeTokenDto>(body)?.let { profile ->
-                networkQueryRedeemBadgeToken.redeemBadgeToken(
-                    profile
-                ).collect { redeemBadgeTokenResponse ->
-                    when (redeemBadgeTokenResponse) {
-                        is LoadResponse.Loading -> {
-                        }
-
-                        is Response.Error -> {
-                            response = redeemBadgeTokenResponse
-                        }
-
-                        is Response.Success -> {
-                            response = Response.Success(true)
-                        }
-                    }
-                }
+                // TODO V2 redeemBadgeToken
+//                networkQueryRedeemBadgeToken.redeemBadgeToken(
+//                    profile
+//                ).collect { redeemBadgeTokenResponse ->
+//                    when (redeemBadgeTokenResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = redeemBadgeTokenResponse
+//                        }
+//
+//                        is Response.Success -> {
+//                            response = Response.Success(true)
+//                        }
+//                    }
+//                }
             }
         }.join()
 
@@ -5091,48 +6960,59 @@ abstract class SphinxRepository(
 
 
 
-    override suspend fun exitAndDeleteTribe(chat: Chat): Response<Boolean, ResponseError> {
-        var response: Response<Boolean, ResponseError>? = null
+    override suspend fun exitAndDeleteTribe(tribe: Chat) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        applicationScope.launch(io) {
 
-        applicationScope.launch(mainImmediate) {
-            networkQueryChat.deleteChat(chat.id).collect { loadResponse ->
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
+            val currentProvisionalId: MessageId? = withContext(io) {
+                queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+            }
+            val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
+            val isDeleteTribe = tribe.isTribeOwnedByAccount(accountOwner.value?.nodePubKey)
+            val messageType = if(isDeleteTribe) MessageType.TRIBE_DELETE else MessageType.GROUP_LEAVE
 
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
+            val newMessage = chat.sphinx.wrapper.mqtt.Message(
+                "",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ).toJson()
 
-                    is Response.Success -> {
-                        response = Response.Success(true)
-                        val queries = coreDB.getSphinxDatabaseQueries()
+            tribe.uuid.value.let { pubKey ->
+                deleteAllMessagesAndPubKey(pubKey, tribe.id)
 
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        deleteChatById(
-                                            loadResponse.value["chat_id"]?.toChatId()
-                                                ?: chat.id,
-                                            queries,
-                                            latestMessageUpdatedTimeMap
-                                        )
-                                    }
-                                }
-                            }
+                connectManager.sendMessage(
+                    newMessage,
+                    pubKey,
+                    provisionalId.value,
+                    messageType,
+                    null,
+                    true
+                )
+            }
+
+            chatLock.withLock {
+                messageLock.withLock {
+                    withContext(io) {
+                        queries.transaction {
+                            deleteChatById(
+                                tribe.id,
+                                queries,
+                                latestMessageUpdatedTimeMap
+                            )
                         }
                     }
                 }
             }
         }.join()
-
-        return response ?: Response.Error(ResponseError(("Failed to exit tribe")))
     }
 
-    override suspend fun createTribe(createTribe: CreateTribe): Response<Any, ResponseError> {
-        var response: Response<Any, ResponseError> =
-            Response.Error(ResponseError(("Failed to exit tribe")))
+    override suspend fun storeTribe(createTribe: CreateTribe, chatId: ChatId?) {
         val memeServerHost = MediaHost.DEFAULT
 
         applicationScope.launch(mainImmediate) {
@@ -5155,7 +7035,6 @@ abstract class SphinxRepository(
                     when (networkResponse) {
                         is Response.Error -> {
                             LOG.e(TAG, "Failed to upload image: ", networkResponse.exception)
-                            response = networkResponse
                             null
                         }
                         is Response.Success -> {
@@ -5164,64 +7043,21 @@ abstract class SphinxRepository(
                     }
                 }
 
-                networkQueryChat.createTribe(
-                    createTribe.toPostGroupDto(imgUrl)
-                ).collect { loadResponse ->
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
+                val ownerAlias = accountOwner.value?.alias?.value ?: "unknown"
 
-                        is Response.Error -> {
-                            response = loadResponse
-                            LOG.e(TAG, "Failed to create tribe: ", loadResponse.exception)
-                        }
-                        is Response.Success -> {
-                            loadResponse.value?.let { chatDto ->
-                                response = Response.Success(chatDto)
-                                val queries = coreDB.getSphinxDatabaseQueries()
-
-                                var owner: Contact? = accountOwner.value
-
-                                if (owner == null) {
-                                    try {
-                                        accountOwner.collect {
-                                            if (it != null) {
-                                                owner = it
-                                                throw Exception()
-                                            }
-                                        }
-                                    } catch (e: Exception) {
-                                    }
-                                    delay(25L)
-                                }
-
-                                chatLock.withLock {
-                                    messageLock.withLock {
-                                        withContext(io) {
-                                            queries.transaction {
-                                                upsertChat(
-                                                    chatDto,
-                                                    chatSeenMap,
-                                                    queries,
-                                                    null,
-                                                    owner?.nodePubKey
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                if (chatId == null) {
+                    val newTribeJson = createTribe.toNewCreateTribe(ownerAlias, imgUrl, null).toJson()
+                    connectManager.createTribe(newTribeJson)
+                } else {
+                    val tribe = getChatById(chatId)
+                    if (tribe != null) {
+                        val updatedTribeJson = createTribe.toNewCreateTribe(ownerAlias, imgUrl, tribe.uuid.value).toJson()
+                        tribe.ownerPubKey?.value?.let { connectManager.editTribe(updatedTribeJson) }
                     }
                 }
-            } catch (e: Exception) {
-                response = Response.Error(
-                    ResponseError("Failed to update Chat Profile", e)
-                )
-            }
-        }.join()
 
-        return response
+            } catch (e: Exception) { }
+        }
     }
 
     override suspend fun updateTribe(
@@ -5261,55 +7097,58 @@ abstract class SphinxRepository(
                     }
                 }) ?: createTribe.imgUrl
 
-                networkQueryChat.updateTribe(
-                    chatId,
-                    createTribe.toPostGroupDto(imgUrl)
-                ).collect { loadResponse ->
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {
-                        }
 
-                        is Response.Error -> {
-                            response = loadResponse
-                            LOG.e(TAG, "Failed to create tribe: ", loadResponse.exception)
-                        }
-                        is Response.Success -> {
-                            response = Response.Success(loadResponse.value)
-                            val queries = coreDB.getSphinxDatabaseQueries()
+                // TODO V2 updateTribe
 
-                            var owner: Contact? = accountOwner.value
-
-                            if (owner == null) {
-                                try {
-                                    accountOwner.collect {
-                                        if (it != null) {
-                                            owner = it
-                                            throw Exception()
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                }
-                                delay(25L)
-                            }
-
-                            chatLock.withLock {
-                                messageLock.withLock {
-                                    withContext(io) {
-                                        queries.transaction {
-                                            upsertChat(
-                                                loadResponse.value,
-                                                chatSeenMap,
-                                                queries,
-                                                null,
-                                                owner?.nodePubKey
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+//                networkQueryChat.updateTribe(
+//                    chatId,
+//                    createTribe.toPostGroupDto(imgUrl)
+//                ).collect { loadResponse ->
+//                    when (loadResponse) {
+//                        is LoadResponse.Loading -> {
+//                        }
+//
+//                        is Response.Error -> {
+//                            response = loadResponse
+//                            LOG.e(TAG, "Failed to create tribe: ", loadResponse.exception)
+//                        }
+//                        is Response.Success -> {
+//                            response = Response.Success(loadResponse.value)
+//                            val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                            var owner: Contact? = accountOwner.value
+//
+//                            if (owner == null) {
+//                                try {
+//                                    accountOwner.collect {
+//                                        if (it != null) {
+//                                            owner = it
+//                                            throw Exception()
+//                                        }
+//                                    }
+//                                } catch (e: Exception) {
+//                                }
+//                                delay(25L)
+//                            }
+//
+//                            chatLock.withLock {
+//                                messageLock.withLock {
+//                                    withContext(io) {
+//                                        queries.transaction {
+//                                            upsertChat(
+//                                                loadResponse.value,
+//                                                chatSeenMap,
+//                                                queries,
+//                                                null,
+//                                                owner?.nodePubKey
+//                                            )
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
             } catch (e: Exception) {
                 response = Response.Error(
                     ResponseError("Failed to update Chat Profile", e)
@@ -5320,106 +7159,32 @@ abstract class SphinxRepository(
         return response
     }
 
-    override suspend fun processMemberRequest(
-        contactId: ContactId,
-        messageId: MessageId,
-        type: MessageType,
-    ): Response<Any, ResponseError> {
-        var response: Response<Any, ResponseError> = Response.Error(ResponseError(("")))
-
-        applicationScope.launch(mainImmediate) {
-            networkQueryMessage.processMemberRequest(
-                contactId,
-                messageId,
-                type
-            ).collect { loadResponse ->
-
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        upsertChat(
-                                            loadResponse.value.chat,
-                                            chatSeenMap,
-                                            queries,
-                                            null
-                                        )
-
-                                        upsertMessage(loadResponse.value.message, queries)
-
-                                        updateChatDboLatestMessage(
-                                            loadResponse.value.message,
-                                            ChatId(loadResponse.value.chat.id),
-                                            latestMessageUpdatedTimeMap,
-                                            queries,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }.join()
-
-        return response
-    }
-
-    override suspend fun kickMemberFromTribe(
+    override fun processMemberRequest(
         chatId: ChatId,
-        contactId: ContactId
-    ): Response<Any, ResponseError> {
-        var response: Response<Any, ResponseError> =
-            Response.Error(ResponseError(("Failed to kick member from tribe")))
+        messageUuid: MessageUUID?,
+        memberPubKey: LightningNodePubKey?,
+        type: MessageType.GroupAction,
+        alias: SenderAlias?,
+    ) {
+        val messageBuilder = SendMessage.Builder()
+        messageBuilder.setChatId(chatId)
+        messageBuilder.setGroupAction(type)
 
-        applicationScope.launch(mainImmediate) {
-            networkQueryChat.kickMemberFromChat(
-                chatId,
-                contactId
-            ).collect { loadResponse ->
+        // Accept or Reject member
+        messageUuid?.value?.let { nnMessageUuid ->
+            messageBuilder.setReplyUUID(ReplyUUID(nnMessageUuid))
+        }
 
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
+        // Kick Member
+        memberPubKey?.let { nnContactKey ->
+            messageBuilder.setMemberPubKey(nnContactKey)
+        }
 
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
+        alias?.let { senderAlias ->
+            messageBuilder.setSenderAlias(senderAlias)
+        }
 
-                        chatLock.withLock {
-                            messageLock.withLock {
-                                withContext(io) {
-                                    queries.transaction {
-                                        upsertChat(
-                                            loadResponse.value,
-                                            chatSeenMap,
-                                            queries,
-                                            null
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }.join()
-
-        return response
+        sendMessage(messageBuilder.build().first)
     }
 
     /***
@@ -5453,42 +7218,7 @@ abstract class SphinxRepository(
     ): Response<Any, ResponseError> {
         var response: Response<SubscriptionDto, ResponseError>? = null
 
-        applicationScope.launch(mainImmediate) {
-            networkQuerySubscription.postSubscription(
-                PostSubscriptionDto(
-                    amount = amount.value,
-                    contact_id = contactId.value,
-                    chat_id = chatId?.value,
-                    interval = interval,
-                    end_number = endNumber?.value,
-                    end_date = endDate
-                )
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }.join()
+        // TODO V2 postSubscription
 
         return response ?: Response.Error(ResponseError(("Failed to create subscription")))
     }
@@ -5506,41 +7236,43 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
 
-            networkQuerySubscription.putSubscription(
-                id,
-                PutSubscriptionDto(
-                    amount = amount.value,
-                    contact_id = contactId.value,
-                    chat_id = chatId?.value,
-                    interval = interval,
-                    end_number = endNumber?.value,
-                    end_date = endDate
-                )
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
+            // TODO V2 putSubscription
 
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQuerySubscription.putSubscription(
+//                id,
+//                PutSubscriptionDto(
+//                    amount = amount.value,
+//                    contact_id = contactId.value,
+//                    chat_id = chatId?.value,
+//                    interval = interval,
+//                    end_number = endNumber?.value,
+//                    end_date = endDate
+//                )
+//            ).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = loadResponse
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        subscriptionLock.withLock {
+//                            withContext(io) {
+//                                queries.transaction {
+//                                    upsertSubscription(
+//                                        loadResponse.value,
+//                                        queries
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError(("Failed to update subscription")))
@@ -5553,33 +7285,35 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
 
-            networkQuerySubscription.putRestartSubscription(
-                subscriptionId
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
+            // TODO V2 putRestartSubscription
 
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQuerySubscription.putRestartSubscription(
+//                subscriptionId
+//            ).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = loadResponse
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        subscriptionLock.withLock {
+//                            withContext(io) {
+//                                queries.transaction {
+//                                    upsertSubscription(
+//                                        loadResponse.value,
+//                                        queries
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError(("Failed to restart subscription")))
@@ -5592,33 +7326,35 @@ abstract class SphinxRepository(
 
         applicationScope.launch(mainImmediate) {
 
-            networkQuerySubscription.putPauseSubscription(
-                subscriptionId
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
+            // TODO V2 putPauseSubscription
 
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    upsertSubscription(
-                                        loadResponse.value,
-                                        queries
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+//            networkQuerySubscription.putPauseSubscription(
+//                subscriptionId
+//            ).collect { loadResponse ->
+//                Exhaustive@
+//                when (loadResponse) {
+//                    is LoadResponse.Loading -> {
+//                    }
+//                    is Response.Error -> {
+//                        response = loadResponse
+//                    }
+//                    is Response.Success -> {
+//                        response = loadResponse
+//                        val queries = coreDB.getSphinxDatabaseQueries()
+//
+//                        subscriptionLock.withLock {
+//                            withContext(io) {
+//                                queries.transaction {
+//                                    upsertSubscription(
+//                                        loadResponse.value,
+//                                        queries
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }.join()
 
         return response ?: Response.Error(ResponseError(("Failed to pause subscription")))
@@ -5629,32 +7365,7 @@ abstract class SphinxRepository(
     ): Response<Any, ResponseError> {
         var response: Response<Any, ResponseError>? = null
 
-        applicationScope.launch(mainImmediate) {
-            networkQuerySubscription.deleteSubscription(
-                subscriptionId
-            ).collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {
-                    }
-                    is Response.Error -> {
-                        response = loadResponse
-                    }
-                    is Response.Success -> {
-                        response = loadResponse
-                        val queries = coreDB.getSphinxDatabaseQueries()
-
-                        subscriptionLock.withLock {
-                            withContext(io) {
-                                queries.transaction {
-                                    deleteSubscriptionById(subscriptionId, queries)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }.join()
+        // TODO V2 deleteSubscription
 
         return response ?: Response.Error(ResponseError(("Failed to delete subscription")))
     }
@@ -6007,123 +7718,502 @@ abstract class SphinxRepository(
         }
     }
 
-    override fun getAndSaveTransportKey(forceGet: Boolean) {
-        applicationScope.launch(io) {
-            if (!forceGet) {
-                relayDataHandler.retrieveRelayTransportKey()?.let {
-                    return@launch
+    override suspend fun upsertMqttMessage(
+        msg: Msg,
+        msgSender: MsgSender,
+        contactTribePubKey: String,
+        msgType: MessageType,
+        msgUuid: MessageUUID,
+        msgIndex: MessageId,
+        msgAmount: Sat?,
+        originalUuid: MessageUUID?,
+        timestamp: DateTime?,
+        date: DateTime?,
+        fromMe: Boolean,
+        realPaymentAmount: Sat?,
+        paymentRequest: LightningPaymentRequest?,
+        paymentHash: LightningPaymentHash?,
+        bolt11: Bolt11?,
+        tag: TagMessage?,
+        isRestore: Boolean
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        val contact = contactTribePubKey.toLightningNodePubKey()?.let { getContactByPubKey(it).firstOrNull() }
+        val owner = accountOwner.value
+        val chatTribe = contactTribePubKey.toChatUUID()?.let { getChatByUUID(it).firstOrNull() }
+        var messageMedia: MessageMediaDbo? = null
+        val isTribe = contact == null
+
+        if (contact != null || chatTribe != null) {
+
+            originalUuid?.let { uuid ->
+                queries.messageUpdateUUIDByUUID(msgUuid, uuid )
+            }
+
+            // On Conversation ChatId is contactId defined by the bindings,
+            // tribes use the auto-generated chatId
+            val chatId = when {
+                contact?.id?.value != null -> contact.id.value
+                chatTribe?.id?.value != null -> chatTribe.id.value
+                else -> 0L
+            }
+
+            val existingMessage = queries.messageGetByUUID(msgUuid).executeAsOneOrNull()
+            val messageId = existingMessage?.id
+
+            if (fromMe && messageId?.value != null && messageId.value < 0) {
+                val existingMessageMedia = messageId.let {
+                    queries.messageMediaGetById(it).executeAsOneOrNull()
+                }?.copy(id = msgIndex)
+
+                existingMessageMedia?.let {
+                    messageLock.withLock {
+                        queries.messageMediaDeleteById(messageId)
+                    }
+                    messageMedia = existingMessageMedia
+                }
+            } else {
+                msg.mediaToken?.toMediaToken()?.let { mediaToken ->
+
+                    messageMedia = MessageMediaDbo(
+                        msgIndex,
+                        ChatId(chatId),
+                        msg.mediaKey?.toMediaKey(),
+                        msg.mediaKey?.toMediaKeyDecrypted(),
+                        msg.mediaType?.toMediaType() ?: MediaType.Unknown(""),
+                        mediaToken,
+                        null,
+                        null
+                    )
                 }
             }
-            relayDataHandler.retrieveRelayUrl()?.let { relayUrl ->
-                networkQueryRelayKeys.getRelayTransportKey(
-                    relayUrl
-                ).collect { loadResponse ->
-                    Exhaustive@
-                    when (loadResponse) {
-                        is LoadResponse.Loading -> {}
-                        is Response.Error -> {}
-                        is Response.Success -> {
-                            relayDataHandler.persistRelayTransportKey(
-                                RsaPublicKey(
-                                    loadResponse.value.transport_key.toCharArray()
-                                )
-                            )
+
+            messageLock.withLock {
+                queries.messageDeleteByUUID(msgUuid)
+            }
+
+            var senderAlias = msgSender.alias?.toSenderAlias()
+
+            if (msgType.isMemberApprove() || msgType.isMemberReject()) {
+                msg.replyUuid?.toReplyUUID()?.let { replyUUID ->
+                    queries.messageGetByUUID(MessageUUID(replyUUID.value)).executeAsOneOrNull()?.let { requestMsg ->
+                        requestMsg.sender_alias?.let {
+                            senderAlias = it
                         }
                     }
                 }
             }
-        }
-    }
 
-    @OptIn(RawPasswordAccess::class, UnencryptedDataAccess::class)
-    override fun getOrCreateHMacKey(forceGet: Boolean) {
-        applicationScope.launch(io) {
-            if (!forceGet) {
-                relayDataHandler.retrieveRelayHMacKey()?.let {
-                    return@launch
-                }
+            val hasPaymentRequest = paymentRequest != null || existingMessage?.payment_request != null
+
+            val status = when {
+                fromMe && hasPaymentRequest -> MessageStatus.Pending
+                fromMe && !hasPaymentRequest -> MessageStatus.Confirmed
+                !fromMe && hasPaymentRequest -> MessageStatus.Pending
+                else -> MessageStatus.Received
             }
-            networkQueryRelayKeys.getRelayHMacKey().collect { loadResponse ->
-                Exhaustive@
-                when (loadResponse) {
-                    is LoadResponse.Loading -> {}
-                    is Response.Error -> {
-                        when (val hMacKeyResponse = createHMacKey()) {
-                            is Response.Error -> {}
-                            is Response.Success -> {
-                                relayDataHandler.persistRelayHMacKey(
-                                    hMacKeyResponse.value
-                                )
+
+            val isTribeBoost = isTribe && msgType is MessageType.Boost
+            val amount = if (fromMe || isTribeBoost) msgAmount else realPaymentAmount
+
+            val now = DateTime.nowUTC().toDateTime()
+            val messageDate = if (isTribe) date ?: now else timestamp ?: now
+
+            val newMessage = NewMessage(
+                id = msgIndex,
+                uuid = msgUuid,
+                chatId = ChatId(chatId),
+                type = msgType,
+                sender = if (fromMe) ContactId(0) else contact?.id ?: ContactId(chatId) ,
+                receiver = ContactId(0),
+                amount = bolt11?.getSatsAmount() ?: existingMessage?.amount ?: amount ?: Sat(0L),
+                paymentRequest = existingMessage?.payment_request ?: paymentRequest,
+                paymentHash = existingMessage?.payment_hash ?: msg.paymentHash?.toLightningPaymentHash() ?: paymentHash,
+                date = messageDate,
+                expirationDate = existingMessage?.expiration_date ?: bolt11?.getExpiryTime()?.toDateTime(),
+                messageContent = null,
+                status = status,
+                seen = Seen.False,
+                senderAlias = senderAlias,
+                senderPic = msgSender.photo_url?.toPhotoUrl(),
+                originalMUID = null,
+                replyUUID = existingMessage?.reply_uuid ?: msg.replyUuid?.toReplyUUID(),
+                flagged = Flagged.False,
+                recipientAlias = null,
+                recipientPic = null,
+                person = null,
+                threadUUID = existingMessage?.thread_uuid ?: msg.threadUuid?.toThreadUUID(),
+                errorMessage = null,
+                tagMessage = existingMessage?.tag_message ?: tag,
+                messageContentDecrypted = if (msg.content?.isNotEmpty() == true) MessageContentDecrypted(msg.content!!) else null,
+                messageDecryptionError = false,
+                messageDecryptionException = null,
+                messageMedia = messageMedia?.let { MessageMediaDboWrapper(it) },
+                feedBoost = null,
+                callLinkMessage = null,
+                podcastClip = null,
+                giphyData = null,
+                reactions = null,
+                purchaseItems = null,
+                replyMessage = null,
+                thread = null,
+                remoteTimezoneIdentifier = if (isTribe) msg.metadata?.toMessageMetadata()?.tz?.toRemoteTimezoneIdentifier() else null
+            )
+            contact?.id?.let { contactId ->
+                if (!fromMe) {
+                    val lastMessageIndex = getLastMessage().firstOrNull()?.id?.value
+                    val newMessageIndex = msgIndex.value
+
+                    if (lastMessageIndex != null) {
+                        if (lastMessageIndex < newMessageIndex) {
+                            contactLock.withLock {
+                                msgSender.photo_url?.takeIf { it.isNotEmpty() && it != contact.photoUrl?.value }?.let {
+                                    queries.contactUpdatePhotoUrl(it.toPhotoUrl(), contactId)
+                                }
+                                msgSender.alias?.takeIf { it.isNotEmpty() && it != contact.alias?.value }?.let {
+                                    queries.contactUpdateAlias(it.toContactAlias(), contactId)
+                                }
                             }
                         }
                     }
-                    is Response.Success -> {
-                        val privateKey: CharArray = authenticationCoreManager.getEncryptionKey()
-                            ?.privateKey
-                            ?.value
-                            ?: return@collect
+                } else {
+                    contactLock.withLock {
+                        if (owner != null) {
+                            if (owner.alias?.value == null) {
+                                msgSender.alias?.takeIf { it.isNotEmpty() && it != owner.alias?.value }
+                                    ?.let {
+                                        queries.contactUpdateAlias(it.toContactAlias(), owner.id)
 
-                        val response = rsa.decrypt(
-                            rsaPrivateKey = RsaPrivateKey(privateKey),
-                            text = EncryptedString(loadResponse.value.encrypted_key),
-                            dispatcher = default
+                                        connectManager.ownerInfoStateFlow.value?.let { ownerInfo ->
+                                            connectManager.setOwnerInfo(
+                                                ownerInfo.copy(alias = it)
+                                            )
+                                        }
+                                    }
+                            }
+
+                            if (owner.photoUrl?.value == null) {
+                                msgSender.photo_url?.takeIf { it.isNotEmpty() && it != owner.photoUrl?.value }
+                                    ?.let {
+                                        queries.contactUpdatePhotoUrl(it.toPhotoUrl(), owner.id)
+
+                                        connectManager.ownerInfoStateFlow.value?.let { ownerInfo ->
+                                            connectManager.setOwnerInfo(
+                                                ownerInfo.copy(picture = it)
+                                            )
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (msgType is MessageType.Payment) {
+                queries.messageUpdateInvoiceAsPaidByPaymentHash(
+                    msg.paymentHash?.toLightningPaymentHash()
+                )
+            }
+
+            messageLock.withLock {
+                queries.transaction {
+                    upsertNewMessage(newMessage, queries, messageMedia?.file_name)
+
+                    updateChatNewLatestMessage(
+                        newMessage,
+                        ChatId(chatId),
+                        latestMessageUpdatedTimeMap,
+                        queries
+                    )
+                }
+            }
+
+            chatLock.withLock {
+                queries.chatUpdateSeen(Seen.False, ChatId(chatId))
+            }
+
+            if (!fromMe) {
+                msg.metadata?.toMessageMetadata()?.tz?.let {
+                    if (!isTribe) {
+                        updateChatRemoteTimezoneIdentifier(
+                            remoteTimezoneIdentifier = it.toRemoteTimezoneIdentifier(),
+                            chatId = ChatId(chatId),
+                            isRestore = isRestore
                         )
-
-                        when (response) {
-                            is Response.Error -> {}
-                            is Response.Success -> {
-                                relayDataHandler.persistRelayHMacKey(
-                                    RelayHMacKey(
-                                        response.value.toUnencryptedString(trim = false).value
-                                    )
-                                )
-                            }
-                        }
                     }
                 }
             }
         }
     }
 
-    private suspend fun createHMacKey(): Response<RelayHMacKey, ResponseError> {
-        var response: Response<RelayHMacKey, ResponseError> = Response.Error(
-            ResponseError("HMac Key creation failed")
+    private suspend fun upsertGenericPaymentMsg(
+        msg: Msg,
+        msgType: MessageType,
+        msgIndex: MessageId,
+        msgAmount: Sat?,
+        timestamp: DateTime?,
+        paymentHash: LightningPaymentHash?,
+    ) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        val newMessage = NewMessage(
+            id = msgIndex,
+            chatId = ChatId(ChatId.NULL_CHAT_ID.toLong()),
+            type = msgType,
+            sender = ContactId(-1),
+            receiver = ContactId(0),
+            amount = msgAmount ?: Sat(0L),
+            paymentHash = paymentHash,
+            date = timestamp ?: DateTime.nowUTC().toDateTime(),
+            status = MessageStatus.Received,
+            seen = Seen.False,
+            flagged = Flagged.False,
+            messageContentDecrypted = if (msg.content?.isNotEmpty() == true) MessageContentDecrypted(msg.content) else null,
+            messageDecryptionError = false,
         )
 
-        @OptIn(RawPasswordAccess::class)
-        val hMacKeyString = PasswordGenerator(passwordLength = 20).password.value.joinToString("")
+        messageLock.withLock {
+            queries.transaction {
+                upsertNewMessage(newMessage, queries, null)
+            }
+        }
+    }
 
-        relayDataHandler.retrieveRelayTransportKey()?.let { key ->
 
-            val encryptionResponse = rsa.encrypt(
-                key,
-                UnencryptedString(hMacKeyString),
-                formatOutput = false,
-                dispatcher = default,
-            )
+    override suspend fun deleteMqttMessage(messageUuid: MessageUUID) {
+        val queries = coreDB.getSphinxDatabaseQueries()
 
-            when (encryptionResponse) {
-                is Response.Error -> {}
-                is Response.Success -> {
-                    networkQueryRelayKeys.addRelayHMacKey(
-                        PostHMacKeyDto(encryptionResponse.value.value)
-                    ).collect { loadResponse ->
-                        Exhaustive@
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {}
-                            is Response.Error -> {}
-                            is Response.Success -> {
-                                response = Response.Success(
-                                    RelayHMacKey(hMacKeyString)
-                                )
+        messageLock.withLock {
+            queries.messageUpdateStatusByUUID(MessageStatus.Deleted, messageUuid)
+        }
+    }
+
+
+    override fun getMaxIdMessage(): Flow<Long?> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetMaxId()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it?.MAX }
+        )
+    }
+
+    override fun getLastMessage(): Flow<Message?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.messageGetLastMessage()
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map {
+                    it?.let { messageDbo ->
+                        mapMessageDboAndDecryptContentIfNeeded(queries, messageDbo)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getTribeLastMemberRequestBySenderAlias(alias: SenderAlias, chatId: ChatId): Flow<Message?> = flow {
+        val queries = coreDB.getSphinxDatabaseQueries()
+        emitAll(
+            queries.messageLastMemberRequestGetBySenderAlias(alias, chatId)
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map {
+                    it?.let { messageDbo ->
+                        mapMessageDboAndDecryptContentIfNeeded(queries, messageDbo)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun sendMediaKeyOnPaidPurchase(
+        msg: Msg,
+        contactInfo: MsgSender,
+        paidAmount: Sat
+    ) {
+        applicationScope.launch {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val muid = msg.mediaToken?.toMediaToken()?.getMUIDFromMediaToken()
+
+            muid?.value?.let { nnMuid ->
+                val message = queries.messageGetByMuid(MessageMUID(nnMuid)).executeAsOneOrNull()
+                val mediaMessage = message?.id?.let { queries.messageMediaGetById(it) }?.executeAsOneOrNull()
+
+                val contact: Contact? = message?.chat_id?.let { chatId ->
+                    getContactById(ContactId(chatId.value)).firstOrNull()
+                }
+
+                val messageType = if (message?.amount?.value == paidAmount.value) {
+                    MessageType.Purchase.Accepted
+                } else {
+                    MessageType.Purchase.Denied
+                }
+
+                if (message != null && contact != null && mediaMessage != null) {
+
+                    val currentProvisionalId: MessageId? = withContext(io) {
+                        queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+                    }
+                    val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
+
+                    // Message Accepted
+                    val mediaMessageAccepted = mediaMessage.copy(media_key = null, media_key_decrypted = null, local_file = null)
+                    val messageAccepted = message.copy(
+                        type = messageType,
+                        id = provisionalId
+                    ).let { convertMessageDboToNewMessage(it, mediaMessageAccepted) }
+
+                    chatLock.withLock {
+                        messageLock.withLock {
+                            withContext(io) {
+
+                                queries.transaction {
+                                    upsertNewMessage(messageAccepted, queries, null)
+                                }
+
+                                queries.transaction {
+                                    updateChatNewLatestMessage(
+                                        messageAccepted,
+                                        message.chat_id,
+                                        latestMessageUpdatedTimeMap,
+                                        queries
+                                    )
+                                }
                             }
                         }
+                    }
+
+                    val mediaKey = if (messageType is MessageType.Purchase.Accepted) {
+                        mediaMessage.media_key?.value
+                    }
+                    else {
+                        null
+                    }
+
+                    val newPurchaseMessage = chat.sphinx.wrapper.mqtt.Message(
+                        null,
+                        null,
+                        mediaMessage.media_token.value,
+                        mediaKey,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    ).toJson()
+
+                    contact.let { nnContact ->
+                        connectManager.sendMessage(
+                            newPurchaseMessage,
+                            contact.nodePubKey?.value ?: "",
+                            provisionalId.value,
+                            messageType.value,
+                            null
+                        )
                     }
                 }
             }
         }
+    }
 
-        return response
+    override suspend fun sendNewPaymentRequest(requestPayment: SendPayment) {
+        applicationScope.launch(mainImmediate) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            val chatId = requestPayment.chatId ?: return@launch
+            val contact = requestPayment.contactId?.value?.let { ContactId(it) }
+                ?.let { getContactById(it).firstOrNull() }
+
+            val currentProvisionalId: MessageId? = withContext(io) {
+                queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
+            }
+            val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
+
+            val invoiceAndHash = connectManager.createInvoice(requestPayment.amount, requestPayment.text ?: "")
+
+            val newPaymentRequest = NewMessage(
+                id = provisionalId,
+                uuid = null,
+                chatId = chatId,
+                type = MessageType.Invoice,
+                sender = accountOwner.value?.id ?: ContactId(0),
+                receiver = null,
+                amount = requestPayment.amount.toSat() ?: Sat(0),
+                paymentHash = invoiceAndHash?.second?.toLightningPaymentHash(),
+                paymentRequest = invoiceAndHash?.first?.toLightningPaymentRequestOrNull(),
+                date = DateTime.nowUTC().toDateTime(),
+                expirationDate = null,
+                messageContent = null,
+                status = MessageStatus.Pending,
+                seen = Seen.True,
+                senderAlias = accountOwner.value?.alias?.value?.toSenderAlias(),
+                senderPic = accountOwner.value?.photoUrl,
+                originalMUID = null,
+                replyUUID = null,
+                flagged = false.toFlagged(),
+                recipientAlias = null,
+                recipientPic = null,
+                person = null,
+                threadUUID = null,
+                errorMessage = null,
+                messageContentDecrypted = requestPayment.text?.toMessageContentDecrypted(),
+                messageDecryptionError = false,
+                messageDecryptionException = null,
+                messageMedia = null,
+                feedBoost = null,
+                callLinkMessage = null,
+                podcastClip = null,
+                giphyData = null,
+                reactions = null,
+                purchaseItems = null,
+                replyMessage = null,
+                thread = null
+            )
+
+            val newPaymentRequestMessage = chat.sphinx.wrapper.mqtt.Message(
+                requestPayment.text,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                invoiceAndHash?.first
+            ).toJson()
+
+            chatLock.withLock {
+                messageLock.withLock {
+                    withContext(io) {
+                        queries.transaction {
+                            upsertNewMessage(newPaymentRequest, queries, null)
+                        }
+                    }
+
+                    queries.transaction {
+                        updateChatNewLatestMessage(
+                            newPaymentRequest,
+                            chatId,
+                            latestMessageUpdatedTimeMap,
+                            queries
+                        )
+                    }
+                }
+            }
+
+            if (contact != null) {
+                connectManager.sendMessage(
+                    newPaymentRequestMessage,
+                    contact.nodePubKey?.value ?: "",
+                    provisionalId.value,
+                    MessageType.INVOICE,
+                    null,
+                    false
+                )
+            }
+        }
     }
 
     suspend fun getOwner() : Contact? {

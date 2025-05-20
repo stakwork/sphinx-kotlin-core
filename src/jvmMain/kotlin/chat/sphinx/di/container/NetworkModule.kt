@@ -8,38 +8,24 @@ import chat.sphinx.concepts.network.client.cache.NetworkClientCache
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
-import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
-import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
-import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
-import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
-import chat.sphinx.concepts.network.query.relay_keys.NetworkQueryRelayKeys
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
-import chat.sphinx.concepts.network.query.version.NetworkQueryVersion
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.socket_io.SocketIOManager
 import chat.sphinx.features.link_preview.LinkPreviewHandlerImpl
 import chat.sphinx.features.meme_input_stream.MemeInputStreamHandlerImpl
 import chat.sphinx.features.network.client.NetworkClientImpl
 import chat.sphinx.features.network.query.chat.NetworkQueryChatImpl
 import chat.sphinx.features.network.query.contact.NetworkQueryContactImpl
 import chat.sphinx.features.network.query.feed_search.NetworkQueryFeedSearchImpl
-import chat.sphinx.features.network.query.invite.NetworkQueryInviteImpl
-import chat.sphinx.features.network.query.lightning.NetworkQueryLightningImpl
 import chat.sphinx.features.network.query.meme_server.NetworkQueryMemeServerImpl
-import chat.sphinx.features.network.query.message.NetworkQueryMessageImpl
 import chat.sphinx.features.network.query.redeem_badge_token.NetworkQueryRedeemBadgeTokenImpl
 import chat.sphinx.features.network.query.save_profile.NetworkQuerySaveProfileImpl
-import chat.sphinx.features.network.query.subscription.NetworkQuerySubscriptionImpl
-import chat.sphinx.features.network.query.transport_key.NetworkQueryRelayKeysImpl
 import chat.sphinx.features.network.query.verify_external.NetworkQueryAuthorizeExternalImpl
-import chat.sphinx.features.network.query.version.NetworkQueryVersionImpl
 import chat.sphinx.features.network.relay_call.NetworkRelayCallImpl
 import chat.sphinx.features.relay.RelayDataHandlerImpl
-import chat.sphinx.features.socket_io.SocketIOManagerImpl
 import chat.sphinx.utils.createTorManager
 import chat.sphinx.wrapper.meme_server.AuthenticationToken
 import chat.sphinx.wrapper.relay.AuthorizationToken
@@ -97,13 +83,6 @@ class NetworkModule(
     )
     val networkClient: NetworkClient = networkClientImpl
     private val networkClientCache: NetworkClientCache = networkClientImpl
-    private val socketIOManagerImpl = SocketIOManagerImpl(
-        appModule.dispatchers,
-        networkClient,
-        relayDataHandler,
-        appModule.sphinxLogger,
-    )
-    val socketIOManager: SocketIOManager = socketIOManagerImpl
     private val networkRelayCallImpl = NetworkRelayCallImpl(
         appModule.dispatchers,
         networkClient,
@@ -126,26 +105,11 @@ class NetworkModule(
     private val networkQueryContactImpl = NetworkQueryContactImpl(networkRelayCall)
     val networkQueryContact: NetworkQueryContact = networkQueryContactImpl
 
-    private val networkQueryInviteImpl = NetworkQueryInviteImpl(networkRelayCall)
-    val networkQueryInvite: NetworkQueryInvite = networkQueryInviteImpl
-
-    private val networkQueryLightningImpl = NetworkQueryLightningImpl(networkRelayCall)
-    val networkQueryLightning: NetworkQueryLightning = networkQueryLightningImpl
-
-    private val networkQueryMessageImpl = NetworkQueryMessageImpl(networkRelayCall)
-    val networkQueryMessage: NetworkQueryMessage = networkQueryMessageImpl
-
-    private val networkQuerySubscriptionImpl = NetworkQuerySubscriptionImpl(networkRelayCall)
-    val networkQuerySubscription: NetworkQuerySubscription = networkQuerySubscriptionImpl
-
     private val networkQueryMemeServerImpl = NetworkQueryMemeServerImpl(
         appModule.dispatchers,
         networkRelayCall
     )
     val networkQueryMemeServer: NetworkQueryMemeServer = networkQueryMemeServerImpl
-
-    private val networkQueryVersionImpl = NetworkQueryVersionImpl(networkRelayCall)
-    val networkQueryVersion: NetworkQueryVersion = networkQueryVersionImpl
 
     private val networkQueryAuthorizeExternalImpl = NetworkQueryAuthorizeExternalImpl(networkRelayCall)
     val networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal = networkQueryAuthorizeExternalImpl
@@ -158,7 +122,4 @@ class NetworkModule(
 
     private val networkQueryRedeemBadgeTokenImpl = NetworkQueryRedeemBadgeTokenImpl(networkRelayCall)
     val networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken = networkQueryRedeemBadgeTokenImpl
-
-    private val networkQueryRelayKeysImpl = NetworkQueryRelayKeysImpl(networkRelayCall)
-    val networkQueryRelayKeys: NetworkQueryRelayKeys = networkQueryRelayKeysImpl
 }

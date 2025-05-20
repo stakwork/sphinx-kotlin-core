@@ -31,3 +31,4 @@ value class LightningNodePubKey(override val value: String): LightningNodeDescri
         }
     }
 }
+

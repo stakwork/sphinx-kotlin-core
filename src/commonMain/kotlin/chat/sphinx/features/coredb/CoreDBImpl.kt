@@ -66,6 +66,13 @@ import chat.sphinx.features.coredb.adapters.feed.FeedTitleAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedTypeAdapter
 import chat.sphinx.features.coredb.adapters.feed.FeedUrlAdapter
 import chat.sphinx.features.coredb.adapters.feed.SubscribedAdapter
+import chat.sphinx.features.coredb.adapters.invite.InviteCodeAdapter
+import chat.sphinx.features.coredb.adapters.lsp.*
+import chat.sphinx.features.coredb.adapters.lsp.LsatIdentifierAdapter
+import chat.sphinx.features.coredb.adapters.lsp.LsatIssuerAdapter
+import chat.sphinx.features.coredb.adapters.lsp.LsatMetaDataAdapter
+import chat.sphinx.features.coredb.adapters.lsp.LsatPathsAdapter
+import chat.sphinx.features.coredb.adapters.lsp.MacaroonAdapter
 import chat.sphinx.features.coredb.adapters.media.*
 import chat.sphinx.features.coredb.adapters.media.FileNameAdapter
 import chat.sphinx.features.coredb.adapters.media.MediaKeyAdapter
@@ -83,6 +90,7 @@ import chat.sphinx.features.coredb.adapters.message.MessageUUIDAdapter
 import chat.sphinx.features.coredb.adapters.message.RecipientAliasAdapter
 import chat.sphinx.features.coredb.adapters.message.ReplyUUIDAdapter
 import chat.sphinx.features.coredb.adapters.message.SenderAliasAdapter
+import chat.sphinx.features.coredb.adapters.user.UserStateAdapter
 import com.squareup.sqldelight.db.SqlDriver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -141,7 +149,13 @@ abstract class CoreDBImpl: CoreDB() {
                     pending_contact_idsAdapter = ContactIdsAdapter.getInstance(),
                     latest_message_idAdapter = MessageIdAdapter.getInstance(),
                     content_seen_atAdapter = DateTimeAdapter.getInstance(),
-                    notifyAdapter = NotifyAdapter()
+                    notifyAdapter = NotifyAdapter(),
+                    second_brain_urlAdapter = SecondBrainUrlAdapter(),
+                    pin_messageAdapter = PinMessageAdapter.getInstance(),
+                    timezone_enabledAdapter = TimezoneEnabledAdapter(),
+                    timezone_updatedAdapter = TimezoneUpdatedAdapter(),
+                    remote_timezone_identifierAdapter = RemoteTimezoneIdentifierAdapter(),
+                    timezone_identifierAdapter = TimezoneIdentifierAdapter()
                 ),
                 contactDboAdapter = ContactDbo.Adapter(
                     idAdapter = ContactIdAdapter.getInstance(),
@@ -166,6 +180,7 @@ abstract class CoreDBImpl: CoreDB() {
                 inviteDboAdapter = InviteDbo.Adapter(
                     idAdapter = InviteIdAdapter.getInstance(),
                     invite_stringAdapter = InviteStringAdapter(),
+                    invite_codeAdapter = InviteCodeAdapter(),
                     invoiceAdapter = LightningPaymentRequestAdapter.getInstance(),
                     contact_idAdapter = ContactIdAdapter.getInstance(),
                     statusAdapter = InviteStatusAdapter.getInstance(),
@@ -207,7 +222,10 @@ abstract class CoreDBImpl: CoreDB() {
                     recipient_picAdapter = PhotoUrlAdapter.getInstance(),
                     pushAdapter = PushAdapter(),
                     personAdapter = PersonAdapter(),
-                    thread_uuidAdapter = ThreadUUIDAdapter()
+                    thread_uuidAdapter = ThreadUUIDAdapter(),
+                    tag_messageAdapter = TagMessageAdapter(),
+                    error_messageAdapter = ErrorMessageAdapter(),
+                    remote_timezone_identifierAdapter = RemoteTimezoneIdentifierAdapter()
                 ),
                 messageMediaDboAdapter = MessageMediaDbo.Adapter(
                     idAdapter = MessageIdAdapter.getInstance(),
@@ -279,6 +297,21 @@ abstract class CoreDBImpl: CoreDB() {
                     splitAdapter = FeedDestinationSplitAdapter(),
                     typeAdapter = FeedDestinationTypeAdapter(),
                     feed_idAdapter = FeedIdAdapter()
+                ),
+                userStateDboAdapter = UserStateDbo.Adapter(
+                    idAdapter = UserStateIdAdapter.getInstance(),
+                    user_stateAdapter = UserStateAdapter()
+                ),
+                lsatDboAdapter = LsatDbo.Adapter(
+                    idAdapter = LsatIdentifierAdapter(),
+                    macaroonAdapter = MacaroonAdapter(),
+                    payment_requestAdapter = LightningPaymentRequestAdapter.getInstance(),
+                    issuerAdapter = LsatIssuerAdapter(),
+                    meta_dataAdapter = LsatMetaDataAdapter(),
+                    pathsAdapter = LsatPathsAdapter(),
+                    preimageAdapter = LsatPreImageAdapter(),
+                    statusAdapter = LsatStatusAdapter(),
+                    created_atAdapter = DateTimeAdapter.getInstance()
                 )
             ).sphinxDatabaseQueries
         }

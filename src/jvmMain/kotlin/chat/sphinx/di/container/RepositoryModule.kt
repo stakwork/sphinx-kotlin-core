@@ -1,8 +1,11 @@
 package chat.sphinx.di.container
 
+import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
+import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.concepts.repository.chat.ChatRepository
+import chat.sphinx.concepts.repository.connect_manager.ConnectManagerRepository
 import chat.sphinx.concepts.repository.contact.ContactRepository
 import chat.sphinx.concepts.repository.dashboard.RepositoryDashboard
 import chat.sphinx.concepts.repository.feed.FeedRepository
@@ -64,17 +67,12 @@ class RepositoryModule(
         networkModule.networkQueryMemeServer,
         networkModule.networkQueryChat,
         networkModule.networkQueryContact,
-        networkModule.networkQueryLightning,
-        networkModule.networkQueryMessage,
-        networkModule.networkQueryInvite,
         networkModule.networkQueryAuthorizeExternal,
         networkModule.networkQuerySaveProfile,
         networkModule.networkQueryRedeemBadgeToken,
-        networkModule.networkQuerySubscription,
         networkModule.networkQueryFeedSearch,
-        networkModule.networkQueryRelayKeys,
+        appModule.connectManager,
         authenticationModule.rsa,
-        networkModule.socketIOManager,
         sphinxNotificationManager,
         appModule.sphinxLogger,
     )
@@ -85,6 +83,8 @@ class RepositoryModule(
     val messageRepository: MessageRepository = sphinxRepositoryPlatform
     val subscriptionRepository: SubscriptionRepository = sphinxRepositoryPlatform
     val feedRepository: FeedRepository = sphinxRepositoryPlatform
+    val connectManagerRepository: ConnectManagerRepository = sphinxRepositoryPlatform
+    val networkQueryContact: NetworkQueryContact = networkModule.networkQueryContact
 
     val repositoryDashboard: RepositoryDashboard = sphinxRepositoryPlatform
     val repositoryMedia: RepositoryMedia = sphinxRepositoryPlatform

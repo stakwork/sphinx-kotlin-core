@@ -3,6 +3,7 @@ package chat.sphinx.di.container
 import chat.sphinx.concepts.media_cache.MediaCacheHandler
 import chat.sphinx.database.SqlDriverUtility
 import chat.sphinx.database.SphinxCoreDBImpl
+import chat.sphinx.features.connect_manager.ConnectManagerImpl
 import chat.sphinx.features.coredb.CoreDBImpl
 import chat.sphinx.features.media_cache.MediaCacheHandlerImpl
 import chat.sphinx.logger.SphinxLogger
@@ -13,7 +14,6 @@ import chat.sphinx.utils.platform.getSphinxDirectory
 import io.matthewnelson.build_config.BuildConfigVersionCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import okio.FileSystem
 
 class AppModule {
     private val sphinxDispatchers = SphinxDispatchers()
@@ -34,4 +34,5 @@ class AppModule {
         getSphinxDirectory().resolve("cache"),
         dispatchers,
     )
+    val connectManager = ConnectManagerImpl(sphinxLogger)
 }

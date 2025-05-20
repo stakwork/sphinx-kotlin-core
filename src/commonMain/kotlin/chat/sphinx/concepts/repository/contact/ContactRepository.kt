@@ -10,6 +10,7 @@ import chat.sphinx.wrapper.contact.*
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.dashboard.InviteId
 import chat.sphinx.wrapper.invite.Invite
+import chat.sphinx.wrapper.invite.InviteString
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.LightningRouteHint
 import chat.sphinx.wrapper.lightning.Sat
@@ -54,6 +55,7 @@ interface ContactRepository {
 
     fun getInviteByContactId(contactId: ContactId): Flow<Invite?>
     fun getInviteById(inviteId: InviteId): Flow<Invite?>
+    fun getInviteByString(inviteString: InviteString): Flow<Invite?>
 
     fun createNewInvite(nickname: String, welcomeMessage: String): Flow<LoadResponse<Any, ResponseError>>
 
@@ -63,7 +65,7 @@ interface ContactRepository {
     suspend fun deleteContactById(contactId: ContactId): Response<Any, ResponseError>
     suspend fun updateOwnerDeviceId(deviceId: DeviceId): Response<Any, ResponseError>
     suspend fun updateOwnerNameAndKey(name: String, contactKey: Password): Response<Any, ResponseError>
-    suspend fun updateOwner(alias: String?, privatePhoto: PrivatePhoto?, tipAmount: Sat?): Response<Any, ResponseError>
+    suspend fun updateOwner(alias: String?, privatePhoto: PrivatePhoto, tipAmount: Sat): Response<Any, ResponseError>
 
     suspend fun updateContact(
         contactId: ContactId,
@@ -91,4 +93,21 @@ interface ContactRepository {
     suspend fun getPersonData(
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
     ): Flow<LoadResponse<PersonDataDto, ResponseError>>
+
+
+    // V2 methods
+
+    suspend fun createOwner(
+        okKey: String,
+        routeHint: String,
+        shortChannelId: String,
+        ownerAlias: String?
+    )
+
+    suspend fun createNewContact(contact: NewContact)
+    suspend fun getNewContactIndex(): Flow<ContactId?>
+    suspend fun updateOwnerAlias(alias: ContactAlias)
+    fun saveNewContactRegistered(msgSender: String, date: Long?, isRestoreAccount: Boolean)
+    fun updateNewContactInvited(contact: NewContact)
+
 }

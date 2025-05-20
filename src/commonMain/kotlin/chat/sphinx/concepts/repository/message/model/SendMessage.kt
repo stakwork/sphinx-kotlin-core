@@ -3,10 +3,9 @@ package chat.sphinx.concepts.repository.message.model
 import chat.sphinx.utils.platform.getFileSystem
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
+import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
-import chat.sphinx.wrapper.message.GiphyData
-import chat.sphinx.wrapper.message.PodcastClip
-import chat.sphinx.wrapper.message.ReplyUUID
+import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.isSphinxText
 import chat.sphinx.wrapper_message.ThreadUUID
 import okio.Path
@@ -24,26 +23,32 @@ class SendMessage private constructor(
     val isBoost: Boolean,
     val isCall: Boolean,
     val isTribePayment: Boolean,
+    val groupAction: MessageType.GroupAction?,
     val paidMessagePrice: Sat?,
     val priceToMeet: Sat?,
-    val threadUUID: ThreadUUID?
+    val threadUUID: ThreadUUID?,
+    val memberPubKey: LightningNodePubKey?,
+    val senderAlias: SenderAlias?
 ) {
 
     class Builder {
-        private var chatId: ChatId?                 = null
-        private var contactId: ContactId?           = null
-        private var tribePaymentAmount: Sat?        = null
-        private var attachmentInfo: AttachmentInfo? = null
-        private var replyUUID: ReplyUUID?           = null
-        private var text: String?                   = null
-        private var giphyData: GiphyData?           = null
-        private var podcastClip: PodcastClip?       = null
-        private var isBoost: Boolean                = false
-        private var isCall: Boolean                 = false
-        private var isTribePayment: Boolean         = false
-        private var paidMessagePrice: Sat?          = null
-        private var priceToMeet: Sat?               = null
-        private var threadUUID: ThreadUUID?         = null
+        private var chatId: ChatId?                       = null
+        private var contactId: ContactId?                 = null
+        private var tribePaymentAmount: Sat?              = null
+        private var attachmentInfo: AttachmentInfo?       = null
+        private var replyUUID: ReplyUUID?                 = null
+        private var text: String?                         = null
+        private var giphyData: GiphyData?                 = null
+        private var podcastClip: PodcastClip?             = null
+        private var isBoost: Boolean                      = false
+        private var isCall: Boolean                       = false
+        private var isTribePayment: Boolean               = false
+        private var groupAction: MessageType.GroupAction? = null
+        private var priceToMeet: Sat?                     = null
+        private var paidMessagePrice: Sat?                = null
+        private var threadUUID: ThreadUUID?               = null
+        private var memberPubKey: LightningNodePubKey?    = null
+        private var senderAlias: SenderAlias?             = null
 
         enum class ValidationError {
             EMPTY_PRICE, EMPTY_DESTINATION, EMPTY_CONTENT
@@ -62,9 +67,12 @@ class SendMessage private constructor(
             isBoost = false
             isCall = false
             isTribePayment = false
+            groupAction = null
             paidMessagePrice = null
             priceToMeet = null
             threadUUID = null
+            memberPubKey = null
+            senderAlias = null
         }
 
         @Synchronized
@@ -91,7 +99,9 @@ class SendMessage private constructor(
                         text.isNullOrEmpty() &&
                         giphyData == null &&
                         podcastClip == null &&
-                        !isTribePayment
+                        !isTribePayment &&
+                        groupAction == null
+
                     ) {
                         return Pair(false, ValidationError.EMPTY_CONTENT)
                     }
@@ -180,6 +190,12 @@ class SendMessage private constructor(
         }
 
         @Synchronized
+        fun setGroupAction(groupAction: MessageType.GroupAction): Builder {
+            this.groupAction = groupAction
+            return this
+        }
+
+        @Synchronized
         fun setPriceToMeet(priceToMeet: Sat?): Builder {
             this.priceToMeet = priceToMeet
             return this
@@ -194,6 +210,18 @@ class SendMessage private constructor(
         @Synchronized
         fun setThreadUUID(threadUUID: ThreadUUID?): Builder {
             this.threadUUID = threadUUID
+            return this
+        }
+
+        @Synchronized
+        fun setMemberPubKey(memberPubKey: LightningNodePubKey): Builder {
+            this.memberPubKey = memberPubKey
+            return this
+        }
+
+        @Synchronized
+        fun setSenderAlias(senderAlias: SenderAlias): Builder {
+            this.senderAlias = senderAlias
             return this
         }
 
@@ -217,9 +245,12 @@ class SendMessage private constructor(
                         isBoost,
                         isCall,
                         isTribePayment,
+                        groupAction,
                         paidMessagePrice,
                         priceToMeet,
-                        threadUUID
+                        threadUUID,
+                        memberPubKey,
+                        senderAlias
                     ), null
                 )
             }

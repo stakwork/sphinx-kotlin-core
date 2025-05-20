@@ -1,14 +1,13 @@
 package chat.sphinx.wrapper.chat
 
-import chat.sphinx.wrapper.DateTime
-import chat.sphinx.wrapper.PhotoUrl
-import chat.sphinx.wrapper.Seen
+import chat.sphinx.wrapper.*
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
-import chat.sphinx.wrapper.isTrue
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageId
+import chat.sphinx.wrapper.message.MessageUUID
+import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.isMuteChat
 import chat.sphinx.wrapper_chat.isOnlyMentions
@@ -31,15 +30,15 @@ inline fun Chat.isSeeAll(): Boolean {
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.notifyActualValue(): NotificationLevel =
-    notify ?: (if (isMuted.isTrue()) NotificationLevel.MuteChat else NotificationLevel.SeeAll)
+    notify ?: (if (isMuted.toBoolean()) NotificationLevel.MuteChat else NotificationLevel.SeeAll)
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isUnlisted(): Boolean =
-    unlisted.isTrue()
+    unlisted.toBoolean()
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.isPrivateTribe(): Boolean =
-    privateTribe.isTrue()
+    privateTribe.toBoolean()
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Chat.hasBeenSeen(): Boolean =
@@ -95,4 +94,10 @@ data class Chat(
     val latestMessageId: MessageId?,
     val contentSeenAt: DateTime?,
     val notify: NotificationLevel?,
-)
+    val secondBrainUrl: SecondBrainUrl?,
+    val pinedMessage: MessageUUID?,
+    val timezoneEnabled: TimezoneEnabled?,
+    val timezoneIdentifier: TimezoneIdentifier?,
+    val remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
+    val timezoneUpdated: TimezoneUpdated?
+    )

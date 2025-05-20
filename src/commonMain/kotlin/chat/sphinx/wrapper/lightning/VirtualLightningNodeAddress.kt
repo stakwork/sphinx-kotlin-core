@@ -36,7 +36,7 @@ inline val String.isValidVirtualNodeAddress: Boolean
 value class VirtualLightningNodeAddress(override val value: String): LightningNodeDescriptor {
 
     companion object {
-        const val REGEX = "${LightningNodePubKey.REGEX}:${LightningRouteHint.REGEX}"
+        const val REGEX = "${LightningNodePubKey.REGEX}_${LightningRouteHint.REGEX}"
     }
 
     init {

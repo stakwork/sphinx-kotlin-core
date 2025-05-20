@@ -1,6 +1,7 @@
 package chat.sphinx.features.repository.model.message
 
 import chat.sphinx.database.core.MessageDbo
+import chat.sphinx.database.core.MessageMediaDbo
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.Seen
@@ -61,6 +62,10 @@ class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
         get() = messageDbo.person
     override val threadUUID: ThreadUUID?
         get() = messageDbo.thread_uuid
+    override val tagMessage: TagMessage?
+        get() = messageDbo.tag_message
+    override val errorMessage: ErrorMessage?
+        get() = messageDbo.error_message
 
     @Volatile
     @Suppress("PropertyName")
@@ -133,4 +138,51 @@ class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
     var _thread: List<Message>? = null
     override val thread: List<Message>?
         get() = _thread
+
+    @Volatile
+    @Suppress("PropertyName")
+    var _remoteTimezoneIdentifier: RemoteTimezoneIdentifier? = messageDbo.remote_timezone_identifier
+    override val remoteTimezoneIdentifier: RemoteTimezoneIdentifier?
+        get() = _remoteTimezoneIdentifier
+}
+
+fun convertMessageDboToNewMessage(messageDbo: MessageDbo, messageMedia: MessageMediaDbo): NewMessage {
+    return NewMessage(
+        id = messageDbo.id,
+        uuid = messageDbo.uuid,
+        chatId = messageDbo.chat_id,
+        type = messageDbo.type,
+        sender = messageDbo.sender,
+        receiver = messageDbo.receiver_,
+        amount = messageDbo.amount,
+        paymentHash = messageDbo.payment_hash,
+        paymentRequest = messageDbo.payment_request,
+        date = messageDbo.date,
+        expirationDate = messageDbo.expiration_date,
+        messageContent = messageDbo.message_content,
+        status = messageDbo.status,
+        seen = messageDbo.seen,
+        senderAlias = messageDbo.sender_alias,
+        senderPic = messageDbo.sender_pic,
+        originalMUID = messageDbo.original_muid,
+        replyUUID = messageDbo.reply_uuid,
+        flagged = messageDbo.flagged,
+        recipientAlias = messageDbo.recipient_alias,
+        recipientPic = messageDbo.recipient_pic,
+        person = messageDbo.person,
+        threadUUID = messageDbo.thread_uuid,
+        errorMessage = messageDbo.error_message,
+        messageContentDecrypted = messageDbo.message_content_decrypted,
+        messageDecryptionError = false,
+        messageDecryptionException = null,
+        messageMedia = MessageMediaDboWrapper(messageMedia),
+        feedBoost = null,
+        callLinkMessage = null,
+        podcastClip = null,
+        giphyData = null,
+        reactions = null,
+        purchaseItems = null,
+        replyMessage = null,
+        thread = null
+    )
 }

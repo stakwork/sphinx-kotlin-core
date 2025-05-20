@@ -34,7 +34,13 @@ internal class ChatDboPresenterMapper(
             pendingContactIds = value.pending_contact_ids,
             latestMessageId = value.latest_message_id,
             contentSeenAt = value.content_seen_at,
-            notify = value.notify
+            notify = value.notify,
+            secondBrainUrl = value.second_brain_url,
+            pinedMessage = value.pin_message,
+            timezoneEnabled = value.timezone_enabled,
+            timezoneIdentifier = value.timezone_identifier,
+            remoteTimezoneIdentifier = value.remote_timezone_identifier,
+            timezoneUpdated = value.timezone_updated
         )
     }
 
@@ -63,7 +69,13 @@ internal class ChatDboPresenterMapper(
             pending_contact_ids = value.pendingContactIds,
             latest_message_id = value.latestMessageId,
             content_seen_at = value.contentSeenAt,
-            notify = value.notify
+            notify = value.notify,
+            second_brain_url = value.secondBrainUrl,
+            pin_message = value.pinedMessage,
+            timezone_enabled = value.timezoneEnabled,
+            timezone_identifier = value.timezoneIdentifier,
+            remote_timezone_identifier = value.remoteTimezoneIdentifier,
+            timezone_updated = value.timezoneUpdated
         )
     }
 }

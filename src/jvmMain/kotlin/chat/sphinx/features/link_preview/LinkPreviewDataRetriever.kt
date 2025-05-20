@@ -4,7 +4,6 @@ package chat.sphinx.features.link_preview
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.link_preview.model.*
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
-import chat.sphinx.concepts.socket_io.SphinxSocketIOMessage
 import chat.sphinx.features.link_preview.util.getDescription
 import chat.sphinx.features.link_preview.util.getFavIconUrl
 import chat.sphinx.features.link_preview.util.getImageUrl
@@ -12,6 +11,7 @@ import chat.sphinx.features.link_preview.util.getTitle
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.wrapper.chat.ChatHost
 import chat.sphinx.wrapper.chat.ChatUUID
+import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.tribe.TribeJoinLink
 //import io.ktor.client.*
 //import io.ktor.http.*
@@ -110,9 +110,9 @@ internal class TribePreviewDataRetriever(val tribeJoinLink: TribeJoinLink): Link
     @Volatile
     private var previewData: TribePreviewData? = null
 
-    suspend fun getTribePreview(networkQueryChat: chat.sphinx.concepts.network.query.chat.NetworkQueryChat): TribePreviewData? =
+    suspend fun getTribePreview(networkQueryChat: NetworkQueryChat, isProductionEnvironment: Boolean): TribePreviewData? =
         previewData ?: lock.withLock {
-            previewData ?: retrievePreview(networkQueryChat)
+            previewData ?: retrievePreview(networkQueryChat, isProductionEnvironment)
                 .also {
                     if (it != null) {
                         previewData = it
@@ -121,22 +121,22 @@ internal class TribePreviewDataRetriever(val tribeJoinLink: TribeJoinLink): Link
 
         }
 
-    private suspend fun retrievePreview(networkQueryChat: chat.sphinx.concepts.network.query.chat.NetworkQueryChat): TribePreviewData? {
+    private suspend fun retrievePreview(networkQueryChat: NetworkQueryChat, isProductionEnvironment: Boolean): TribePreviewData? {
 
         var data: TribePreviewData? = null
 
         networkQueryChat.getTribeInfo(
             ChatHost(tribeJoinLink.tribeHost),
-            ChatUUID(tribeJoinLink.tribeUUID)
+            LightningNodePubKey(tribeJoinLink.tribePubkey),
+            isProductionEnvironment
         ).collect { response ->
-            Exhaustive@
             when (response) {
                 is LoadResponse.Loading -> {}
                 is chat.sphinx.response.Response.Error -> {}
                 is chat.sphinx.response.Response.Success -> {
                     data = TribePreviewData(
                         TribePreviewName(response.value.name),
-                        response.value.description.toPreviewDescriptionOrNull(),
+                        response.value.description?.toPreviewDescriptionOrNull(),
                         response.value.img?.toPreviewImageUrlOrNull(),
                     )
                 }

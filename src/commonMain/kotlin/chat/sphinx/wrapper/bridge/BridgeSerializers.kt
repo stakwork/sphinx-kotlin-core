@@ -406,6 +406,17 @@ data class SendAuthMessage(
     val password: String,
 )
 
+@Throws(AssertionError::class)
+fun SendAuthMessage.toJson(): String =
+    Json.encodeToString(
+        SendAuthMessage(
+            pubkey,
+            type,
+            application,
+            password
+        )
+    )
+
 @Serializable
 data class SendAuthMessageWithSignature(
     val pubkey: String,
@@ -469,10 +480,10 @@ data class SendActiveLSatMessage(
     val paymentRequest: String,
     val preimage: String,
     val identifier: String,
-    val issuer: String,
-    val success: Boolean,
-    val status: Long,
+    val success: Int,
+    val status: String,
     val paths: String,
+    val issuer: String
 )
 
 @Serializable
@@ -480,7 +491,8 @@ data class SendActiveLSatFailedMessage(
     val type: String,
     val application: String,
     val password: String,
-    val success: Boolean
+    val success: Int,
+    val issuer: String
 )
 
 @Throws(AssertionError::class)
@@ -494,10 +506,10 @@ fun SendActiveLSatMessage.toJson(): String =
             paymentRequest,
             preimage,
             identifier,
-            issuer,
             success,
             status,
-            paths
+            paths,
+            issuer
         )
     )
 
@@ -508,7 +520,8 @@ fun SendActiveLSatFailedMessage.toJson(): String =
             type,
             application,
             password,
-            success
+            success,
+            issuer
         )
     )
 
@@ -518,7 +531,7 @@ data class SendSignMessage(
     val application: String,
     val password: String,
     val signature: String,
-    val success: Boolean
+    val success: Int
 )
 
 @Serializable
@@ -526,7 +539,7 @@ data class SendFailedSignMessage(
     val type: String,
     val application: String,
     val password: String,
-    val success: Boolean
+    val success: Int
 )
 
 @Throws(AssertionError::class)
@@ -596,13 +609,10 @@ fun SendGetBudgetMessage.toJson(): String =
 data class SendLSatMessage(
     val type: String,
     val application: String,
-    val password: String,
-    val paymentRequest: String,
-    val macaroon: String,
-    val issuer: String,
-    val lsat: String,
+    val success: Int,
     val budget: Int?,
-    val success: Boolean
+    val password: String,
+    val lsat: String
 )
 
 @Throws(AssertionError::class)
@@ -611,13 +621,10 @@ fun SendLSatMessage.toJson(): String =
         SendLSatMessage(
             type,
             application,
-            password,
-            paymentRequest,
-            macaroon,
-            issuer,
-            lsat,
+            success,
             budget,
-            success
+            password,
+            lsat
         )
     )
 
@@ -625,11 +632,8 @@ fun SendLSatMessage.toJson(): String =
 data class SendLSatFailedMessage(
     val type: String,
     val application: String,
+    val success: Int,
     val password: String,
-    val paymentRequest: String,
-    val macaroon: String,
-    val issuer: String,
-    val success: Boolean
 )
 
 @Throws(AssertionError::class)
@@ -638,11 +642,8 @@ fun SendLSatFailedMessage.toJson(): String =
         SendLSatFailedMessage(
             type,
             application,
-            password,
-            paymentRequest,
-            macaroon,
-            issuer,
-            success
+            success,
+            password
         )
     )
 
@@ -651,10 +652,8 @@ data class SendUpdateLSatMessage(
     val type: String,
     val application: String,
     val password: String,
-    val identifier: String,
-    val status: String,
+    val success: Int,
     val lsat: String,
-    val success: Boolean
 )
 
 @Throws(AssertionError::class)
@@ -664,10 +663,8 @@ fun SendUpdateLSatMessage.toJson(): String =
             type,
             application,
             password,
-            identifier,
-            status,
-            lsat,
-            success
+            success,
+            lsat
         )
     )
 
@@ -775,3 +772,34 @@ fun SendPersonDataFailedMessage.toJson(): String =
             success
         )
     )
+
+// SEND SECOND BRAIN LIST DATA
+@Serializable
+data class SendSecondBrainListData(
+    val type: String,
+    val application: String,
+    val password: String,
+    val secondBrainList: List<String>
+)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun String.toSendSecondBrainListDataOrNull(): SendSecondBrainListData? =
+    try {
+        this.toSendSecondBrainListData()
+    } catch (e: Exception) {
+        null
+    }
+
+fun String.toSendSecondBrainListData(): SendSecondBrainListData =
+    Json.decodeFromString<SendSecondBrainListData>(this).let {
+        SendSecondBrainListData(
+            it.type,
+            it.application,
+            it.password,
+            it.secondBrainList
+        )
+    }
+
+@Throws(AssertionError::class)
+fun SendSecondBrainListData.toJson(): String =
+    Json.encodeToString(this)

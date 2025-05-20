@@ -6,5 +6,5 @@ import chat.sphinx.wrapper.tribe.TribeJoinLink
 
 abstract class LinkPreviewHandler {
     abstract suspend fun retrieveHtmlPreview(url: String): HtmlPreviewData?
-    abstract suspend fun retrieveTribeLinkPreview(tribeJoinLink: TribeJoinLink): TribePreviewData?
+    abstract suspend fun retrieveTribeLinkPreview(tribeJoinLink: TribeJoinLink, isProductionEnvironment: Boolean): TribePreviewData?
 }

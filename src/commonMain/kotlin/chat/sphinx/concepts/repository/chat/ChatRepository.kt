@@ -1,18 +1,19 @@
 package chat.sphinx.concepts.repository.chat
 
-import chat.sphinx.concepts.network.query.chat.model.ChatDto
-import chat.sphinx.concepts.network.query.chat.model.TribeDto
+import chat.sphinx.concepts.network.query.chat.model.NewTribeDto
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
-import chat.sphinx.wrapper.chat.Chat
-import chat.sphinx.wrapper.chat.ChatAlias
-import chat.sphinx.wrapper.chat.ChatUUID
-import chat.sphinx.wrapper.chat.TribeData
+import chat.sphinx.wrapper.chat.*
 import chat.sphinx.wrapper.dashboard.ChatId
-import chat.sphinx.wrapper.dashboard.ContactId
+import chat.sphinx.wrapper.lsat.Lsat
+import chat.sphinx.wrapper.lsat.LsatIdentifier
+import chat.sphinx.wrapper.lsat.LsatIssuer
+import chat.sphinx.wrapper.lsat.LsatStatus
 import chat.sphinx.wrapper.meme_server.PublicAttachmentInfo
+import chat.sphinx.wrapper.message.Message
+import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper_chat.NotificationLevel
 import kotlinx.coroutines.flow.Flow
@@ -43,20 +44,55 @@ interface ChatRepository {
 
     suspend fun updateChatContentSeenAt(chatId: ChatId)
 
-    fun joinTribe(
-        tribeDto: TribeDto,
-    ): Flow<LoadResponse<ChatDto, ResponseError>>
-
-    suspend fun updateTribeInfo(chat: Chat): TribeData?
-    suspend fun createTribe(createTribe: CreateTribe): Response<Any, ResponseError>
+    suspend fun updateTribeInfo(chat: Chat, isProductionEnvironment: Boolean): NewTribeDto?
+    suspend fun storeTribe(createTribe: CreateTribe, chatId: ChatId?)
     suspend fun updateTribe(chatId: ChatId, createTribe: CreateTribe): Response<Any, ResponseError>
-    suspend fun exitAndDeleteTribe(chat: Chat): Response<Boolean, ResponseError>
+
+    suspend fun exitAndDeleteTribe(tribe: Chat)
 
     suspend fun updateChatProfileInfo(
         chatId: ChatId,
         alias: ChatAlias? = null,
         profilePic: PublicAttachmentInfo? = null,
-    ): Response<ChatDto, ResponseError>
+    )
 
-    suspend fun kickMemberFromTribe(chatId: ChatId, contactId: ContactId): Response<Any, ResponseError>
+    suspend fun togglePinMessage(
+        chatId: ChatId,
+        message: Message,
+        isUnpinMessage: Boolean,
+        errorMessage: String,
+        isProductionEnvironment: Boolean
+    ): Response<Any, ResponseError>
+
+
+    suspend fun updateTimezoneEnabledStatus(
+        isTimezoneEnabled: TimezoneEnabled,
+        chatId: ChatId
+    )
+
+    suspend fun updateTimezoneIdentifier(
+        timezoneIdentifier: TimezoneIdentifier?,
+        chatId: ChatId
+    )
+
+    suspend fun updateTimezoneUpdated(
+        timezoneUpdated: TimezoneUpdated,
+        chatId: ChatId
+    )
+
+    suspend fun updateTimezoneUpdatedOnSystemChange()
+
+    suspend fun updateChatRemoteTimezoneIdentifier(
+        remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
+        chatId: ChatId,
+        isRestore: Boolean
+    )
+
+    suspend fun getLastLsatByIssuer(issuer: LsatIssuer): Flow<Lsat?>
+    suspend fun getLastLsatActive(): Flow<Lsat?>
+
+    suspend fun getLsatByIdentifier(identifier: LsatIdentifier): Flow<Lsat?>
+    suspend fun upsertLsat(lsat: Lsat)
+    suspend fun updateLsatStatus(identifier: LsatIdentifier, status: LsatStatus)
+
 }

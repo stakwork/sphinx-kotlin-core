@@ -1,7 +1,7 @@
 package chat.sphinx.wrapper.chat
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun ChatPrivate.isTrue(): Boolean =
+inline fun ChatPrivate.toBoolean(): Boolean =
     this is ChatPrivate.True
 
 @Suppress("NOTHING_TO_INLINE")

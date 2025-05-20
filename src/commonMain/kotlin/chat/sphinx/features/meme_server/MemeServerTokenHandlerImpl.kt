@@ -4,6 +4,8 @@ import chat.sphinx.concepts.authentication.data.AuthenticationStorage
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
+import chat.sphinx.concepts.repository.connect_manager.ConnectManagerRepository
+import chat.sphinx.concepts.repository.connect_manager.model.OwnerRegistrationState
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.logger.e
@@ -19,6 +21,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -62,6 +65,8 @@ class MemeServerTokenHandlerImpl(
         @Suppress("ObjectPropertyName")
         const val _7_DAYS = 7 * 24 * 60 * 60 * 1000
     }
+    private var connectManagerRepository: ConnectManagerRepository? = null
+
 
     private open inner class SynchronizedMap<K, V> {
         private val hashMap: MutableMap<K, V> = LinkedHashMap(1)
@@ -98,6 +103,10 @@ class MemeServerTokenHandlerImpl(
                     tokenCache.withLock { it[mediaHost] = token }
                 }
         }
+    }
+
+    override fun addListener(listener: ConnectManagerRepository) {
+        connectManagerRepository = listener
     }
 
     private suspend fun retrieveAuthenticationTokenImpl(mediaHost: MediaHost): AuthenticationToken? {
@@ -197,6 +206,7 @@ class MemeServerTokenHandlerImpl(
                     }
                     is Response.Success -> {
                         id = loadResponse.value.id.toAuthenticationId()
+                        connectManagerRepository?.signChallenge(loadResponse.value.challenge)
                         challenge = loadResponse.value.challenge.toAuthenticationChallenge()
                     }
                 }
@@ -204,48 +214,36 @@ class MemeServerTokenHandlerImpl(
 
             id?.let { nnId ->
                 challenge?.let { nnChallenge ->
-
-                    var sig: AuthenticationSig? = null
-
-                    networkQueryMemeServer.signChallenge(nnChallenge).collect { loadResponse ->
-                        Exhaustive@
-                        when (loadResponse) {
-                            is LoadResponse.Loading -> {}
-                            is Response.Error -> {
-                                LOG.e(TAG, loadResponse.message, loadResponse.exception)
-                            }
-                            is Response.Success -> {
-                                sig = loadResponse.value.sig.toAuthenticationSig()
-                            }
-                        }
-                    }
+                    val sig: AuthenticationSig? = connectManagerRepository?.connectionManagerState
+                        ?.firstOrNull { it is OwnerRegistrationState.SignedChallenge }
+                        ?.let { (it as OwnerRegistrationState.SignedChallenge).authToken.toAuthenticationSig() }
 
                     sig?.let { nnSig ->
-
                         networkQueryMemeServer.verifyAuthentication(
                             nnId,
                             nnSig,
                             nodePubKey,
                             mediaHost,
                         ).collect { loadResponse ->
-                            Exhaustive@
                             when (loadResponse) {
                                 is LoadResponse.Loading -> {}
                                 is Response.Error -> {
                                     LOG.e(TAG, loadResponse.message, loadResponse.exception)
                                 }
+
                                 is Response.Success -> {
-                                    loadResponse.value.token.toAuthenticationToken()?.let { nnToken ->
-                                        token = nnToken
-                                        LOG.d(
-                                            TAG,
-                                            """
-                                                                        MemeServerAuthenticationToken acquired from server!
-                                                                        host: $mediaHost
-                                                                        token: $nnToken
-                                                                    """.trimIndent()
-                                        )
-                                    }
+                                    loadResponse.value.token.toAuthenticationToken()
+                                        ?.let { nnToken ->
+                                            token = nnToken
+                                            LOG.d(
+                                                TAG,
+                                                """
+                                                MemeServerAuthenticationToken acquired from server!
+                                                host: $mediaHost
+                                                token: $nnToken
+                                            """.trimIndent()
+                                            )
+                                        }
                                 }
                             }
                         }
@@ -253,6 +251,7 @@ class MemeServerTokenHandlerImpl(
                     }
                 }
             }
+
         }
 
         return token

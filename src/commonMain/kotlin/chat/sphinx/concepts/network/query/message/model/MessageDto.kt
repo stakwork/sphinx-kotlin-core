@@ -10,7 +10,6 @@ import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.FileName
 import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.toMediaType
-import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import okio.Path
@@ -52,9 +51,9 @@ data class MessageDto(
     val recipient_pic: String? = null,
     val push: SphinxBoolean? = null,
     val person: String? = null,
-    val thread_uuid: String? = null
-
-) {
+    val thread_uuid: String? = null,
+    val remote_timezone_identifier: String?
+    ) {
     @Transient
     val seenActual: Boolean = seen.value
 
@@ -131,7 +130,7 @@ data class MessageDto(
                 "The admin declined your request"
             }
             this.type.toMessageType().isMemberApprove() -> {
-                "Welcome! You’re now a member"
+                "${this.sender_alias} has joined the tribe"
             }
             this.type.toMessageType().isGroupKick() -> {
                 "The admin has removed you from this group"

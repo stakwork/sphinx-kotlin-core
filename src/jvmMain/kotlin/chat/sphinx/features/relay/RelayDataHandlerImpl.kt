@@ -15,20 +15,17 @@ import chat.sphinx.crypto.common.exceptions.EncryptionException
 import chat.sphinx.crypto.common.extensions.toHex
 import chat.sphinx.crypto.k_openssl.KOpenSSL
 import chat.sphinx.crypto.k_openssl.algos.AES256CBC_PBKDF2_HMAC_SHA256
-import chat.sphinx.di.container.SphinxContainer
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
-import chat.sphinx.response.Response
 //import chat.sphinx.crypto.k_openssl.KOpenSSL
 //import chat.sphinx.crypto.k_openssl.algos.AES256CBC_PBKDF2_HMAC_SHA256
 //import chat.sphinx.features.authentication.core.AuthenticationCoreManager
-import chat.sphinx.utils.toUrlOrNull
+import chat.sphinx.wrapper.lightning.WalletMnemonic
 import chat.sphinx.wrapper.relay.*
 import chat.sphinx.wrapper.rsa.RsaPublicKey
 import io.matthewnelson.kmp.tor.manager.TorManager
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlin.coroutines.cancellation.CancellationException
@@ -56,10 +53,16 @@ class RelayDataHandlerImpl(
         @Volatile
         private var relayHMacKeyCache: RelayHMacKey? = null
 
+        @Volatile
+        private var walletMnemonicCache: WalletMnemonic? = null
+
         const val RELAY_URL_KEY = "RELAY_URL_KEY"
         const val RELAY_AUTHORIZATION_KEY = "RELAY_JWT_KEY"
         const val RELAY_TRANSPORT_ENCRYPTION_KEY = "RELAY_TRANSPORT_KEY"
         const val RELAY_H_MAC_KEY = "RELAY_H_MAC_KEY"
+
+        const val WALLET_MNEMONIC_KEY = "WALLET_MNEMONIC_KEY"
+
     }
 
     private val kOpenSSL: KOpenSSL by lazy {
@@ -120,7 +123,7 @@ class RelayDataHandlerImpl(
     private fun signHMacSha256(
         key: RelayHMacKey,
         text: String
-    ) : String {
+    ): String {
         val sha256HMac = Mac.getInstance("HMacSHA256")
 
         val secretKey = SecretKeySpec(
@@ -135,25 +138,22 @@ class RelayDataHandlerImpl(
 
     private val lock = Mutex()
 
-    override suspend fun persistRelayUrl(url: RelayUrl): Boolean {
+    override suspend fun persistWalletMnemonic(mnemonic: WalletMnemonic): Boolean {
         return authenticationCoreManager.getEncryptionKey()?.privateKey?.let { privateKey ->
-            persistRelayUrlImpl(url, privateKey)
+            persistWalletMnemonicImpl(mnemonic, privateKey)
         } ?: false
     }
 
-    suspend fun persistRelayUrlImpl(url: RelayUrl, privateKey: Password): Boolean {
+    private suspend fun persistWalletMnemonicImpl(mnemonic: WalletMnemonic, privateKey: Password): Boolean {
         lock.withLock {
-            val formattedUrl = formatRelayUrl(url)
-            val encryptedRelayUrl = try {
-                encryptData(privateKey, UnencryptedString(formattedUrl.value))
+            val encryptedMnemonic = try {
+                encryptData(privateKey, UnencryptedString(mnemonic.value))
             } catch (e: Exception) {
                 return false
             }
 
-            authenticationStorage.putString(RELAY_URL_KEY, encryptedRelayUrl.value)
-            SphinxContainer.networkModule.networkClient.setTorRequired(formattedUrl.isOnionAddress)
-
-            relayUrlCache = formattedUrl
+            authenticationStorage.putString(WALLET_MNEMONIC_KEY, encryptedMnemonic.value)
+            walletMnemonicCache = mnemonic
             return true
         }
     }
@@ -177,18 +177,18 @@ class RelayDataHandlerImpl(
     }
 
     @OptIn(UnencryptedDataAccess::class)
-    override suspend fun retrieveRelayUrl(): RelayUrl? {
+    override suspend fun retrieveWalletMnemonic(): WalletMnemonic? {
         return authenticationCoreManager.getEncryptionKey()?.privateKey?.let { privateKey ->
             lock.withLock {
-                relayUrlCache ?: authenticationStorage.getString(RELAY_URL_KEY, null)
-                    ?.let { encryptedUrlString ->
+                walletMnemonicCache ?: authenticationStorage.getString(WALLET_MNEMONIC_KEY, null)
+                    ?.let { encryptedWalletMnemonic ->
                         try {
-                            decryptData(privateKey, EncryptedString(encryptedUrlString))
+                            decryptData(privateKey, EncryptedString(encryptedWalletMnemonic))
                                 .value
-                                .let { decryptedUrlString ->
-                                    val url = RelayUrl(decryptedUrlString)
-                                    relayUrlCache = url
-                                    url
+                                .let { decryptedWalletMnemonic ->
+                                    val mnemonic = WalletMnemonic(decryptedWalletMnemonic)
+                                    walletMnemonicCache = mnemonic
+                                    mnemonic
                                 }
                         } catch (e: Exception) {
                             null
@@ -250,147 +250,4 @@ class RelayDataHandlerImpl(
         }
     }
 
-    override suspend fun persistRelayTransportKey(key: RsaPublicKey?): Boolean {
-        return authenticationCoreManager.getEncryptionKey()?.privateKey?.let { privateKey ->
-            persistRelayTransportKeyImpl(key, privateKey)
-        } ?: false
-    }
-
-    suspend fun persistRelayTransportKeyImpl(key: RsaPublicKey?, privateKey: Password): Boolean {
-        lock.withLock {
-            if (key == null) {
-                authenticationStorage.putString(RELAY_TRANSPORT_ENCRYPTION_KEY, null)
-                relayTransportKeyCache = null
-                return true
-            } else {
-                val encryptedTransportKey = try {
-                    encryptData(privateKey, UnencryptedString(key.value.joinToString("")))
-                } catch (e: Exception) {
-                    return false
-                }
-                authenticationStorage.putString(RELAY_TRANSPORT_ENCRYPTION_KEY, encryptedTransportKey.value)
-                relayTransportKeyCache = key
-                return true
-            }
-        }
-    }
-
-    @OptIn(UnencryptedDataAccess::class)
-    override suspend fun retrieveRelayTransportKey(): RsaPublicKey? {
-        return authenticationCoreManager.getEncryptionKey()?.privateKey?.let { privateKey ->
-            lock.withLock {
-                relayTransportKeyCache ?: authenticationStorage.getString(RELAY_TRANSPORT_ENCRYPTION_KEY, null)
-                    ?.let { encryptedTransportKey ->
-                        try {
-                            decryptData(privateKey, EncryptedString(encryptedTransportKey))
-                                .value
-                                .let { decryptedUrlString ->
-                                    val relayTransportKey = RsaPublicKey(decryptedUrlString.toCharArray())
-                                    relayTransportKeyCache = relayTransportKey
-                                    relayTransportKey
-                                }
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-            }
-        }
-    }
-
-    @OptIn(UnencryptedDataAccess::class)
-    override suspend fun retrieveRelayTransportToken(
-        authorizationToken: AuthorizationToken,
-        transportKey: RsaPublicKey?
-    ): TransportToken? {
-        (transportKey ?: retrieveRelayTransportKey())?.let { key ->
-            val unixTime = System.currentTimeMillis()
-            val tokenAndTime = "${authorizationToken.value}|${unixTime}"
-
-            val response = rsa.encrypt(
-                key,
-                UnencryptedString(tokenAndTime),
-                formatOutput = false,
-                dispatcher = default,
-            )
-
-            return when (response) {
-                is Response.Error -> {
-                    null
-                }
-                is Response.Success -> {
-                    response.value.value
-                        .toTransportToken()
-                }
-            }
-        }
-        return null
-    }
-
-    override suspend fun persistRelayHMacKey(key: RelayHMacKey?): Boolean {
-        return authenticationCoreManager.getEncryptionKey()?.privateKey?.let { privateKey ->
-            persistRelayHMacKeyImpl(key, privateKey)
-        } ?: false
-    }
-
-    private suspend fun persistRelayHMacKeyImpl(key: RelayHMacKey?, privateKey: Password): Boolean {
-        lock.withLock {
-            if (key == null) {
-                authenticationStorage.putString(RELAY_H_MAC_KEY, null)
-                relayHMacKeyCache = null
-                return true
-            } else {
-                val encryptedHMacKey = try {
-                    encryptData(privateKey, UnencryptedString(key.value))
-                } catch (e: Exception) {
-                    return false
-                }
-                authenticationStorage.putString(RELAY_H_MAC_KEY, encryptedHMacKey.value)
-                relayHMacKeyCache = key
-                return true
-            }
-        }
-    }
-
-    @OptIn(UnencryptedDataAccess::class)
-    override suspend fun retrieveRelayHMacKey(): RelayHMacKey? {
-        return authenticationCoreManager.getEncryptionKey()?.privateKey?.let { privateKey ->
-            lock.withLock {
-                relayHMacKeyCache ?: authenticationStorage.getString(RELAY_H_MAC_KEY, null)
-                    ?.let { encryptedHMacKey ->
-                        try {
-                            decryptData(privateKey, EncryptedString(encryptedHMacKey))
-                                .value
-                                .let { decryptedHMacKeyString ->
-                                    val relayHMacKey = RelayHMacKey(decryptedHMacKeyString)
-                                    relayHMacKeyCache = relayHMacKey
-                                    relayHMacKey
-                                }
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-            }
-        }
-    }
-
-    override suspend fun retrieveRelayRequestSignature(
-        hMacKey: RelayHMacKey,
-        method: String?,
-        path: String?,
-        bodyJsonString: String?
-    ): RequestSignature? {
-        if (
-            method == null ||
-            path == null
-        ) {
-            return null
-        }
-
-        val signedString = signHMacSha256(
-            key = hMacKey,
-            text = "${method!!}|${path!!}|${bodyJsonString ?: ""}"
-        )
-
-        return RequestSignature("sha256=$signedString")
-    }
 }

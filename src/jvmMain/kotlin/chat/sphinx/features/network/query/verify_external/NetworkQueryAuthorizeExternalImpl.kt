@@ -27,29 +27,6 @@ class NetworkQueryAuthorizeExternalImpl(
         private const val ENDPOINT_VERIFY_EXTERNAL = "/verify_external"
     }
 
-    override fun verifyExternal(
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<VerifyExternalDto, ResponseError>> =
-        networkRelayCall.relayPost(
-            responseJsonSerializer = VerifyExternalRelayResponse.serializer(),
-            relayEndpoint = ENDPOINT_VERIFY_EXTERNAL,
-            requestBodyPair = Pair(
-                mapOf(Pair("", "")),
-                Json.serializersModule.serializer()
-            ),
-            relayData = relayData
-        )
-
-    override fun signBase64(
-        base64: String,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<SignBase64Dto, ResponseError>> =
-        networkRelayCall.relayGet(
-            responseJsonSerializer = SignBase64RelayResponse.serializer(),
-            relayEndpoint = "/signer/$base64" ,
-            relayData = relayData
-        )
-
     override fun authorizeExternal(
         host: String,
         challenge: String,

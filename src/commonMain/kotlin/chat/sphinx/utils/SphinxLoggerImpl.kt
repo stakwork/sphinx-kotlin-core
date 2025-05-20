@@ -8,6 +8,7 @@ import chat.sphinx.logger.SphinxLogger
  */
 class SphinxLoggerImpl: SphinxLogger() {
     override fun log(tag: String, message: String, type: LogType, throwable: Throwable?) {
-        println("$tag: $message $throwable")
+        val nnThrowable = throwable ?: ""
+        println("$tag: $message $nnThrowable")
     }
 }

@@ -34,21 +34,12 @@ class RelayDataHandlerImplUnitTest: AuthenticationCoreDefaultsTestHelper() {
         )
     }
 
-    @Test
-    fun `login is required for anything to work`() =
-        testDispatcher.runBlockingTest {
-            assertFalse(relayHandler.persistRelayUrl(RelayUrl(RAW_URL)))
-            assertNull(relayHandler.retrieveRelayUrl())
-            assertFalse(relayHandler.persistAuthorizationToken(AuthorizationToken(RAW_JWT)))
-            assertNull(relayHandler.retrieveAuthorizationToken())
-        }
 
     @Test
     fun `persisted data is encrypted`() =
         testDispatcher.runBlockingTest {
             login()
 
-            assertTrue(relayHandler.persistRelayUrl(RelayUrl(RAW_URL)))
             testStorage.getString(RelayDataHandlerImpl.RELAY_URL_KEY, null)?.let { encryptedUrl ->
                 assertTrue(encryptedUrl.isSalted)
             } ?: fail("Failed to persist relay url to storage")

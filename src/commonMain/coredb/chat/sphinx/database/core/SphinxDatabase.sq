@@ -1,5 +1,6 @@
 import chat.sphinx.wrapper.DateTime;
 import chat.sphinx.wrapper.PhotoUrl;
+import chat.sphinx.wrapper.SecondBrainUrl;
 import chat.sphinx.wrapper.Seen;
 import chat.sphinx.wrapper.chat.ChatAlias;
 import chat.sphinx.wrapper.chat.ChatGroupKey;
@@ -13,6 +14,9 @@ import chat.sphinx.wrapper.chat.ChatType;
 import chat.sphinx.wrapper.chat.ChatUUID;
 import chat.sphinx.wrapper.chat.ChatUnlisted;
 import chat.sphinx.wrapper.chat.Push;
+import chat.sphinx.wrapper.chat.TimezoneEnabled;
+import chat.sphinx.wrapper.chat.TimezoneIdentifier;
+import chat.sphinx.wrapper.chat.TimezoneUpdated;
 import chat.sphinx.wrapper.contact.Blocked;
 import chat.sphinx.wrapper.contact.ContactAlias;
 import chat.sphinx.wrapper.contact.ContactStatus;
@@ -43,6 +47,7 @@ import chat.sphinx.wrapper.feed.FeedTitle;
 import chat.sphinx.wrapper.feed.FeedType;
 import chat.sphinx.wrapper.feed.FeedUrl;
 import chat.sphinx.wrapper.feed.Subscribed;
+import chat.sphinx.wrapper.invite.InviteCode;
 import chat.sphinx.wrapper.invite.InviteStatus;
 import chat.sphinx.wrapper.invite.InviteString;
 import chat.sphinx.wrapper.lightning.LightningNodeAlias;
@@ -51,6 +56,14 @@ import chat.sphinx.wrapper.lightning.LightningPaymentHash;
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest;
 import chat.sphinx.wrapper.lightning.LightningRouteHint;
 import chat.sphinx.wrapper.lightning.Sat;
+import chat.sphinx.wrapper.lsat.LsatIdentifier;
+import chat.sphinx.wrapper.lsat.LsatIssuer;
+import chat.sphinx.wrapper.lsat.LsatMetaData;
+import chat.sphinx.wrapper.lsat.LsatPaths;
+import chat.sphinx.wrapper.lsat.LsatPreImage;
+import chat.sphinx.wrapper.lsat.LsatStatus;
+import chat.sphinx.wrapper.lsat.Macaroon;
+import chat.sphinx.wrapper.message.ErrorMessage;
 import chat.sphinx.wrapper.message.Flagged;
 import chat.sphinx.wrapper.message.MessageContent;
 import chat.sphinx.wrapper.message.MessageContentDecrypted;
@@ -61,8 +74,10 @@ import chat.sphinx.wrapper.message.MessageStatus;
 import chat.sphinx.wrapper.message.MessageType;
 import chat.sphinx.wrapper.message.MessageUUID;
 import chat.sphinx.wrapper.message.RecipientAlias;
+import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier;
 import chat.sphinx.wrapper.message.ReplyUUID;
 import chat.sphinx.wrapper.message.SenderAlias;
+import chat.sphinx.wrapper.message.TagMessage;
 import chat.sphinx.wrapper.message.media.FileName;
 import chat.sphinx.wrapper.message.media.MediaKey;
 import chat.sphinx.wrapper.message.media.MediaKeyDecrypted;
@@ -73,6 +88,8 @@ import chat.sphinx.wrapper.subscription.Cron;
 import chat.sphinx.wrapper.subscription.EndNumber;
 import chat.sphinx.wrapper.subscription.SubscriptionCount;
 import chat.sphinx.wrapper.subscription.SubscriptionId;
+import chat.sphinx.wrapper.user.UserState;
+import chat.sphinx.wrapper.user.UserStateId;
 import chat.sphinx.wrapper_chat.NotificationLevel;
 import chat.sphinx.wrapper_message.ThreadUUID;
 import kotlin.collections.List;
@@ -102,9 +119,20 @@ CREATE TABLE chatDbo(
     pending_contact_ids         TEXT            AS List<ContactId>,
     latest_message_id           INTEGER         AS MessageId DEFAULT NULL,
     content_seen_at             INTEGER         AS DateTime,
-    notify                      INTEGER         AS NotificationLevel
-
+    notify                      INTEGER         AS NotificationLevel,
+    second_brain_url            TEXT            AS SecondBrainUrl DEFAULT NULL,
+    pin_message                 TEXT            AS MessageUUID DEFAULT NULL,
+    timezone_enabled            INTEGER         AS TimezoneEnabled DEFAULT 1,
+    timezone_identifier         TEXT            AS TimezoneIdentifier DEFAULT NULL,
+    remote_timezone_identifier  TEXT            AS RemoteTimezoneIdentifier DEFAULT NULL,
+    timezone_updated            INTEGER         AS TimezoneUpdated DEFAULT 1
 );
+
+chatUpdateNameAndStatus:
+UPDATE chatDbo
+SET name = :name,
+    status = :status
+WHERE id = ?;
 
 chatUpdateLatestMessage:
 UPDATE chatDbo
@@ -125,6 +153,37 @@ chatUpdateContentSeenAt:
 UPDATE chatDbo
 SET content_seen_at = :content_seen_at
 WHERE id = ?;
+
+chatUpdateTimezoneEnabled:
+UPDATE chatDbo
+SET timezone_enabled = :timezone_enabled
+WHERE id = ?;
+
+chatUpdateTimezoneIdentifier:
+UPDATE chatDbo
+SET timezone_identifier = :timezone_identifier
+WHERE id = ?;
+
+chatUpdateRemoteTimezoneIdentifier:
+UPDATE chatDbo
+SET remote_timezone_identifier = :remote_timezone_identifier
+WHERE id = ?;
+
+chatUpdateRemoteTimezoneIdentifierIfNull:
+UPDATE chatDbo
+SET remote_timezone_identifier = :remote_timezone_identifier
+WHERE id = ? AND remote_timezone_identifier IS NULL;
+
+chatUpdateTimezoneUpdated:
+UPDATE chatDbo
+SET timezone_updated = :timezone_updated
+WHERE id = ?;
+
+chatUpdateTimezoneUpdatedOnSystemChanged:
+UPDATE chatDbo
+SET timezone_updated = 1
+WHERE timezone_identifier IS NULL AND timezone_enabled = 1;
+
 
 chatGetAll:
 SELECT *
@@ -159,11 +218,26 @@ SELECT *
 FROM chatDbo
 WHERE uuid = ?;
 
+chatGetAllByUUIDS:
+SELECT *
+FROM chatDbo
+WHERE uuid IN :uuid;
+
 chatGetConversationForContact:
 SELECT *
 FROM chatDbo
 WHERE type = 0 AND contact_ids = ?
 LIMIT 1;
+
+chatGetLastTribeId:
+SELECT MIN(id) FROM chatDbo
+WHERE type = 2
+AND id > 10000;
+
+chatGetSecondBrainTribes:
+SELECT *
+FROM chatDbo
+WHERE second_brain_url != '';
 
 chatUpsert {
     UPDATE chatDbo
@@ -182,7 +256,8 @@ chatUpsert {
         my_photo_url = :my_photo_url,
         my_alias = :my_alias,
         pending_contact_ids = :pending_contact_ids,
-        notify = :notify
+        notify = :notify,
+        pin_message = :pin_message
     WHERE id = :id;
 
     INSERT OR IGNORE INTO chatDbo(
@@ -207,7 +282,9 @@ chatUpsert {
         my_photo_url,
         my_alias,
         pending_contact_ids,
-        notify
+        notify,
+        second_brain_url,
+        pin_message
     )
     VALUES (
         :id,
@@ -231,7 +308,9 @@ chatUpsert {
         :my_photo_url,
         :my_alias,
         :pending_contact_ids,
-        :notify
+        :notify,
+        :second_brain_url,
+        :pin_message
     );
 }
 
@@ -249,12 +328,41 @@ UPDATE chatDbo
 SET seen = :seen
 WHERE id = ?;
 
+chatUpdatePinMessage:
+UPDATE chatDbo
+SET pin_message = :pin_message
+WHERE id = ?;
+
+chatUpdateDetails:
+UPDATE chatDbo
+SET photo_url = :photo_url,
+    status = :status
+WHERE id = ?;
+
 chatUpdateTribeData:
 UPDATE chatDbo
 SET price_per_message = :price_per_message,
     escrow_amount = :escrow_amount,
     name = :name,
-    photo_url = :photo_url
+    photo_url = :photo_url,
+    second_brain_url = :second_brain_url,
+    pin_message = :pin_message
+WHERE id = ?;
+
+chatUpdateSeenByLastMessage:
+UPDATE chatDbo
+SET seen = 1
+WHERE id = ?
+AND latest_message_id = ?;
+
+chatUpdateMyAlias:
+UPDATE chatDbo
+SET my_alias = :my_alias
+WHERE id = ?;
+
+chatUpdateMyPhotoUrl:
+UPDATE chatDbo
+SET my_photo_url = :my_photo_url
 WHERE id = ?;
 
 chatDeleteAll:
@@ -316,11 +424,22 @@ WHERE node_pub_key = ?
 ORDER BY id
 LIMIT 1;
 
+contactGetAllByPubKeys:
+SELECT *
+FROM contactDbo
+WHERE node_pub_key IN :node_pub_key;
+
 contactGetOwner:
 SELECT *
 FROM contactDbo
 WHERE owner = 1
 ORDER BY id
+LIMIT 1;
+
+contactGetLastContactIndex:
+SELECT id
+FROM contactDbo
+ORDER BY id DESC
 LIMIT 1;
 
 contactUpsert {
@@ -394,6 +513,34 @@ UPDATE contactDbo
 SET photo_url = :photo_url
 WHERE id = ?;
 
+contactUpdateAlias:
+UPDATE contactDbo
+SET alias = :alias
+WHERE id = ?;
+
+contactUpdateDetails:
+UPDATE contactDbo
+SET alias = :alias,
+    photo_url = :photo_url,
+    status = :status
+WHERE id = ? AND id != 0;
+
+contactUpdateOwnerDetails:
+UPDATE contactDbo
+SET alias = :alias,
+    private_photo = :private_photo,
+    tip_amount = :tip_amount
+WHERE id = 0;
+
+contactUpdateInvitee:
+UPDATE contactDbo
+SET alias = :alias,
+    photo_url = :photo_url,
+    node_pub_key = :node_pub_key,
+    status = :status,
+    route_hint = :route_hint
+WHERE id = ?;
+
 contactUpdateBlocked:
 UPDATE contactDbo
 SET blocked = :blocked
@@ -402,6 +549,13 @@ WHERE id = ?;
 contactDeleteById:
 DELETE FROM contactDbo
 WHERE id = ?;
+
+contactUpdateOwnerInfo:
+UPDATE contactDbo
+SET alias = :alias,
+    private_photo = :private_photo,
+    tip_amount = :tip_amount
+WHERE owner = 1;
 
 contactDeleteAll:
 DELETE FROM contactDbo;
@@ -414,7 +568,8 @@ CREATE TABLE inviteDbo(
     contact_id                  INTEGER         AS ContactId NOT NULL,
     status                      INTEGER         AS InviteStatus NOT NULL,
     price                       INTEGER         AS Sat,
-    created_at                  INTEGER         AS DateTime NOT NULL
+    created_at                  INTEGER         AS DateTime NOT NULL,
+    invite_code                 TEXT            AS InviteCode
 );
 
 inviteGetAll:
@@ -426,6 +581,12 @@ SELECT *
 FROM inviteDbo
 WHERE id = ?;
 
+inviteGetByInviteString:
+SELECT *
+FROM inviteDbo
+WHERE invite_string = ?
+LIMIT 1;
+
 inviteGetByContactId:
 SELECT *
 FROM inviteDbo
@@ -436,9 +597,15 @@ UPDATE inviteDbo
 SET status = :status
 WHERE id = ?;
 
+inviteGetByCode:
+SELECT *
+FROM inviteDbo
+WHERE invite_code = ?;
+
 inviteUpsert {
     UPDATE inviteDbo
     SET invite_string = :invite_string,
+        invite_code = :invite_code,
         invoice = :invoice,
         status = :status,
         price = :price
@@ -447,6 +614,7 @@ inviteUpsert {
     INSERT OR IGNORE INTO inviteDbo(
         id,
         invite_string,
+        invite_code,
         invoice,
         contact_id,
         status,
@@ -456,6 +624,7 @@ inviteUpsert {
     VALUES (
         :id,
         :invite_string,
+        :invite_code,
         :invoice,
         :contact_id,
         :status,
@@ -600,7 +769,10 @@ CREATE TABLE messageDbo(
     recipient_pic               TEXT            AS PhotoUrl,
     push                        INTEGER         AS Push DEFAULT 0,
     person                      TEXT            AS MessagePerson,
-    thread_uuid                 TEXT            AS ThreadUUID
+    thread_uuid                 TEXT            AS ThreadUUID,
+    tag_message                 TEXT            AS TagMessage,
+    error_message               TEXT            AS ErrorMessage,
+    remote_timezone_identifier  TEXT            AS RemoteTimezoneIdentifier DEFAULT NULL
 );
 
 messageGetAllReactionsByUUID:
@@ -633,6 +805,13 @@ WHERE chat_id = :chat_id
 AND type IN (7, 8, 9)
 AND (muid IN :muids OR original_muid IN :muids);
 
+messageGetAllRequestResponseItemsByReplyUUID:
+SELECT *
+FROM messageDbo
+WHERE chat_id = :chat_id
+AND type IN (20, 21)
+AND reply_uuid IN :reply_uuids;
+
 messageGetAllByUUID:
 SELECT *
 FROM messageDbo
@@ -642,6 +821,32 @@ messageGetById:
 SELECT *
 FROM messageDbo
 WHERE id = ?;
+
+messageGetMessagesByIds:
+SELECT *
+FROM messageDbo
+WHERE id IN ?;
+
+messageGetByPaymentHashes:
+SELECT *
+FROM messageDbo
+WHERE payment_hash IN :payment_hashes;
+
+messageGetByMuid:
+SELECT *
+FROM messageDbo
+WHERE muid = ?
+ORDER BY id ASC
+LIMIT 1;
+
+messageLastMemberRequestGetBySenderAlias:
+SELECT *
+FROM messageDbo
+WHERE sender_alias = ?
+AND chat_id = :chat_id
+AND type = 19
+ORDER BY id ASC
+LIMIT 1;
 
 messageLastMemberRequestGetByContactId:
 SELECT *
@@ -655,7 +860,8 @@ LIMIT 1;
 messageGetByUUID:
 SELECT *
 FROM messageDbo
-WHERE uuid = ?;
+WHERE uuid = ?
+LIMIT 1;
 
 messageGetToShowByUUID:
 SELECT *
@@ -670,6 +876,40 @@ FROM messageDbo
 WHERE id < 0
 ORDER BY id
 LIMIT 1;
+
+messageGetMaxId:
+SELECT MAX(id) FROM messageDbo;
+
+messageGetLastMessage:
+SELECT * FROM messageDbo
+WHERE id = (SELECT MAX(id) FROM messageDbo);
+
+messageGetMaxIdByChatId:
+SELECT *
+FROM messageDbo
+WHERE id = (
+    SELECT MAX(id)
+    FROM messageDbo
+    WHERE chat_id = ?
+);
+
+messageGetSentConfirmedMessages:
+SELECT *
+FROM messageDbo
+WHERE sender == 0
+ AND status == 1
+ AND chat_id = :chat_id;
+
+messageGetDeletedMessages:
+SELECT *
+FROM messageDbo
+WHERE type == 17;
+
+messageGetOkKeysByChatId:
+SELECT id
+FROM messageDbo
+WHERE chat_id = :chat_id
+  AND type IN (2, 3, 5, 6, 10, 11, 29);
 
 messageGetAllToShowByChatId:
 SELECT *
@@ -788,6 +1028,31 @@ UPDATE messageDbo
 SET status = :status
 WHERE id = ?;
 
+messageUpdateStatusAndPaymentHashByTag:
+UPDATE messageDbo
+SET status = :status,
+    payment_hash = :payment_hash,
+    error_message = :error_message
+WHERE tag_message = ?
+AND ((type != 2) || (type = 2 AND status = 0));
+
+messageUpdateStatusByTag:
+UPDATE messageDbo
+SET status = :status,
+    error_message = :error_message
+WHERE tag_message = ?
+AND ((type != 2) || (type = 2 AND status = 0));
+
+messageUpdateStatusByUUID:
+UPDATE messageDbo
+SET status = :status
+WHERE uuid = ?;
+
+messageUpdateMessagesStatusByUUIDS:
+UPDATE messageDbo
+SET status = :status
+WHERE uuid IN ?;
+
 messageUpdateInvoiceAsPaidByPaymentHash:
 UPDATE messageDbo
 SET status = 1
@@ -798,8 +1063,38 @@ UPDATE messageDbo
 SET flagged = :flagged
 WHERE id = ?;
 
+messageGetAllPayments:
+SELECT *
+FROM messageDbo
+WHERE type = 3
+ORDER BY id ASC;
+
+messageUpdateTagAndUUID:
+UPDATE messageDbo
+SET tag_message = :tag_message,
+    uuid = :uuid,
+    status = 1
+WHERE id = ?;
+
+messageUpdateUUIDByUUID:
+UPDATE messageDbo
+SET uuid = :newUuid
+WHERE uuid = ?;
+
+messageUpdateSeenByChatIdAndId:
+UPDATE messageDbo
+SET seen = 1
+WHERE chat_id = ?
+AND id <= ?;
+
+messageUpdateRemoteTimezoneIdentifier:
+UPDATE messageDbo
+SET remote_timezone_identifier = :remote_timezone_identifier
+WHERE chat_id = ?
+AND id = ?;
+
 -- If the message exists in the DB, it will update all fields _except_
--- for message_content_decrypted as to not overwrite it.
+    -- for message_content_decrypted as to not overwrite it.
 messageUpsert {
     UPDATE messageDbo
     SET status = :status,
@@ -813,7 +1108,9 @@ messageUpsert {
         recipient_pic = :recipient_pic,
         push = :push,
         person = :person,
-        thread_uuid = :thread_uuid
+        thread_uuid = :thread_uuid,
+        tag_message = :tag_message,
+        error_message = :error_message
     WHERE id = :id;
 
     INSERT OR IGNORE INTO messageDbo(
@@ -842,7 +1139,10 @@ messageUpsert {
         recipient_pic,
         push,
         person,
-        thread_uuid
+        thread_uuid,
+        tag_message,
+        error_message,
+        remote_timezone_identifier
     )
     VALUES (
         :id,
@@ -870,13 +1170,20 @@ messageUpsert {
         :recipient_pic,
         :push,
         :person,
-        :thread_uuid
+        :thread_uuid,
+        :tag_message,
+        :error_message,
+        :remote_timezone_identifier
     );
 }
 
 messageDeleteById:
 DELETE FROM messageDbo
 WHERE id = ?;
+
+messageDeleteByUUID:
+DELETE FROM messageDbo
+WHERE uuid = ?;
 
 messageDeleteByChatId:
 DELETE FROM messageDbo
@@ -1415,3 +1722,111 @@ WHERE feed_id = ?;
 
 feedDestinationDeleteAll:
 DELETE FROM feedDestinationDbo;
+
+CREATE TABLE userStateDbo (
+    id          INTEGER         AS UserStateId NOT NULL PRIMARY KEY,
+    user_state  TEXT            AS UserState NOT NULL
+);
+
+userStateUpsert {
+    UPDATE userStateDbo
+    SET user_state = :user_state
+    WHERE id = :id;
+
+    INSERT OR IGNORE INTO userStateDbo(
+        id,
+        user_state
+    )
+    VALUES (
+        :id,
+        :user_state
+    );
+}
+
+userStateGet:
+SELECT *
+FROM userStateDbo
+LIMIT 1;
+
+CREATE TABLE lsatDbo (
+    id                TEXT          AS LsatIdentifier NOT NULL PRIMARY KEY,
+    macaroon          TEXT          AS Macaroon NOT NULL,
+    payment_request   TEXT          AS LightningPaymentRequest,
+    issuer            TEXT          AS LsatIssuer,
+    meta_data         TEXT          AS LsatMetaData,
+    paths             TEXT          AS LsatPaths,
+    preimage          TEXT          AS LsatPreImage,
+    status            INTEGER       AS LsatStatus NOT NULL,
+    created_at        INTEGER       AS DateTime NOT NULL
+);
+
+lsatGetLastActiveByIssuer:
+SELECT *
+FROM lsatDbo
+WHERE issuer = ?
+AND status = 1
+ORDER BY created_at DESC
+LIMIT 1;
+
+lsatGetLastActive:
+SELECT *
+FROM lsatDbo
+WHERE status = 1
+ORDER BY created_at DESC
+LIMIT 1;
+
+lsatGetById:
+SELECT *
+FROM lsatDbo
+WHERE id = ?;
+
+lsatUpdateStatus:
+UPDATE lsatDbo
+SET status = :status
+WHERE id = ?;
+
+lsatUpdateMetaData:
+UPDATE lsatDbo
+SET meta_data = :meta_data
+WHERE id = ?;
+
+lsatGetAllActive:
+SELECT *
+FROM lsatDbo
+WHERE status = 1;
+
+lsatUpsert {
+    UPDATE lsatDbo
+    SET macaroon = :macaroon,
+        payment_request = :payment_request,
+        issuer = :issuer,
+        meta_data = :meta_data,
+        paths = :paths,
+        preimage = :preimage,
+        status = :status,
+        created_at = :created_at
+    WHERE id = :id;
+
+    INSERT OR IGNORE INTO lsatDbo (
+        id,
+        macaroon,
+        payment_request,
+        issuer,
+        meta_data,
+        paths,
+        preimage,
+        status,
+        created_at
+    )
+    VALUES (
+        :id,
+        :macaroon,
+        :payment_request,
+        :issuer,
+        :meta_data,
+        :paths,
+        :preimage,
+        :status,
+        :created_at
+    );
+}

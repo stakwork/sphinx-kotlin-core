@@ -51,6 +51,29 @@ sealed class RedemptionCode() {
                 }
             }
 
+            if (code.trim().startsWith(Glyph.REGEX)) {
+                val parameters = code.trim().substringAfter(Glyph.REGEX).split("&").mapNotNull { code ->
+                    code.split("=").takeIf { it.size == 2 }?.let { pair ->
+                        pair[0] to pair[1]
+                    }
+                }.toMap()
+
+                val mqtt = parameters[Glyph.PARAM_MQTT] ?: return null
+                val network = parameters[Glyph.PARAM_NETWORK] ?: return null
+                val relay = parameters[Glyph.PARAM_RELAY] ?: return null
+
+                return Glyph(mqtt, network, relay)
+            }
+
+            if (code.trim().startsWith(NewInvite.REGEX)) {
+                return NewInvite(code.trim())
+            }
+
+            val words = code.trim().split("\\s+".toRegex())
+            if (words.size == 12 && words.all { it.matches("[a-zA-Z]+".toRegex()) }) {
+                return MnemonicRestoration(words)
+            }
+
             return null
         }
     }
@@ -160,5 +183,47 @@ sealed class RedemptionCode() {
                 SwarmClaim(ip, token)
         }
     }
+
+    @Suppress("DataClassPrivateConstructor")
+    data class Glyph private constructor(
+        val mqtt: String,
+        val network: String,
+        val relay: String,
+    ) : RedemptionCode() {
+
+        companion object {
+            const val REGEX = "sphinx.chat://?action=glyph"
+            const val PARAM_MQTT = "mqtt"
+            const val PARAM_NETWORK = "network"
+            const val PARAM_RELAY = "relay"
+
+            @JvmSynthetic
+            internal operator fun invoke(mqtt: String, network: String, relay: String): Glyph =
+                Glyph(mqtt, network, relay)
+        }
+    }
+
+    // New Invite class
+    @Suppress("DataClassPrivateConstructor")
+    data class NewInvite private constructor(
+        val code: String,
+    ) : RedemptionCode() {
+
+        companion object {
+            const val ACTION = "i"
+            const val PARAM_ENCRYPTED_DATA = "d"
+            const val PARAM_CODE = "c"
+            const val REGEX = "sphinx.chat://?action=i&"
+
+            @JvmSynthetic
+            internal operator fun invoke(code: String): NewInvite =
+                NewInvite(code)
+        }
+    }
+
+    // MnemonicRestoration class
+    data class MnemonicRestoration(
+        val mnemonic: List<String>,
+    ) : RedemptionCode()
 
 }

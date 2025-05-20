@@ -1,6 +1,8 @@
 package chat.sphinx.features.coredb.adapters.chat
 
+import chat.sphinx.wrapper.SecondBrainUrl
 import chat.sphinx.wrapper.chat.*
+import chat.sphinx.wrapper.message.RemoteTimezoneIdentifier
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.toNotificationLevel
 import com.squareup.sqldelight.ColumnAdapter
@@ -135,4 +137,44 @@ internal class NotifyAdapter: ColumnAdapter<NotificationLevel, Long> {
         return value.value.toLong()
     }
 }
+
+internal class SecondBrainUrlAdapter: ColumnAdapter<SecondBrainUrl, String> {
+    override fun decode(databaseValue: String): SecondBrainUrl {
+        return SecondBrainUrl(databaseValue)
+    }
+
+    override fun encode(value: SecondBrainUrl): String {
+        return value.value
+    }
+}
+
+internal class TimezoneEnabledAdapter : ColumnAdapter<TimezoneEnabled, Long> {
+    override fun decode(databaseValue: Long): TimezoneEnabled =
+        databaseValue.toInt().toTimezoneEnabled()
+
+    override fun encode(value: TimezoneEnabled): Long = value.value.toLong()
+}
+
+internal class TimezoneIdentifierAdapter : ColumnAdapter<TimezoneIdentifier, String> {
+    override fun decode(databaseValue: String): TimezoneIdentifier =
+        TimezoneIdentifier(databaseValue)
+
+    override fun encode(value: TimezoneIdentifier): String = value.value
+}
+
+internal class RemoteTimezoneIdentifierAdapter : ColumnAdapter<RemoteTimezoneIdentifier, String> {
+    override fun decode(databaseValue: String): RemoteTimezoneIdentifier =
+        RemoteTimezoneIdentifier(databaseValue)
+
+    override fun encode(value: RemoteTimezoneIdentifier): String = value.value
+}
+
+internal class TimezoneUpdatedAdapter : ColumnAdapter<TimezoneUpdated, Long> {
+    override fun decode(databaseValue: Long): TimezoneUpdated =
+        databaseValue.toInt().toTimezoneUpdated()
+
+    override fun encode(value: TimezoneUpdated): Long = value.value.toLong()
+}
+
+
 

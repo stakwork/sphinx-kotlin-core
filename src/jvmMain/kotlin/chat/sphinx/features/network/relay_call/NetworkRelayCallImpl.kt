@@ -5,9 +5,7 @@ import chat.sphinx.concepts.network.call.buildRequest
 import chat.sphinx.concepts.network.client.NetworkClient
 import chat.sphinx.concepts.network.client.NetworkClientClearedListener
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
-import chat.sphinx.concepts.network.relay_call.RelayResponse
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.relay.retrieveRelayUrlAndToken
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.logger.e
@@ -82,27 +80,6 @@ private inline fun NetworkRelayCallImpl.handleException(
     return Response.Error(ResponseError(msg, e))
 }
 
-@Throws(Exception::class)
-private suspend inline fun RelayDataHandler.retrieveRelayData(
-    method: String,
-    path: String,
-    bodyJsonString: String
-): Triple<
-        Pair<AuthorizationToken, TransportToken?>,
-        RequestSignature?,
-        RelayUrl>
-{
-
-    Exhaustive@
-    when(val response = retrieveRelayUrlAndToken(method, path, bodyJsonString)) {
-        is Response.Error -> {
-            throw Exception(response.message)
-        }
-        is Response.Success -> {
-            return response.value
-        }
-    }
-}
 
 @Suppress("BlockingMethodInNonBlockingContext")
 class NetworkRelayCallImpl(
@@ -361,266 +338,56 @@ class NetworkRelayCallImpl(
         )
     }
 
-    ////////////////////////
-    /// NetworkRelayCall ///
-    ////////////////////////
-    override fun <T: Any, V: RelayResponse<T>> relayGet(
-        responseJsonSerializer: KSerializer<V>,
-        relayEndpoint: String,
-        additionalHeaders: Map<String, String>?,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?,
-        useExtendedNetworkCallClient: Boolean,
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
+    override fun getRawJson(
+        url: String,
+        headers: Map<String, String>?,
+        useExtendedNetworkCallClient: Boolean
+    ): Flow<LoadResponse<String, ResponseError>> = flow {
 
-        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
-            val nnRelayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl> = relayData
-                ?: relayDataHandler.retrieveRelayData(
-                    method = "GET",
-                    path = relayEndpoint,
-                    bodyJsonString = ""
-                )
+        emit(LoadResponse.Loading)
 
-            get(
-                nnRelayData.third.value + relayEndpoint,
-                responseJsonSerializer,
-                mapRelayHeaders(nnRelayData, additionalHeaders, LOG),
-                useExtendedNetworkCallClient
-            )
-        } catch (e: Exception) {
-            emit(handleException(LOG, GET, relayEndpoint, e))
-            null
-        }
+        try {
+            val requestBuilder = buildRequest(url, headers)
 
-        responseFlow?.let {
-            emitAll(validateRelayResponse(it, GET, relayEndpoint))
-        }
-
-    }
-
-    override fun <T: Any, V: RelayResponse<T>> relayUnauthenticatedGet(
-        responseJsonSerializer: KSerializer<V>,
-        relayEndpoint: String,
-        relayUrl: RelayUrl
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
-
-        val responseFlow: Flow<LoadResponse<V, ResponseError>>? = try {
-
-            get(
-                relayUrl.value + relayEndpoint,
-                responseJsonSerializer,
-                null,
-                false
-            )
-        } catch (e: Exception) {
-            emit(handleException(LOG, GET, relayEndpoint, e))
-            null
-        }
-
-        responseFlow?.let {
-            emitAll(validateRelayResponse(it, GET, relayEndpoint))
-        }
-
-    }
-
-
-    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayPut(
-        responseJsonSerializer: KSerializer<Output>,
-        relayEndpoint: String,
-        requestBodyPair: Pair<Input, KSerializer<Input>>?,
-        mediaType: String?,
-        additionalHeaders: Map<String, String>?,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<Result, ResponseError>> = flow {
-
-        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
-
-            val requestBodyJson: String? = requestBodyPair?.let { (requestBody, requestBodySerializer) ->
-                Json.encodeToString(requestBodySerializer, requestBody)
-            }
-
-            val nnRelayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl> = relayData
-                ?: relayDataHandler.retrieveRelayData(
-                    method = "PUT",
-                    path = relayEndpoint,
-                    bodyJsonString = requestBodyJson ?: ""
-                )
-
-            put(
-                nnRelayData.third.value + relayEndpoint,
-                responseJsonSerializer,
-                requestBodyPair,
-                mediaType,
-                mapRelayHeaders(nnRelayData, additionalHeaders, LOG)
-            )
-        } catch (e: Exception) {
-            emit(handleException(LOG, PUT, relayEndpoint, e))
-            null
-        }
-
-        responseFlow?.let {
-            emitAll(validateRelayResponse(it, PUT, relayEndpoint))
-        }
-
-    }
-
-    // TODO: Remove and replace all uses with post (DO NOT USE THIS METHOD FOR NEW CODE)
-    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayUnauthenticatedPost(
-        responseJsonSerializer: KSerializer<Output>,
-        relayEndpoint: String,
-        requestBodyPair: Pair<Input, KSerializer<Input>>,
-        mediaType: String?,
-        relayUrl: RelayUrl
-    ): Flow<LoadResponse<Result, ResponseError>> = flow {
-
-        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
-            post(
-                relayUrl.value + relayEndpoint,
-                responseJsonSerializer,
-                requestBodyPair,
-                mediaType
-            )
-        } catch (e: Exception) {
-            emit(handleException(LOG, POST, relayEndpoint, e))
-            null
-        }
-
-        responseFlow?.let {
-            emitAll(validateRelayResponse(it, POST, relayEndpoint))
-        }
-
-    }
-
-    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayPost(
-        responseJsonSerializer: KSerializer<Output>,
-        relayEndpoint: String,
-        requestBodyPair: Pair<Input, KSerializer<Input>>,
-        mediaType: String?,
-        additionalHeaders: Map<String, String>?,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<Result, ResponseError>> = flow {
-
-        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
-
-            val requestBodyJson: String? = requestBodyPair?.let { (requestBody, requestBodySerializer) ->
-                Json.encodeToString(requestBodySerializer, requestBody)
-            }
-
-            val nnRelayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl> = relayData
-                ?: relayDataHandler.retrieveRelayData(
-                    method = "POST",
-                    path = relayEndpoint,
-                    bodyJsonString = requestBodyJson ?: ""
-                )
-
-            post(
-                nnRelayData.third.value + relayEndpoint,
-                responseJsonSerializer,
-                requestBodyPair,
-                mediaType,
-                mapRelayHeaders(nnRelayData, additionalHeaders, LOG)
-            )
-        } catch (e: Exception) {
-            emit(handleException(LOG, POST, relayEndpoint, e))
-            null
-        }
-
-        responseFlow?.let {
-            emitAll(validateRelayResponse(it, POST, relayEndpoint))
-        }
-
-    }
-
-    override fun <Result: Any, Input: Any, Output: RelayResponse<Result>> relayDelete(
-        responseJsonSerializer: KSerializer<Output>,
-        relayEndpoint: String,
-        requestBodyPair: Pair<Input, KSerializer<Input>>?,
-        mediaType: String?,
-        additionalHeaders: Map<String, String>?,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
-    ): Flow<LoadResponse<Result, ResponseError>> = flow {
-
-        val responseFlow: Flow<LoadResponse<Output, ResponseError>>? = try {
-
-            val requestBodyJson: String? = requestBodyPair?.let { (requestBody, requestBodySerializer) ->
-                Json.encodeToString(requestBodySerializer, requestBody)
-            }
-
-            val nnRelayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl> = relayData
-                ?: relayDataHandler.retrieveRelayData(
-                    method = "DELETE",
-                    path = relayEndpoint,
-                    bodyJsonString = requestBodyJson ?: ""
-                )
-
-            delete(
-                nnRelayData.third.value + relayEndpoint,
-                responseJsonSerializer,
-                requestBodyPair,
-                mediaType,
-                mapRelayHeaders(nnRelayData, additionalHeaders, LOG)
-            )
-        } catch (e: Exception) {
-            emit(handleException(LOG, DELETE, relayEndpoint, e))
-            null
-        }
-
-        responseFlow?.let {
-            emitAll(validateRelayResponse(it, DELETE, relayEndpoint))
-        }
-
-    }
-
-    @Throws(NullPointerException::class, AssertionError::class)
-    private fun <T: Any, V: RelayResponse<T>> validateRelayResponse(
-        flow: Flow<LoadResponse<V, ResponseError>>,
-        callMethod: String,
-        endpoint: String,
-    ): Flow<LoadResponse<T, ResponseError>> = flow {
-
-        flow.collect { loadResponse ->
-            when(loadResponse) {
-                is LoadResponse.Loading -> {
-                    emit(loadResponse)
+            val client = if (useExtendedNetworkCallClient) {
+                extendedClientLock.withLock {
+                    extendedNetworkCallClient ?: networkClient.getClient().newBuilder()
+                        .connectTimeout(120, TimeUnit.SECONDS)
+                        .readTimeout(45, TimeUnit.SECONDS)
+                        .writeTimeout(45, TimeUnit.SECONDS)
+                        .build()
+                        .also { extendedNetworkCallClient = it }
                 }
-                is Response.Error -> {
-                    emit(loadResponse)
-                }
-                is Response.Success -> {
-
-                    if (loadResponse.value.success) {
-
-                        loadResponse.value.response?.let { nnResponse ->
-
-                            emit(Response.Success(nnResponse))
-
-                        } ?: let {
-
-                            val msg = """
-                                RelayResponse.success: true
-                                RelayResponse.response: >>> null <<<
-                                RelayResponse.error: ${loadResponse.value.error}
-                            """.trimIndent()
-
-                            emit(handleException(LOG, callMethod, endpoint, NullPointerException(msg)))
-
-                        }
-
-                    } else {
-
-                        val msg = """
-                            RelayResponse.success: false
-                            RelayResponse.error: ${loadResponse.value.error}
-                        """.trimIndent()
-
-                        emit(handleException(LOG, callMethod, endpoint, Exception(msg)))
-
-                    }
-                }
-
+            } else {
+                networkClient.getClient()
             }
 
-        }
+            val networkResponse = withContext(io) {
+                client.newCall(requestBuilder.build()).execute()
+            }
 
+            val body = networkResponse.body ?: throw NullPointerException(
+                """
+            NetworkResponse.body returned null
+            NetworkResponse: $networkResponse
+        """.trimIndent()
+            )
+
+            if (!networkResponse.isSuccessful) {
+                val responseError = body.string()
+                body.close()
+                throw IOException(responseError)
+            }
+
+            val rawJson = withContext(default) {
+                body.string()
+            }
+
+            emit(Response.Success(rawJson))
+        } catch (e: Exception) {
+            emit(handleException(LOG, GET, url, e))
+        }
     }
+
 
 }

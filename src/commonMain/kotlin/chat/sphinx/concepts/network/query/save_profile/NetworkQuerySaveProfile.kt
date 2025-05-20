@@ -20,16 +20,6 @@ abstract class NetworkQuerySaveProfile {
         key: String
     ): Flow<LoadResponse<GetExternalRequestDto, ResponseError>>
 
-    abstract fun savePeopleProfile(
-        profile: PeopleProfileDto,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
-    ): Flow<LoadResponse<Any, ResponseError>>
-
-    abstract fun deletePeopleProfile(
-        deletePeopleProfileDto: DeletePeopleProfileDto,
-        relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>? = null
-    ): Flow<LoadResponse<Any, ResponseError>>
-
     abstract fun getTribeMemberProfile(
         person: MessagePerson
     ): Flow<LoadResponse<TribeMemberProfileDto, ResponseError>>

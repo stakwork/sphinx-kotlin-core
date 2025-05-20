@@ -16,6 +16,7 @@ import chat.sphinx.wrapper.lightning.NodeBalance
 import chat.sphinx.wrapper.message.Message
 import chat.sphinx.wrapper.message.MessageId
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 interface RepositoryDashboard {
@@ -64,13 +65,12 @@ interface RepositoryDashboard {
         body: String
     ): Response<Boolean, ResponseError>
 
-    val networkRefreshBalance: Flow<LoadResponse<Boolean, ResponseError>>
+    val networkRefreshBalance: MutableStateFlow<Long?>
     val networkRefreshContacts: Flow<LoadResponse<Boolean, ResponseError>>
     val networkRefreshLatestContacts: Flow<LoadResponse<RestoreProgress, ResponseError>>
     val networkRefreshMessages: Flow<LoadResponse<RestoreProgress, ResponseError>>
 
     suspend fun didCancelRestore()
+    suspend fun deleteInviteAndContact(inviteString: String)
 
-    fun getAndSaveTransportKey(forceGet: Boolean = false)
-    fun getOrCreateHMacKey(forceGet: Boolean = false)
 }

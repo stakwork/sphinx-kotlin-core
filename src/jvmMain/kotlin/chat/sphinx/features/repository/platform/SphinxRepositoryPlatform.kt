@@ -1,6 +1,7 @@
 package chat.sphinx.features.repository.platform
 
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage
+import chat.sphinx.concepts.connect_manager.ConnectManager
 import chat.sphinx.concepts.coredb.CoreDB
 import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.concepts.crypto_rsa.RSA
@@ -10,18 +11,12 @@ import chat.sphinx.concepts.meme_server.MemeServerTokenHandler
 import chat.sphinx.concepts.network.query.chat.NetworkQueryChat
 import chat.sphinx.concepts.network.query.contact.NetworkQueryContact
 import chat.sphinx.concepts.network.query.feed_search.NetworkQueryFeedSearch
-import chat.sphinx.concepts.network.query.invite.NetworkQueryInvite
-import chat.sphinx.concepts.network.query.lightning.NetworkQueryLightning
 import chat.sphinx.concepts.network.query.meme_server.NetworkQueryMemeServer
-import chat.sphinx.concepts.network.query.message.NetworkQueryMessage
 import chat.sphinx.concepts.network.query.redeem_badge_token.NetworkQueryRedeemBadgeToken
-import chat.sphinx.concepts.network.query.relay_keys.NetworkQueryRelayKeys
 import chat.sphinx.concepts.network.query.save_profile.NetworkQuerySaveProfile
-import chat.sphinx.concepts.network.query.subscription.NetworkQuerySubscription
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.notification.SphinxNotificationManager
 import chat.sphinx.concepts.relay.RelayDataHandler
-import chat.sphinx.concepts.socket_io.SocketIOManager
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.features.repository.SphinxRepository
 import chat.sphinx.logger.SphinxLogger
@@ -43,17 +38,12 @@ class SphinxRepositoryPlatform(
     networkQueryMemeServer: NetworkQueryMemeServer,
     networkQueryChat: NetworkQueryChat,
     networkQueryContact: NetworkQueryContact,
-    networkQueryLightning: NetworkQueryLightning,
-    networkQueryMessage: NetworkQueryMessage,
-    networkQueryInvite: NetworkQueryInvite,
     networkQueryAuthorizeExternal: NetworkQueryAuthorizeExternal,
     networkQuerySaveProfile: NetworkQuerySaveProfile,
     networkQueryRedeemBadgeToken: NetworkQueryRedeemBadgeToken,
-    networkQuerySubscription: NetworkQuerySubscription,
     networkQueryFeedSearch: NetworkQueryFeedSearch,
-    networkQueryRelayKeys: NetworkQueryRelayKeys,
+    connectManager: ConnectManager,
     rsa: RSA,
-    socketIOManager: SocketIOManager,
     sphinxNotificationManager: SphinxNotificationManager,
     LOG: SphinxLogger,
 ): SphinxRepository(
@@ -70,17 +60,12 @@ class SphinxRepositoryPlatform(
     networkQueryMemeServer,
     networkQueryChat,
     networkQueryContact,
-    networkQueryLightning,
-    networkQueryMessage,
-    networkQueryInvite,
     networkQueryAuthorizeExternal,
     networkQuerySaveProfile,
     networkQueryRedeemBadgeToken,
-    networkQuerySubscription,
     networkQueryFeedSearch,
-    networkQueryRelayKeys,
+    connectManager,
     rsa,
-    socketIOManager,
     sphinxNotificationManager,
     LOG,
 )

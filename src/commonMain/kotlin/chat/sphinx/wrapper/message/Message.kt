@@ -50,7 +50,7 @@ inline fun Message.retrieveTextToShow(): String? {
 @Suppress("NOTHING_TO_INLINE")
 inline fun Message.retrieveInvoiceTextToShow(): String? =
     messageContentDecrypted?.let { decrypted ->
-        if (type.isInvoice() && !isExpiredInvoice) {
+        if (type.isInvoice() && !isExpiredInvoice()) {
             return decrypted.value
         }
         return null
@@ -220,7 +220,11 @@ inline fun Message.retrievePurchaseStatus(): PurchaseStatus? {
 @Suppress("NOTHING_TO_INLINE")
 inline fun Message.retrieveSphinxCallLink(): SphinxCallLink? =
     messageContentDecrypted?.value?.toSphinxCallLink()?.let {
-        it
+        if (it.value.split(" ").count() == 1) {
+            it
+        } else {
+            null
+        }
     } ?: callLinkMessage?.let {
         it.link
     }
@@ -256,7 +260,27 @@ inline fun Message.hasSameSenderThanMessage(message: Message): Boolean {
 inline fun Message.shouldAvoidGrouping(): Boolean {
     return status.isPending() || status.isFailed() || status.isDeleted() ||
             type.isInvoice() || type.isInvoicePayment() || type.isGroupAction() ||
-            flagged.isTrue()
+            flagged.isTrue() || remoteTimezoneIdentifier != null
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isPinAllowed(chatPinnedMessage: MessageUUID?): Boolean {
+    chatPinnedMessage?.let {
+        if (it == this.uuid) {
+            return false
+        }
+    }
+    return true
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isUnPinAllowed(chatPinnedMessage: MessageUUID?): Boolean {
+    chatPinnedMessage?.let {
+        if (it == this.uuid) {
+            return true
+        }
+    }
+    return false
 }
 
 //Message Actions
@@ -327,6 +351,20 @@ inline val Message.isSphinxCallLink: Boolean
         return false
     }
 
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isTribeChat(): Boolean {
+    // Arbitrary threshold: Tribe chat IDs start from Long.MAX_VALUE and decrease.
+    // We assume that any chatId within the last 100,000 values of Long.MAX_VALUE is a tribe.
+    return chatId.value >= (Long.MAX_VALUE - 100_000)
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Message.isConversationChat(): Boolean {
+    // Arbitrary threshold: Direct conversation chat IDs start from 0 and increase.
+    // We assume that any chatId below 100,000 belongs to a direct conversation.
+    return chatId.value < 100_000
+}
+
 inline val Message.isAudioMessage: Boolean
     get() = type.isAttachment() && messageMedia?.mediaType?.isAudio == true
 
@@ -339,14 +377,32 @@ inline val Message.isPodcastBoost: Boolean
 inline val Message.isPodcastClip: Boolean
     get() = podcastClip != null
 
-inline val Message.isExpiredInvoice: Boolean
-    get() = type.isInvoice() && !status.isConfirmed() && expirationDate != null && expirationDate!!.time < getCurrentTimeInMillis()
+fun Message.isExpiredInvoice(): Boolean {
+    val currentTimeMillis = System.currentTimeMillis()
+    val isInvoice = type.isInvoice()
+    val hasExpirationDate = expirationDate != null
+
+    if (hasExpirationDate) {
+        val expirationTimeMillis = expirationDate!!.time
+        // Ensure both timestamps are in milliseconds for accurate comparison
+        val currentTimeInSeconds = currentTimeMillis / 1000
+
+        val isExpired = expirationTimeMillis < currentTimeInSeconds
+        val result = isInvoice && isExpired
+        return result
+    } else {
+        return false
+    }
+}
 
 inline val Message.isPaidInvoice: Boolean
     get() = type.isInvoice() && status.isConfirmed()
 
 inline val Message.isFlagged: Boolean
     get() = flagged.isTrue()
+
+inline fun Message.isPaymentConfirmed(): Boolean =
+    (this.type.isDirectPayment() || this.type.isInvoicePayment()) && this.status is MessageStatus.Confirmed
 
 abstract class Message {
     abstract val id: MessageId
@@ -372,6 +428,8 @@ abstract class Message {
     abstract val recipientPic: PhotoUrl?
     abstract val person: MessagePerson?
     abstract val threadUUID: ThreadUUID?
+    abstract val tagMessage: TagMessage?
+    abstract val errorMessage: ErrorMessage?
     abstract val messageContentDecrypted: MessageContentDecrypted?
     abstract val messageDecryptionError: Boolean
     abstract val messageDecryptionException: Exception?
@@ -384,7 +442,7 @@ abstract class Message {
     abstract val purchaseItems: List<Message>?
     abstract val replyMessage: Message?
     abstract val thread: List<Message>?
-
+    abstract val remoteTimezoneIdentifier: RemoteTimezoneIdentifier?
 
     override fun equals(other: Any?): Boolean {
         return  other                               is Message &&
@@ -430,7 +488,8 @@ abstract class Message {
                     }
                 }                                                                   &&
                 other.replyMessage                  == replyMessage                 &&
-                other.threadUUID                    == threadUUID
+                other.threadUUID                    == threadUUID                   &&
+                other.remoteTimezoneIdentifier      == remoteTimezoneIdentifier
 
     }
 
@@ -492,6 +551,7 @@ abstract class Message {
                 "messageMedia=$messageMedia,feedBoost=$feedBoost,podcastClip=$podcastClip,"     +
                 "giphyData=$giphyData,reactions=$reactions,purchaseItems=$purchaseItems,"       +
                 "replyMessage=$replyMessage,recipientAlias=$recipientAlias,"                    +
-                "recipientPic=$recipientPic,callLink=$callLinkMessage)"
+                "recipientPic=$recipientPic,callLink=$callLinkMessage,"                         +
+                " remoteTimezoneIdentifier=$remoteTimezoneIdentifier)"
     }
 }

@@ -16,6 +16,13 @@ inline fun Int?.toPrivatePhoto(): PrivatePhoto =
     }
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun Boolean?.toNotNullPrivatePhoto(): PrivatePhoto =
+    when (this) {
+        true -> PrivatePhoto.True
+        else -> PrivatePhoto.False
+    }
+
+@Suppress("NOTHING_TO_INLINE")
 inline fun Boolean.toPrivatePhoto(): PrivatePhoto =
     if (this) PrivatePhoto.True else PrivatePhoto.False
 

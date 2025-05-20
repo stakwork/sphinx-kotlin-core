@@ -1,5 +1,6 @@
 package chat.sphinx.features.repository.util
 
+import chat.sphinx.concepts.network.query.chat.model.NewTribeDto
 import chat.sphinx.concepts.network.query.chat.model.TribeDto
 import chat.sphinx.concepts.network.query.chat.model.feed.FeedDto
 import chat.sphinx.concepts.network.query.contact.model.ContactDto
@@ -17,6 +18,7 @@ import chat.sphinx.wrapper.dashboard.InviteId
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.invite.*
 import chat.sphinx.wrapper.lightning.*
+import chat.sphinx.wrapper.lsat.Lsat
 import chat.sphinx.wrapper.message.*
 import chat.sphinx.wrapper.message.media.*
 import chat.sphinx.wrapper.rsa.RsaPublicKey
@@ -24,6 +26,8 @@ import chat.sphinx.wrapper.subscription.Cron
 import chat.sphinx.wrapper.subscription.EndNumber
 import chat.sphinx.wrapper.subscription.SubscriptionCount
 import chat.sphinx.wrapper.subscription.SubscriptionId
+import chat.sphinx.wrapper.user.UserState
+import chat.sphinx.wrapper.user.UserStateId
 import chat.sphinx.wrapper_chat.NotificationLevel
 import chat.sphinx.wrapper_chat.toNotificationLevel
 import chat.sphinx.wrapper_message.toThreadUUID
@@ -40,15 +44,26 @@ inline fun BalanceDto.toNodeBalanceOrNull(): NodeBalance? =
 @Suppress("NOTHING_TO_INLINE")
 inline fun BalanceDto.toNodeBalance(): NodeBalance =
     NodeBalance(
-        Sat(reserve),
-        Sat(full_balance),
         Sat(balance),
-        Sat(pending_open_balance),
     )
 
+@Suppress("NOTHING_TO_INLINE")
+inline fun Long.toNodeBalance(): NodeBalance? {
+    return try {
+        NodeBalance(Sat(this))
+    } catch (e: NumberFormatException) {
+        null
+    }
+}
+
 inline val MessageDto.updateChatDboLatestMessage: Boolean
-    get() = type.toMessageType().show           &&
+    get() = type.toMessageType().show &&
             status != MessageStatus.DELETED
+
+inline val Message.updateChatNewLatestMessage: Boolean
+    get() = type.show &&
+            type != MessageType.BotRes &&
+            status != MessageStatus.Deleted
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun TransactionCallbacks.updateChatDboLatestMessage(
@@ -62,7 +77,7 @@ inline fun TransactionCallbacks.updateChatDboLatestMessage(
     if (
         messageDto.updateChatDboLatestMessage &&
         (latestMessageUpdatedTimeMap[chatId]?.time ?: 0L) <= dateTime.time
-    ){
+    ) {
         queries.chatUpdateLatestMessage(
             MessageId(messageDto.id),
             chatId,
@@ -77,6 +92,33 @@ inline fun TransactionCallbacks.updateChatDboLatestMessage(
 }
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun TransactionCallbacks.updateChatNewLatestMessage(
+    message: Message,
+    chatId: ChatId,
+    latestMessageUpdatedTimeMap: MutableMap<ChatId, DateTime>,
+    queries: SphinxDatabaseQueries,
+) {
+    val dateTime = message.date
+
+    if (
+        message.updateChatNewLatestMessage &&
+        (latestMessageUpdatedTimeMap[chatId]?.time ?: 0L) <= dateTime.time
+    ) {
+        queries.chatUpdateLatestMessage(
+            message.id,
+            chatId,
+        )
+        queries.dashboardUpdateLatestMessage(
+            dateTime,
+            message.id,
+            chatId,
+        )
+        latestMessageUpdatedTimeMap[chatId] = dateTime
+    }
+}
+
+
+@Suppress("NOTHING_TO_INLINE")
 inline fun TransactionCallbacks.updateChatDboLatestMessage(
     messageDto: MessageDto,
     chatId: ChatId,
@@ -85,6 +127,18 @@ inline fun TransactionCallbacks.updateChatDboLatestMessage(
 ) {
     latestMessageUpdatedTimeMap.withLock { map ->
         updateChatDboLatestMessage(messageDto, chatId, map, queries)
+    }
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun TransactionCallbacks.updateChatNewLatestMessage(
+    message: Message,
+    chatId: ChatId,
+    latestMessageUpdatedTimeMap: SynchronizedMap<ChatId, DateTime>,
+    queries: SphinxDatabaseQueries,
+) {
+    latestMessageUpdatedTimeMap.withLock { map ->
+        updateChatNewLatestMessage(message, chatId, map, queries)
     }
 }
 
@@ -108,22 +162,28 @@ inline fun TransactionCallbacks.updateChatNotificationLevel(
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
-inline fun TransactionCallbacks.updateChatTribeData(
-    tribe: TribeDto,
+inline fun TransactionCallbacks.updateNewChatTribeData(
+    tribe: NewTribeDto,
     chatId: ChatId,
     queries: SphinxDatabaseQueries,
 ) {
-    val pricePerMessage = tribe.price_per_message.toSat()
-    val escrowAmount = tribe.escrow_amount.toSat()
+    // Needs to implement the rest of args
+
+    val pricePerMessage = tribe.getPricePerMessageInSats().toSat()
+    val escrowAmount = tribe.getEscrowAmountInSats().toSat()
     val name = tribe.name.toChatName()
     val photoUrl = tribe.img?.toPhotoUrl()
+    val pinMessage = tribe.pin?.toMessageUUID()
+    val secondBrainUrl = tribe.second_brain_url?.toSecondBrainUrl()
 
     queries.chatUpdateTribeData(
         pricePerMessage,
         escrowAmount,
         name,
         photoUrl,
-        chatId,
+        secondBrainUrl,
+        pinMessage,
+        chatId
     )
 
     queries.dashboardUpdateTribe(
@@ -134,52 +194,96 @@ inline fun TransactionCallbacks.updateChatTribeData(
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
-inline fun TransactionCallbacks.upsertChat(
-    dto: chat.sphinx.concepts.network.query.chat.model.ChatDto,
+inline fun TransactionCallbacks.updateChatTribeData(
+    tribe: TribeDto,
+    chatId: ChatId,
+    queries: SphinxDatabaseQueries,
+) {
+    val pricePerMessage = tribe.price_per_message.toSat()
+    val escrowAmount = tribe.escrow_amount.toSat()
+    val name = tribe.name.toChatName()
+    val photoUrl = tribe.img?.toPhotoUrl()
+    val secondBrainUrl = tribe.second_brain_url?.toSecondBrainUrl()
+    val pinMessage = tribe.pin?.toMessageUUID()
+
+    queries.chatUpdateTribeData(
+        pricePerMessage,
+        escrowAmount,
+        name,
+        photoUrl,
+        secondBrainUrl,
+        pinMessage,
+        chatId,
+    )
+
+    queries.dashboardUpdateTribe(
+        name?.value ?: "",
+        photoUrl,
+        chatId
+    )
+}
+
+inline fun TransactionCallbacks.upsertNewChat(
+    chat: Chat, // Replaced ChatDto with Chat
     chatSeenMap: SynchronizedMap<ChatId, Seen>,
     queries: SphinxDatabaseQueries,
-    contactDto: ContactDto? = null,
+    contact: Contact? = null, // Replaced ContactDto with Contact
     ownerPubKey: LightningNodePubKey? = null
 ) {
-    val seen = dto.seenActual.toSeen()
-    val chatId = ChatId(dto.id)
-    val chatType = dto.type.toChatType()
-    val createdAt = dto.created_at.toDateTime()
-    val contactIds = dto.contact_ids.map { ContactId(it) }
-    val muted = dto.isMutedActual().toChatMuted()
-    val chatPhotoUrl = dto.photo_url?.toPhotoUrl()
-    val pricePerMessage = dto.price_per_message?.toSat()
-    val escrowAmount = dto.escrow_amount?.toSat()
-    val chatName = dto.name?.toChatName()
-    val adminPubKey = dto.owner_pub_key?.toLightningNodePubKey()
+    val seen = chat.seen
+    val chatId = chat.id
+    val chatType = chat.type
+    val createdAt = chat.createdAt
+    val contactIds = chat.contactIds
+    val muted = chat.isMuted
+    val chatPhotoUrl = chat.photoUrl
+    val pricePerMessage = chat.pricePerMessage
+    val escrowAmount = chat.escrowAmount
+    val chatName = chat.name
+    val adminPubKey = chat.ownerPubKey
+    val pinedMessage = chat.pinedMessage
 
     queries.chatUpsert(
         chatName,
         chatPhotoUrl,
-        dto.status.toChatStatus(),
+        chat.status,
         contactIds,
         muted,
-        dto.group_key?.toChatGroupKey(),
-        dto.host?.toChatHost(),
-        dto.unlistedActual.toChatUnlisted(),
-        dto.privateActual.toChatPrivate(),
-        dto.owner_pub_key?.toLightningNodePubKey(),
+        chat.groupKey,
+        chat.host,
+        chat.unlisted,
+        chat.privateTribe,
+        chat.ownerPubKey,
         seen,
-        dto.meta?.toChatMetaDataOrNull(),
-        dto.my_photo_url?.toPhotoUrl(),
-        dto.my_alias?.toChatAlias(),
-        dto.pending_contact_ids?.map { ContactId(it) },
-        dto.notify?.toNotificationLevel(),
+        null,
+        chat.myPhotoUrl,
+        chat.myAlias,
+        chat.pendingContactIds,
+        chat.notify,
+        pinedMessage,
         chatId,
-        ChatUUID(dto.uuid),
+        chat.uuid,
         chatType,
         createdAt,
         pricePerMessage,
         escrowAmount,
+        null
     )
 
-    if (chatType.isTribe() && (ownerPubKey == adminPubKey) && (pricePerMessage != null || escrowAmount != null)) {
-        queries.chatUpdateTribeData(pricePerMessage, escrowAmount, chatName, chatPhotoUrl, chatId)
+    if (
+        chatType.isTribe() &&
+        (ownerPubKey == adminPubKey) &&
+        (pricePerMessage != null || escrowAmount != null)
+    ) {
+        queries.chatUpdateTribeData(
+            pricePerMessage,
+            escrowAmount,
+            chatName,
+            chatPhotoUrl,
+            null,
+            pinedMessage,
+            chatId
+        )
     }
 
     val conversationContactId: ContactId? = if (chatType.isConversation()) {
@@ -192,15 +296,15 @@ inline fun TransactionCallbacks.upsertChat(
     }
 
     queries.dashboardUpsert(
-        if (conversationContactId != null && contactDto != null) {
-            contactDto.alias
+        if (conversationContactId != null && contact != null) {
+            contact.alias?.value
         } else {
-            dto.name ?: " "
+            contact?.alias?.value ?: " "
         },
         muted,
         seen,
-        if (conversationContactId != null && contactDto != null) {
-            contactDto.photo_url?.toPhotoUrl()
+        if (conversationContactId != null && contact != null) {
+            contact.photoUrl
         } else {
             chatPhotoUrl
         },
@@ -209,7 +313,66 @@ inline fun TransactionCallbacks.upsertChat(
         createdAt
     )
 
-    chatSeenMap.withLock { it[ChatId(dto.id)] = seen }
+    chatSeenMap.withLock { it[ChatId(chat.id.value)] = seen }
+}
+
+@Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
+inline fun TransactionCallbacks.upsertNewContact(contact: Contact, queries: SphinxDatabaseQueries) {
+
+    if (contact.fromGroup.isTrue()) {
+        return
+    }
+
+    val routeHint = contact.routeHint
+    val nodePubKey = contact.nodePubKey
+    val nodeAlias = contact.nodeAlias
+    val alias = contact.alias
+    val photoUrl = contact.photoUrl
+    val privatePhoto = contact.privatePhoto
+    val status = contact.status
+    val rsaPublicKey = contact.rsaPublicKey
+    val deviceId = contact.deviceId
+    val updatedAt = contact.updatedAt
+    val notificationSound = contact.notificationSound
+    val tipAmount = contact.tipAmount
+    val blocked = contact.blocked
+
+    // Perform the upsert operation
+    queries.contactUpsert(
+        routeHint,
+        nodePubKey,
+        nodeAlias,
+        alias,
+        photoUrl,
+        privatePhoto,
+        status,
+        rsaPublicKey,
+        deviceId,
+        updatedAt,
+        notificationSound,
+        tipAmount,
+        blocked,
+        contact.id,
+        contact.isOwner,
+        contact.createdAt
+    )
+
+    if (!contact.isOwner.isTrue()) {
+        queries.dashboardUpsert(
+            contact.alias?.value,
+            ChatMuted.False,
+            Seen.True,
+            contact.photoUrl,
+            contact.id,
+            null,
+            contact.createdAt
+        )
+        queries.dashboardUpdateConversation(
+            contact.alias?.value,
+            contact.photoUrl,
+            contact.id
+        )
+    }
 }
 
 @Suppress("NOTHING_TO_INLINE", "SpellCheckingInspection")
@@ -266,6 +429,28 @@ inline fun TransactionCallbacks.upsertContact(dto: ContactDto, queries: SphinxDa
 }
 
 @Suppress("NOTHING_TO_INLINE")
+inline fun TransactionCallbacks.upsertNewInvite(invite: Invite, queries: SphinxDatabaseQueries) {
+
+    queries.inviteUpsert(
+        invite_string = invite.inviteString,
+        invoice = invite.paymentRequest,
+        status = invite.status,
+        price = invite.price,
+        id = invite.id,
+        contact_id = invite.contactId,
+        created_at = invite.createdAt,
+        invite_code = invite.inviteCode,
+    )
+
+    queries.contactUpdateInvite(
+        invite.status,
+        invite.id,
+        invite.contactId
+    )
+}
+
+
+@Suppress("NOTHING_TO_INLINE")
 inline fun TransactionCallbacks.upsertInvite(dto: InviteDto, queries: SphinxDatabaseQueries) {
 
     val inviteStatus = dto.status.toInviteStatus().let { dtoStatus ->
@@ -286,6 +471,7 @@ inline fun TransactionCallbacks.upsertInvite(dto: InviteDto, queries: SphinxData
 
     queries.inviteUpsert(
         InviteString(dto.invite_string),
+        null,
         dto.invoice?.toLightningPaymentRequestOrNull(),
         inviteStatus,
         dto.price?.toSat(),
@@ -326,6 +512,70 @@ inline fun TransactionCallbacks.updateInviteStatus(
 ) {
     queries.inviteUpdateStatus(inviteStatus, inviteId)
 }
+
+fun TransactionCallbacks.upsertNewMessage(
+    message: NewMessage,
+    queries: SphinxDatabaseQueries,
+    fileName: FileName? = null
+) {
+    val chatId: ChatId = message.chatId
+
+    message.messageMedia?.mediaToken?.let { mediaToken ->
+
+        if (mediaToken.value.isEmpty()) return
+
+        queries.messageMediaUpsert(
+            (message.messageMedia?.mediaKey?.value ?: "").toMediaKey(),
+            (message.messageMedia?.mediaType?.value ?: "").toMediaType(),
+            MediaToken(mediaToken.value),
+            MessageId(message.id.value),
+            chatId,
+            (message.messageMedia?.mediaKeyDecrypted?.value ?: "").toMediaKeyDecrypted(),
+            message.messageMedia?.localFile,
+            fileName
+        )
+    }
+
+    queries.messageUpsert(
+        message.status,
+        message.seen,
+        message.senderAlias,
+        message.senderPic,
+        message.originalMUID,
+        message.replyUUID,
+        message.type,
+        message.recipientAlias,
+        message.recipientPic,
+        Push.False,
+        message.person,
+        message.threadUUID,
+        message.tagMessage,
+        message.errorMessage,
+        MessageId(message.id.value),
+        message.uuid,
+        chatId,
+        message.sender,
+        message.receiver?.let { ContactId(it.value) },
+        message.amount,
+        message.paymentHash,
+        message.paymentRequest,
+        message.date,
+        message.expirationDate,
+        message.messageContent,
+        message.messageContentDecrypted,
+        message.messageMedia?.mediaToken?.getMUIDFromMediaToken()?.value?.toMessageMUID(),
+        message.flagged.value.toFlagged(),
+        message.remoteTimezoneIdentifier
+    )
+
+    if (message.type.isInvoicePayment()) {
+        message.paymentHash?.let {
+            queries.messageUpdateInvoiceAsPaidByPaymentHash(LightningPaymentHash(it.value))
+        }
+    }
+}
+
+
 
 @Suppress("SpellCheckingInspection")
 fun TransactionCallbacks.upsertMessage(
@@ -370,6 +620,8 @@ fun TransactionCallbacks.upsertMessage(
         dto.pushActual.toPush(),
         dto.person?.toMessagePerson(),
         dto.thread_uuid?.toThreadUUID(),
+        null,
+        null,
         MessageId(dto.id),
         dto.uuid?.toMessageUUID(),
         chatId,
@@ -383,7 +635,8 @@ fun TransactionCallbacks.upsertMessage(
         dto.message_content?.toMessageContent(),
         dto.messageContentDecrypted?.toMessageContentDecrypted(),
         dto.media_token?.toMediaToken()?.getMUIDFromMediaToken()?.value?.toMessageMUID(),
-        false.toFlagged()
+        false.toFlagged(),
+        null
     )
 
     if (dto.type.toMessageType()?.isInvoicePayment() == true) {
@@ -602,6 +855,24 @@ fun TransactionCallbacks.deleteFeedById(
     }
 }
 
+@Suppress("NOTHING_TO_INLINE")
+fun TransactionCallbacks.upsertLsat(
+    lsat: Lsat,
+    queries: SphinxDatabaseQueries
+) {
+    queries.lsatUpsert(
+        lsat.macaroon,
+        lsat.paymentRequest,
+        lsat.issuer,
+        lsat.metaData,
+        lsat.paths,
+        lsat.preimage,
+        lsat.status,
+        lsat.createdAt,
+        lsat.id
+    )
+}
+
 fun TransactionCallbacks.deleteAll(
     queries: SphinxDatabaseQueries
 ) {
@@ -617,4 +888,16 @@ fun TransactionCallbacks.deleteAll(
     queries.feedItemDeleteAll()
     queries.feedModelDeleteAll()
     queries.feedDestinationDeleteAll()
+}
+
+@Suppress("NOTHING_TO_INLINE")
+fun TransactionCallbacks.upsertUserState(
+    id: UserStateId,
+    userState: UserState,
+    queries: SphinxDatabaseQueries,
+) {
+    queries.userStateUpsert(
+        id = id,
+        user_state = userState,
+    )
 }

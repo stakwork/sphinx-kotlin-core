@@ -41,7 +41,14 @@ data class ChatDto(
     val my_alias: String? = null,
     val pending_contact_ids: List<Long>? = null,
     val notify: Int?,
+    @Transient
+    val timezone_enabled: Any? = null,
+    val timezone_identifier: String?,
+    val remote_timezone_identifier: String?,
+    @Transient
+    val timezone_updated: Any? = null
 ) {
+
     fun isMutedActual(): Boolean {
         notify?.let {
             return it.toNotificationLevel().isMuteChat()
@@ -67,4 +74,5 @@ data class ChatDto(
 
     @Transient
     val seenActual: Boolean = seen?.value ?: false
+
 }

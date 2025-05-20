@@ -1,5 +1,10 @@
 package chat.sphinx.wrapper.util
-
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun String.getInitials(charLimit: Int = 2): String {
@@ -40,4 +45,24 @@ inline fun Long.getHHMMString(): String {
     val seconds = this / 1000 % 60
 
     return "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Long.toFormattedDate(): String {
+    // Convert the Long timestamp (in milliseconds) to LocalDateTime
+    val dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(this), ZoneId.systemDefault())
+
+    val day = dateTime.dayOfMonth
+    val month = dateTime.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+    val year = dateTime.year
+
+    // Determine the appropriate suffix for the day
+    val daySuffix = when {
+        day % 10 == 1 && day % 100 != 11 -> "st"
+        day % 10 == 2 && day % 100 != 12 -> "nd"
+        day % 10 == 3 && day % 100 != 13 -> "rd"
+        else -> "th"
+    }
+
+    return "$month $day$daySuffix $year"
 }
