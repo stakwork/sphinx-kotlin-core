@@ -21,7 +21,8 @@ class NetworkQueryChatImpl(
         private const val GET_TRIBE_INFO_URL_PRODUCTION = "https://%s/tribes/%s"
         private const val GET_FEED_CONTENT_URL = "https://%s/feed?url=%s&fulltext=true"
         private const val TEST_V2_TRIBES_SERVER = "75.101.247.127:8801"
-        private const val FEED_SPHINX_V1_URL = "https://tribes.sphinx.chat/feed?url=%s"
+        private const val FEED_SPHINX_V1_URL = "https://people.sphinx.chat/feed?url=%s"
+
     }
 
     override fun getTribeInfo(
@@ -45,9 +46,9 @@ class NetworkQueryChatImpl(
     ): Flow<LoadResponse<FeedDto, ResponseError>> =
         networkRelayCall.get(
             url = if (chatUUID != null) {
-                "${String.format(GET_FEED_CONTENT_URL, host.value, feedUrl.value)}&uuid=${chatUUID.value}"
+                "${String.format(FEED_SPHINX_V1_URL, feedUrl.value)}&uuid=${chatUUID.value}"
             } else {
-                String.format(GET_FEED_CONTENT_URL, host.value, feedUrl.value)
+                String.format(FEED_SPHINX_V1_URL, feedUrl.value)
             },
             responseJsonSerializer = FeedDto.serializer()
         )

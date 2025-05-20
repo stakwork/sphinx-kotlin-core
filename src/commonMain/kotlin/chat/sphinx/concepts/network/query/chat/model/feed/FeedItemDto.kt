@@ -6,16 +6,16 @@ import kotlinx.serialization.Serializable
 data class FeedItemDto(
     val id: String,
     val title: String,
-    val description: String?,
-    val datePublished: Long?,
-    val dateUpdated: Long?,
-    val author: String?,
-    val contentType: String?,
+    val description: String? = null,
+    val datePublished: Long? = null,
+    val dateUpdated: Long? = null,
+    val author: String? = null,
+    val contentType: String? = null,
     val enclosureUrl: String,
-    val enclosureType: String?,
-    val enclosureLength: Long?,
-    val duration: Long?,
-    val imageUrl: String?,
-    val thumbnailUrl: String?,
-    val link: String?
+    val enclosureType: String? = null,
+    val enclosureLength: Long? = null,
+    val duration: Long? = null,
+    val imageUrl: String? = null,
+    val thumbnailUrl: String? = null,
+    val link: String? = null
 )
