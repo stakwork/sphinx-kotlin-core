@@ -11,7 +11,6 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.lightning.toSat
 import chat.sphinx.wrapper.toItemId
 import okio.Path
-import java.io.File
 import kotlin.jvm.Volatile
 import kotlin.math.roundToInt
 
@@ -224,7 +223,7 @@ data class Podcast(
         this.timeMilliSeconds = time
     }
 
-    fun playingEpisodeUpdate(episodeId: String, time: Int, duration: Long) {
+    fun willStartPlayingEpisode(episodeId: String, time: Int, duration: Long) {
         if (playingEpisode == null) {
             this.episodeId?.let { currentEpisodeId ->
                 this.playingEpisode = getEpisodeWithId(currentEpisodeId)
