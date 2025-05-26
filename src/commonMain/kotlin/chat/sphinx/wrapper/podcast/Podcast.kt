@@ -3,6 +3,7 @@ package chat.sphinx.wrapper.podcast
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.ItemId
 import chat.sphinx.wrapper.PhotoUrl
+import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.chat.ChatMetaData
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.feed.*
@@ -26,10 +27,12 @@ data class Podcast(
     val feedUrl: FeedUrl,
     val subscribed: Subscribed
 ) {
-
     var model: PodcastModel? = null
     var destinations: List<PodcastDestination> = arrayListOf()
     var episodes: List<PodcastEpisode> = arrayListOf()
+    var contentFeedStatus: ContentFeedStatus? = null
+
+    var chat: Chat? = null
 
     //MetaData
     @Volatile
@@ -311,4 +314,40 @@ data class Podcast(
 
         return feedDestinations
     }
+    fun getUpdatedContentEpisodeStatus(): ContentEpisodeStatus =
+        playingEpisode?.getUpdatedContentEpisodeStatus() ?: ContentEpisodeStatus(
+            this.id,
+            getCurrentEpisode().id,
+            FeedItemDuration(0),
+            FeedItemDuration(0),
+            null
+        )
+
+    fun getUpdatedContentFeedStatus(
+        customAmount: Sat? = null
+    ): ContentFeedStatus {
+        val cfs = customAmount?.let {
+            contentFeedStatus?.copy(
+                satsPerMinute = customAmount
+            )?.let {
+                return it
+            }
+        } ?: contentFeedStatus
+
+        val defaultSatsPerMinute = (chat?.metaData?.satsPerMinute?.value ?: model?.suggestedSats ?: 0).toSat()
+
+        contentFeedStatus = cfs ?: ContentFeedStatus(
+            feedId = this.id,
+            feedUrl = this.feedUrl,
+            subscriptionStatus = this.subscribed,
+            chatId = this.chatId,
+            itemId = episodes[0]?.id,
+            satsPerMinute = customAmount ?: defaultSatsPerMinute,
+            playerSpeed = FeedPlayerSpeed(1.0),
+        )
+
+        return contentFeedStatus!!
+    }
+
+
 }

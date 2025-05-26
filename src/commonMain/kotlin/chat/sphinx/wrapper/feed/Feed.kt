@@ -4,6 +4,8 @@ import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.dashboard.ChatId
+import chat.sphinx.wrapper.lightning.toSat
+import chat.sphinx.wrapper.podcast.ContentFeedStatus
 
 
 inline val Feed.isPodcast: Boolean
@@ -82,6 +84,31 @@ data class Feed(
 
     val hasDestinations: Boolean
         get() = destinations.isNotEmpty()
+
+    var contentFeedStatus: ContentFeedStatus? = null
+
+    fun getNNContentFeedStatus(): ContentFeedStatus {
+        contentFeedStatus?.let {
+            return it
+        }
+
+        var itemId = chat?.metaData?.itemId ?: currentItemId
+        itemId = if (itemId?.value == FeedId.NULL_FEED_ID) null else itemId
+
+        val chatId = if (this.chat?.id?.value == ChatId.NULL_CHAT_ID.toLong()) null else this.chat?.id
+
+        val satsPerMinute = chat?.metaData?.satsPerMinute ?: model?.suggestedSats?.toSat()
+
+        return ContentFeedStatus(
+            id,
+            feedUrl,
+            this.subscribed,
+            chatId,
+            itemId,
+            satsPerMinute,
+            chat?.metaData?.speed?.toFeedPlayerSpeed()
+        )
+    }
 }
 
 @Suppress("NOTHING_TO_INLINE")

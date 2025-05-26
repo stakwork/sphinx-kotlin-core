@@ -312,6 +312,21 @@ abstract class CoreDBImpl: CoreDB() {
                     preimageAdapter = LsatPreImageAdapter(),
                     statusAdapter = LsatStatusAdapter(),
                     created_atAdapter = DateTimeAdapter.getInstance()
+                ),
+                contentFeedStatusDboAdapter = ContentFeedStatusDbo.Adapter(
+                    feed_idAdapter = FeedIdAdapter(),
+                    feed_urlAdapter = FeedUrlAdapter.getInstance(),
+                    subscription_statusAdapter = SubscribedAdapter.getInstance(),
+                    chat_idAdapter = ChatIdAdapter.getInstance(),
+                    item_idAdapter = FeedIdAdapter(),
+                    sats_per_minuteAdapter = SatAdapter.getInstance(),
+                    player_speedAdapter = FeedPlayerSpeedAdapter()
+                ),
+                contentEpisodeStatusDboAdapter = ContentEpisodeStatusDbo.Adapter(
+                    item_idAdapter = FeedIdAdapter(),
+                    feed_idAdapter = FeedIdAdapter(),
+                    durationAdapter = FeedItemDurationAdapter(),
+                    current_timeAdapter = FeedItemDurationAdapter()
                 )
             ).sphinxDatabaseQueries
         }

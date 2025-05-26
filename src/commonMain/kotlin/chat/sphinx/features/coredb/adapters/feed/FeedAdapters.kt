@@ -231,3 +231,23 @@ internal class FeedItemDurationAdapter: ColumnAdapter<FeedItemDuration, Long> {
         return value.value
     }
 }
+
+internal class FeedPlayerSpeedAdapter : ColumnAdapter<FeedPlayerSpeed, Double> {
+    override fun decode(databaseValue: Double): FeedPlayerSpeed {
+        return FeedPlayerSpeed(databaseValue)
+    }
+
+    override fun encode(value: FeedPlayerSpeed): Double {
+        return value.value
+    }
+}
+
+internal class PlayedAdapter : ColumnAdapter<Boolean, Long?> {
+    override fun decode(databaseValue: Long?): Boolean {
+        return databaseValue != null && databaseValue != 0L
+    }
+
+    override fun encode(value: Boolean): Long? {
+        return if (value) 1L else 0L
+    }
+}

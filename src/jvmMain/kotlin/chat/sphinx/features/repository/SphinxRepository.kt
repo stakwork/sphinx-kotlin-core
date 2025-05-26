@@ -58,6 +58,8 @@ import chat.sphinx.database.core.*
 import chat.sphinx.features.authentication.core.AuthenticationCoreManager
 import chat.sphinx.features.repository.mappers.chat.ChatDboPresenterMapper
 import chat.sphinx.features.repository.mappers.contact.ContactDboPresenterMapper
+import chat.sphinx.features.repository.mappers.feed.*
+import chat.sphinx.features.repository.mappers.feed.ContentFeedStatusDboPresenterMapper
 import chat.sphinx.features.repository.mappers.feed.FeedDboPresenterMapper
 import chat.sphinx.features.repository.mappers.feed.FeedDestinationDboPresenterMapper
 import chat.sphinx.features.repository.mappers.feed.FeedItemDboPresenterMapper
@@ -113,6 +115,8 @@ import chat.sphinx.wrapper.mqtt.TagMessageList.Companion.toTagsList
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse.Companion.toTribeMembersList
 import chat.sphinx.wrapper.payment.PaymentTemplate
+import chat.sphinx.wrapper.podcast.ContentEpisodeStatus
+import chat.sphinx.wrapper.podcast.ContentFeedStatus
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper.relay.*
@@ -5932,9 +5936,81 @@ abstract class SphinxRepository(
             .distinctUntilChanged()
             .collect { value: FeedItem? ->
                 value?.let { feedItem ->
-                    emit(feedItem)
+                    emit(
+                        mapFeedItemDbo(feedItem, queries)
+                    )
                 }
             }
+    }
+
+    private val contentFeedLock = Mutex()
+
+    override fun updateContentFeedStatus(
+        feedId: FeedId,
+        feedUrl: FeedUrl,
+        subscriptionStatus: Subscribed,
+        chatId: ChatId?,
+        itemId: FeedId?,
+        satsPerMinute: Sat?,
+        playerSpeed: FeedPlayerSpeed?,
+        shouldSync: Boolean
+    ) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            if (feedId.value == FeedRecommendation.RECOMMENDATION_PODCAST_ID) {
+                return@launch
+            }
+
+            contentFeedLock.withLock {
+                queries.contentFeedStatusUpsert(
+                    feed_id = feedId,
+                    feed_url = feedUrl,
+                    subscription_status = subscriptionStatus,
+                    chat_id = if (chatId?.value == ChatId.NULL_CHAT_ID.toLong()) null else chatId,
+                    item_id = if (itemId?.value == FeedId.NULL_FEED_ID) null else itemId,
+                    sats_per_minute = satsPerMinute,
+                    player_speed = playerSpeed
+                )
+            }
+
+//            if (shouldSync) {
+//                saveContentFeedStatusFor(feedId)
+//            }
+        }
+    }
+
+    private val contentEpisodeLock = Mutex()
+    override fun updateContentEpisodeStatus(
+        feedId: FeedId,
+        itemId: FeedId,
+        duration: FeedItemDuration,
+        currentTime: FeedItemDuration,
+        played: Boolean,
+        shouldSync: Boolean
+    ) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            if (feedId.value == FeedRecommendation.RECOMMENDATION_PODCAST_ID) {
+                return@launch
+            }
+
+            contentEpisodeLock.withLock {
+                queries.contentEpisodeStatusUpsert(
+                    feed_id = feedId,
+                    item_id = itemId,
+                    duration = duration,
+                    current_time = currentTime,
+                    played = played
+
+                )
+            }
+
+//            if (shouldSync) {
+//                saveContentFeedStatusFor(feedId)
+//            }
+        }
     }
 
     private val feedDboPresenterMapper: FeedDboPresenterMapper by lazy {
@@ -5948,6 +6024,12 @@ abstract class SphinxRepository(
     }
     private val feedDestinationDboPresenterMapper: FeedDestinationDboPresenterMapper by lazy {
         FeedDestinationDboPresenterMapper(dispatchers)
+    }
+    private val contentFeedStatusDboPresenterMapper: ContentFeedStatusDboPresenterMapper by lazy {
+        ContentFeedStatusDboPresenterMapper(dispatchers)
+    }
+    private val contentEpisodeStatusDboPresenterMapper: ContentEpisodeStatusDboPresenterMapper by lazy {
+        ContentEpisodeStatusDboPresenterMapper(dispatchers)
     }
 
     override fun getAllFeedsOfType(feedType: FeedType): Flow<List<Feed>> = flow {
@@ -5993,9 +6075,18 @@ abstract class SphinxRepository(
         val chatsMap: MutableMap<ChatId, Chat?> =
             LinkedHashMap(listFeedDbo.size)
 
+        val contentFeedStatusMap: MutableMap<FeedId, ContentFeedStatus?> =
+            LinkedHashMap(listFeedDbo.size)
+
+        val contentEpisodeStatusesMap: MutableMap<FeedId, ArrayList<ContentEpisodeStatus>> =
+            LinkedHashMap(listFeedDbo.size)
+
         for (dbo in listFeedDbo) {
-            itemsMap[dbo.id] = ArrayList(0)
             chatsMap[dbo.chat_id] = null
+            contentFeedStatusMap[dbo.id] = null
+
+            itemsMap[dbo.id] = ArrayList(0)
+            contentEpisodeStatusesMap[dbo.id] = ArrayList(0)
         }
 
         itemsMap.keys.chunked(500).forEach { chunkedIds ->
@@ -6024,13 +6115,41 @@ abstract class SphinxRepository(
                 }
         }
 
+        contentFeedStatusMap.keys.chunked(500).forEach { chunkedIds ->
+            queries.contentFeedStatusGetByIds(chunkedIds)
+                .executeAsList()
+                .let { response ->
+                    response.forEach { dbo ->
+                        dbo.feed_id?.let { feedId ->
+                            contentFeedStatusMap[feedId] = contentFeedStatusDboPresenterMapper.mapFrom(dbo)
+                        }
+                    }
+                }
+        }
+
+        contentEpisodeStatusesMap.keys.chunked(500).forEach { chunkedIds ->
+            queries.contentEpisodeStatusGetByFeedIds(chunkedIds)
+                .executeAsList()
+                .let { response ->
+                    response.forEach { dbo ->
+                        dbo.feed_id?.let { feedId ->
+                            contentEpisodeStatusesMap[feedId]?.add(
+                                contentEpisodeStatusDboPresenterMapper.mapFrom(dbo)
+                            )
+                        }
+                    }
+                }
+        }
+
         val list = listFeedDbo.map {
             mapFeedDbo(
                 feedDbo = it,
                 items = itemsMap[it.id] ?: listOf(),
                 model = null,
                 destinations = listOf(),
-                chat = chatsMap[it.chat_id]
+                chat = chatsMap[it.chat_id],
+                contentFeedStatus = contentFeedStatusMap[it.id],
+                contentEpisodeStatus = contentEpisodeStatusesMap[it.id] ?: listOf()
             )
         }
 
@@ -6049,18 +6168,27 @@ abstract class SphinxRepository(
         model: FeedModel? = null,
         destinations: List<FeedDestination>,
         chat: Chat? = null,
+        contentFeedStatus: ContentFeedStatus? = null,
+        contentEpisodeStatus: List<ContentEpisodeStatus>
     ): Feed {
 
         val feed = feedDboPresenterMapper.mapFrom(feedDbo)
 
         items.forEach { feedItem ->
             feedItem.feed = feed
+
+            contentEpisodeStatus.forEach { contentEpisodeStatus ->
+                if (feedItem.id == contentEpisodeStatus.itemId) {
+                    feedItem.contentEpisodeStatus = contentEpisodeStatus
+                }
+            }
         }
 
         feed.items = items
         feed.model = model
         feed.destinations = destinations
         feed.chat = chat
+        feed.contentFeedStatus = contentFeedStatus
 
         return feed
     }
@@ -6086,14 +6214,31 @@ abstract class SphinxRepository(
             feedDestinationDboPresenterMapper.mapFrom(it)
         }
 
+        val contentFeedStatus = queries.contentFeedStatusGetByFeedId(feed.id).executeAsOneOrNull()?.let { contentFeedStatus ->
+            contentFeedStatusDboPresenterMapper.mapFrom(contentFeedStatus)
+        }
+
+        val itemIds = items.map { it.id }
+
+        val contentEpisodeStatuses = queries.contentEpisodeStatusGetByFeedIdAndItemIds(feed.id, itemIds).executeAsList().map {
+            contentEpisodeStatusDboPresenterMapper.mapFrom(it)
+        }
+
         items.forEach { feedItem ->
             feedItem.feed = feed
+
+            contentEpisodeStatuses.forEach { contentEpisodeStatus ->
+                if (feedItem.id == contentEpisodeStatus.itemId) {
+                    feedItem.contentEpisodeStatus = contentEpisodeStatus
+                }
+            }
         }
 
         feed.items = items
         feed.model = model
         feed.destinations = destinations
         feed.chat = chat
+        feed.contentFeedStatus = contentFeedStatus
 
         return feed
     }
@@ -6162,8 +6307,45 @@ abstract class SphinxRepository(
             podcastDestinationDboPresenterMapper.mapFrom(it)
         }
 
+        val contentFeedStatus = queries.contentFeedStatusGetByFeedId(podcast.id).executeAsOneOrNull()?.let {
+            contentFeedStatusDboPresenterMapper.mapFrom(it)
+        }
+
+        val chat = queries.chatGetById(podcast.chatId).executeAsOneOrNull()?.let {
+            chatDboPresenterMapper.mapFrom(it)
+        }
+
+//        episodes.forEach { episode ->
+//            episode.chaptersData?.value?.let { chaptersJson ->
+//                try {
+//                    val parsedChapters: ChapterResponseDto? = adapter.fromJson(chaptersJson)
+//                    episode.chapters = parsedChapters
+//                } catch (e: Exception) {
+//                    episode.chapters = null
+//                }
+//            }
+//        }
+
+        val episodeIds = episodes.map { it.id }
+
+        val contentEpisodeStatuses = queries.contentEpisodeStatusGetByFeedIdAndItemIds(podcast.id, episodeIds).executeAsList().map {
+            contentEpisodeStatusDboPresenterMapper.mapFrom(it)
+        }
+
+        if (contentEpisodeStatuses.isNotEmpty()) {
+            episodes.forEach { episode ->
+                contentEpisodeStatuses.forEach { contentEpisodeStatus ->
+                    if (episode.id == contentEpisodeStatus.itemId) {
+                        episode.contentEpisodeStatus = contentEpisodeStatus
+                    }
+                }
+            }
+        }
+
         podcast.episodes = episodes
         podcast.destinations = destinations
+        podcast.contentFeedStatus = contentFeedStatus
+        podcast.chat = chat
 
         return podcast
     }
@@ -6288,6 +6470,30 @@ abstract class SphinxRepository(
             feedId
         )
     }
+
+    private suspend fun mapFeedItemDbo(
+        feedItem: FeedItem,
+        queries: SphinxDatabaseQueries
+    ): FeedItem {
+
+        var feed = queries.feedGetById(feedItem.feedId).executeAsOneOrNull()?.let {
+            feedDboPresenterMapper.mapFrom(it)
+        }
+
+        feed?.let {
+            feed = mapFeedDbo(it, queries)
+        }
+
+        val contentEpisodeStatus = queries.contentEpisodeStatusGetByFeedIdAndItemId(feedItem.feedId, feedItem.id).executeAsOneOrNull()?.let {
+            contentEpisodeStatusDboPresenterMapper.mapFrom(it)
+        }
+
+        feedItem.contentEpisodeStatus = contentEpisodeStatus
+        feedItem.feed = feed
+
+        return feedItem
+    }
+
 
     private suspend fun mapFeedItemDboList(
         listFeedItemDbo: List<FeedItemDbo>,

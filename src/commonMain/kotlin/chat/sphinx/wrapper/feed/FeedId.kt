@@ -24,6 +24,9 @@ inline fun FeedId.youtubeFeedIds(): List<FeedId> =
 
 @JvmInline
 value class FeedId(val value: String) {
+    companion object {
+        const val NULL_FEED_ID = "null"
+    }
     init {
         require(value.isNotEmpty()) {
             "FeedId cannot be empty"

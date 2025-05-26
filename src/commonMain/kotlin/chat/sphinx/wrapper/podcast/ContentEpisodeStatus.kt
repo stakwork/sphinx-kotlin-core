@@ -1,4 +1,7 @@
-package chat.sphinx.wrapper.feed
+package chat.sphinx.wrapper.podcast
+
+import chat.sphinx.wrapper.feed.FeedId
+import chat.sphinx.wrapper.feed.FeedItemDuration
 
 
 data class ContentEpisodeStatus(

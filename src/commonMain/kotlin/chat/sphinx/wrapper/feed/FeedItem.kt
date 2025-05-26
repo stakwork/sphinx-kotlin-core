@@ -2,6 +2,7 @@ package chat.sphinx.wrapper.feed
 
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
+import chat.sphinx.wrapper.podcast.ContentEpisodeStatus
 import okio.Path
 
 inline val FeedItem.isPodcast: Boolean
@@ -68,4 +69,6 @@ data class FeedItem(
 
     val downloaded: Boolean
         get()= localFile != null
+
+    var contentEpisodeStatus: ContentEpisodeStatus? = null
 }

@@ -8,4 +8,11 @@ data class PodcastModel(
     val type: FeedModelType,
     val suggested: FeedModelSuggested,
     val podcastId: FeedId,
-)
+) {
+    companion object {
+        private const val satsInBTC = 100_000_000
+    }
+
+    val suggestedSats: Long
+        get() = (suggested.value * satsInBTC.toDouble()).toLong()
+}
