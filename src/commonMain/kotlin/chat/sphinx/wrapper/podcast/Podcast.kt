@@ -349,5 +349,40 @@ data class Podcast(
         return contentFeedStatus!!
     }
 
+    fun setCurrentEpisodeWith(episodeId: String) {
+        this.playingEpisode?.playing = false
+
+        this.episodeId = episodeId
+    }
+
+    fun applyPlayingContentState(
+        playingContent: Triple<String, String, Boolean>?
+    ) {
+        if (playingContent?.first == id.value) {
+            episodeId = playingContent?.second
+            playingEpisode?.playing = true
+        }
+    }
+
+    fun getDownloadedEpisodesListCopy(): ArrayList<PodcastEpisode> {
+        var episodesList = ArrayList<PodcastEpisode>()
+
+        for (episode in this.episodes) {
+            if (episode.downloaded) {
+                val episodeCopy = episode.copy()
+                episodeCopy.playing = episode.playing
+                episodeCopy.contentEpisodeStatus = episode.contentEpisodeStatus
+                episodeCopy.played = episode.played
+                episodeCopy.chapters = episode.chapters
+
+                episodesList.add(episodeCopy)
+            }
+        }
+        return episodesList
+    }
+
+    fun didChangeSatsPerMinute(sats: Long) {
+        this.satsPerMinute = sats
+    }
 
 }
