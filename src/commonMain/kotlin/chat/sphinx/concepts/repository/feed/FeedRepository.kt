@@ -6,6 +6,7 @@ import chat.sphinx.wrapper.chat.ChatUUID
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.lightning.Sat
+import chat.sphinx.wrapper.message.MessageUUID
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +54,18 @@ interface FeedRepository {
         played: Boolean = false,
         shouldSync: Boolean = false
     )
+
+    fun streamFeedPayments(
+        chatId: ChatId,
+        feedId: String,
+        feedItemId: String,
+        currentTime: Long,
+        amount: Sat?,
+        playerSpeed: FeedPlayerSpeed?,
+        destinations: List<FeedDestination>,
+        clipMessageUUID: MessageUUID? = null
+    )
+
 
     suspend fun toggleFeedSubscribeState(feedId: FeedId, currentSubscribeState: Subscribed)
 }

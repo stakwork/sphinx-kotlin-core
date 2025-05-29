@@ -6,7 +6,10 @@ import chat.sphinx.concepts.repository.connect_manager.model.RestoreProcessState
 import chat.sphinx.wrapper.contact.NewContact
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.RestoreProgress
+import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.lightning.LightningPaymentRequest
+import chat.sphinx.wrapper.lightning.LightningRouteHint
+import chat.sphinx.wrapper.lightning.MilliSat
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.TransactionDto
 import chat.sphinx.wrapper.mqtt.TribeMembersResponse
@@ -87,24 +90,24 @@ interface ConnectManagerRepository {
     suspend fun payInvoiceFromLSP(
         paymentRequest: LightningPaymentRequest
     )
-//    suspend fun sendKeySend(
-//        pubKey: String,
-//        endHops: String?,
-//        milliSatAmount: Long,
-//        routerPubKey: String?,
-//        routeHint: String?,
-//        data: String? = null
-//    )
-//
-//    suspend fun sendKeySendWithRouting(
-//        pubKey: LightningNodePubKey,
-//        routeHint: LightningRouteHint?,
-//        milliSatAmount: MilliSat?,
-//        routerUrl: String?,
-//        routerPubKey: String?,
-//        data: String? = null
-//    ): Boolean
-//
+    suspend fun sendKeySend(
+        pubKey: String,
+        endHops: String?,
+        milliSatAmount: Long,
+        routerPubKey: String?,
+        routeHint: String?,
+        data: String? = null
+    )
+
+    suspend fun sendKeySendWithRouting(
+    pubKey: LightningNodePubKey,
+    routeHint: LightningRouteHint?,
+    milliSatAmount: MilliSat?,
+    routerUrl: String?,
+    routerPubKey: String?,
+    data: String? = null
+    ): Boolean
+
     fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean
 //
     fun createInvoice(

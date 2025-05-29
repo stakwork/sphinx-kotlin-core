@@ -465,12 +465,138 @@ abstract class SphinxRepository(
         connectManager.payInvoiceFromLSP(paymentRequest.value)
     }
 
+    override suspend fun sendKeySend(
+        pubKey: String,
+        endHops: String?,
+        milliSatAmount: Long,
+        routerPubKey: String?,
+        routeHint: String?,
+        data: String?
+    ) {
+        if (endHops?.isNotEmpty() == true && routerPubKey != null) {
+            connectManager.concatNodesFromResponse(
+                endHops,
+                routerPubKey,
+                milliSatAmount
+            )
+        }
+        connectManager.sendKeySend(
+            pubKey,
+            milliSatAmount,
+            routeHint,
+            data
+        )
+    }
+
+    override suspend fun sendKeySendWithRouting(
+        pubKey: LightningNodePubKey,
+        routeHint: LightningRouteHint?,
+        milliSatAmount: MilliSat?,
+        routerUrl: String?,
+        routerPubKey: String?,
+        data: String?
+    ): Boolean {
+        var owner: Contact? = accountOwner.value
+
+        if (owner == null) {
+            try {
+                accountOwner.collect {
+                    if (it != null) {
+                        owner = it
+                        throw Exception()
+                    }
+                }
+            } catch (e: Exception) {
+            }
+            delay(25L)
+        }
+        val payeeLspPubKey = routeHint?.getLspPubKey()
+        val ownerLspPubKey = owner?.routeHint?.getLspPubKey()
+
+
+        return if (payeeLspPubKey == ownerLspPubKey) {
+            sendKeySend(
+                pubKey.value,
+                null,
+                milliSatAmount?.value ?: 0,
+                null,
+                routeHint?.value,
+                data
+            )
+            true
+        } else {
+            val isAvailableRoute = isRouteAvailable(
+                pubKey.value,
+                routerPubKey,
+                milliSatAmount?.value ?: 0,
+            )
+            if (isAvailableRoute) {
+                sendKeySend(
+                    pubKey.value,
+                    null,
+                    milliSatAmount?.value ?: 0,
+                    null,
+                    routeHint?.value,
+                    data
+                )
+                true
+            } else {
+
+                if (routerUrl != null) {
+                    var success = false
+                    networkQueryContact.getRoutingNodes(
+                        routerUrl,
+                        pubKey,
+                        milliSatAmount?.value ?: 0
+                    ).collect { response ->
+                        when (response) {
+                            is LoadResponse.Loading -> {}
+                            is Response.Error -> {
+                                success = false
+                            }
+
+                            is Response.Success -> {
+                                if (isJsonResponseEmpty(response.value)) {
+                                    sendKeySend(
+                                        pubKey.value,
+                                        null,
+                                        milliSatAmount?.value ?: 0,
+                                        null,
+                                        routeHint?.value,
+                                        data
+                                    )
+                                } else {
+                                    sendKeySend(
+                                        pubKey.value,
+                                        response.value,
+                                        milliSatAmount?.value ?: 0,
+                                        routerPubKey,
+                                        routeHint?.value,
+                                        data
+                                    )
+                                }
+                                success = true
+                            }
+                        }
+                    }
+                    success
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
     override fun isRouteAvailable(pubKey: String, routeHint: String?, milliSat: Long): Boolean {
         return connectManager.isRouteAvailable(pubKey, routeHint, milliSat)
     }
 
     override fun createInvoice(amount: Long, memo: String): Pair<String, String>? {
         return connectManager.createInvoice(amount, memo)
+    }
+
+    private fun isJsonResponseEmpty(json: String?): Boolean {
+        return json.isNullOrEmpty()
     }
 
     override fun clearWebViewPreImage() {
@@ -2141,59 +2267,43 @@ abstract class SphinxRepository(
 
     override fun streamFeedPayments(
         chatId: ChatId,
-        metaData: ChatMetaData,
-        podcastId: String,
-        episodeId: String,
+        feedId: String,
+        feedItemId: String,
+        currentTime: Long,
+        amount: Sat?,
+        playerSpeed: FeedPlayerSpeed?,
         destinations: List<FeedDestination>,
-        updateMetaData: Boolean,
         clipMessageUUID: MessageUUID?,
     ) {
 
-        if (chatId.value == ChatId.NULL_CHAT_ID.toLong()) {
-            return
-        }
-
-        if (metaData.satsPerMinute.value <= 0 || destinations.isEmpty()) {
+        if ((amount?.value ?: 0) <= 0 || destinations.isEmpty()) {
             return
         }
 
         applicationScope.launch(io) {
-            val queries = coreDB.getSphinxDatabaseQueries()
+            val streamSatsText = StreamSatsText(
+                feedId,
+                feedItemId,
+                currentTime,
+            ).toJson()
 
-            chatLock.withLock {
-                queries.chatUpdateMetaData(metaData, chatId)
-            }
-
-            val destinationsArray: MutableList<PostStreamSatsDestinationDto> =
-                ArrayList(destinations.size)
+            val totalSplit = destinations.sumOf { it.split.value }
+            val routerUrl = serversUrls.getRouterUrl()
+            val routerPubKey = serversUrls.getRouterPubkey()
 
             for (destination in destinations) {
-                destinationsArray.add(
-                    PostStreamSatsDestinationDto(
-                        destination.address.value,
-                        destination.type.value,
-                        destination.split.value,
+                val destinationAmount = (amount?.value?.toDouble() ?: 0.0) * (destination.split.value / totalSplit)
+
+                destination.address.value.toLightningNodePubKey()?.let { pubKey ->
+                    sendKeySendWithRouting(
+                        pubKey,
+                        null,
+                        destinationAmount.toLong().toSat()?.toMilliSat(),
+                        routerUrl,
+                        routerPubKey,
+                        streamSatsText
                     )
-                )
-            }
-
-            val streamSatsText =
-                StreamSatsText(podcastId, episodeId, metaData.timeSeconds.toLong(), metaData.speed, clipMessageUUID?.value)
-
-            val postStreamSatsDto = PostStreamSatsDto(
-                metaData.satsPerMinute.value,
-                chatId.value,
-                streamSatsText.toJson(),
-                updateMetaData,
-                destinationsArray
-            )
-
-            try {
-                // TODO V2 stremSats
-//                networkQueryChat.streamSats(
-//                    postStreamSatsDto
-//                ).collect {}
-            } catch (e: AssertionError) {
+                }
             }
         }
     }

@@ -5,6 +5,8 @@ import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.feed.DownloadableFeedItem
 import chat.sphinx.wrapper.feed.FeedDestination
 import chat.sphinx.wrapper.feed.FeedId
+import chat.sphinx.wrapper.feed.FeedPlayerSpeed
+import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.Message
 import chat.sphinx.wrapper.message.MessageUUID
 import okio.Path
@@ -35,14 +37,4 @@ interface RepositoryMedia {
     suspend fun deleteDownloadedMediaIfApplicable(
         feedItem: DownloadableFeedItem
     ): Boolean
-
-    fun streamFeedPayments(
-        chatId: ChatId,
-        metaData: ChatMetaData,
-        podcastId: String,
-        episodeId: String,
-        destinations: List<FeedDestination>,
-        updateMetaData: Boolean = true,
-        clipUUID: MessageUUID? = null
-    )
 }
