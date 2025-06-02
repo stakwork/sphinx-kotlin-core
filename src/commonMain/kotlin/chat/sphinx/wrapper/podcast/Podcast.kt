@@ -385,4 +385,19 @@ data class Podcast(
         this.satsPerMinute = sats
     }
 
+    fun updateSpeed(newSpeed: Double) {
+        this.speed = newSpeed
+
+        contentFeedStatus = contentFeedStatus?.copy(
+            playerSpeed = FeedPlayerSpeed(newSpeed)
+        ) ?: ContentFeedStatus(
+            feedId = this.id,
+            feedUrl = this.feedUrl,
+            subscriptionStatus = this.subscribed,
+            chatId = this.chatId,
+            itemId = playingEpisode?.id ?: episodes.firstOrNull()?.id,
+            satsPerMinute = satsPerMinute.toSat(),
+            playerSpeed = FeedPlayerSpeed(newSpeed),
+        )
+    }
 }

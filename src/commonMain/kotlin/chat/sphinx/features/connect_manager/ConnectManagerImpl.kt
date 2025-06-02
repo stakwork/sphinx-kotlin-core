@@ -1467,13 +1467,13 @@ class ConnectManagerImpl(
             else -> amount ?: 0L
         }
 
-        val myAlias = if (isTribe) {
+        val myAlias = if (isTribe && !tribeAlias.isNullOrEmpty()) {
             tribeAlias?.replace(" ", "_") ?: ""
         } else {
             ownerInfoStateFlow.value.alias ?: ""
         }
 
-        val myPhotoUrl = if (isTribe) {
+        val myPhotoUrl = if (isTribe && !tribeAlias.isNullOrEmpty()) {
             tribeProfilePic
         } else {
             ownerInfoStateFlow.value.picture ?: ""
