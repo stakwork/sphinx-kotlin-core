@@ -6447,6 +6447,7 @@ abstract class SphinxRepository(
                 contentEpisodeStatuses.forEach { contentEpisodeStatus ->
                     if (episode.id == contentEpisodeStatus.itemId) {
                         episode.contentEpisodeStatus = contentEpisodeStatus
+
                     }
                 }
             }

@@ -133,8 +133,10 @@ data class PodcastEpisode(
 
     val dateString: String
         get() {
-            return date?.value?.let {
-                DateTime.getFormatMMMddyyyy().format(it)
+            return date?.let {
+                val utcDateTimeTz = com.soywiz.klock.DateTimeTz.fromUnix( it.time )
+                DateTime.getFormatMMMddyyyy().format(utcDateTimeTz)
             } ?: "-"
         }
+
 }
