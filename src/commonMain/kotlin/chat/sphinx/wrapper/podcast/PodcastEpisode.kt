@@ -5,6 +5,7 @@ import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.time
 import okio.Path
+import java.util.*
 
 data class PodcastEpisode(
     override val id: FeedId,
@@ -129,4 +130,11 @@ data class PodcastEpisode(
         get() = recommendationPubKey?.toFeedDestinationAddress() != null
 
     var chapters: ChapterResponseDto? = null
+
+    val dateString: String
+        get() {
+            return date?.value?.let {
+                DateTime.getFormatMMMddyyyy().format(it)
+            } ?: "-"
+        }
 }
