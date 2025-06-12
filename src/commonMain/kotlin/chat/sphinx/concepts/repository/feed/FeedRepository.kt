@@ -66,6 +66,9 @@ interface FeedRepository {
         clipMessageUUID: MessageUUID? = null
     )
 
+    fun updatePlayedMark(feedItemId: FeedId, played: Boolean)
+    fun getPlayedMark(feedItemId: FeedId): Flow<Boolean?>
+
 
     suspend fun toggleFeedSubscribeState(feedId: FeedId, currentSubscribeState: Subscribed)
 }
