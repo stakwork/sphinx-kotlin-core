@@ -3728,7 +3728,7 @@ abstract class SphinxRepository(
             updatedAt = now.toDateTime(),
             fromGroup = ContactFromGroup.False,
             notificationSound = null,
-            tipAmount = null,
+            tipAmount = 21L.toSat(),
             inviteId = null,
             inviteStatus = null,
             blocked = Blocked.False
