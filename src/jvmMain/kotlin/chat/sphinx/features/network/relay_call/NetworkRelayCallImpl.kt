@@ -12,15 +12,12 @@ import chat.sphinx.logger.e
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
-import chat.sphinx.response.message
 import chat.sphinx.utils.SphinxJson
 import chat.sphinx.wrapper.relay.AuthorizationToken
 import chat.sphinx.wrapper.relay.RelayUrl
 import chat.sphinx.wrapper.relay.RequestSignature
 import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -176,7 +173,8 @@ class NetworkRelayCallImpl(
         responseJsonSerializer: KSerializer<Result>,
         requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String?,
-        headers: Map<String, String>?
+        headers: Map<String, String>?,
+        accept400AsSuccess: Boolean
     ): Flow<LoadResponse<Result, ResponseError>> = flow {
 
         emit(LoadResponse.Loading)
@@ -189,7 +187,10 @@ class NetworkRelayCallImpl(
 
             val reqBody = requestBodyJson.toRequestBody(mediaType?.toMediaType())
 
-            val response = call(responseJsonSerializer, requestBuilder.post(reqBody).build())
+            val response = call(
+                responseJsonSerializer,
+                requestBuilder.post(reqBody).build(),
+                accept400AsSuccess = accept400AsSuccess)
 
             emit(Response.Success(response))
         } catch (e: Exception) {
@@ -238,16 +239,12 @@ class NetworkRelayCallImpl(
         networkClient.addListener(this)
     }
 
-    @Throws(NullPointerException::class, java.io.IOException::class)
     override suspend fun <T: Any> call(
         responseJsonSerializer: KSerializer<T>,
         request: Request,
-        useExtendedNetworkCallClient: Boolean
+        useExtendedNetworkCallClient: Boolean,
+        accept400AsSuccess: Boolean
     ): T {
-
-        // TODO: Make less horrible. Needed for the `/contacts` endpoint for users who
-        //  have a large number of contacts as Relay needs more time than the default
-        //  client's settings. Replace once the `aa/contacts` endpoint gets pagination.
         val client = if (useExtendedNetworkCallClient) {
             extendedClientLock.withLock {
                 extendedNetworkCallClient ?: networkClient.getClient().newBuilder()
@@ -265,25 +262,22 @@ class NetworkRelayCallImpl(
             client.newCall(request).execute()
         }
 
-        if (!networkResponse.isSuccessful) {
-            networkResponse.body?.close()
-            throw java.io.IOException(networkResponse.toString())
-        }
-
         val body = networkResponse.body ?: throw NullPointerException(
-            """
-                NetworkResponse.body returned null
-                NetworkResponse: $networkResponse
-            """.trimIndent()
+            "NetworkResponse.body returned null\nNetworkResponse: $networkResponse"
         )
+
+        if (!networkResponse.isSuccessful && !(accept400AsSuccess && networkResponse.code == 400)) {
+            body.close()
+            throw IOException(networkResponse.toString())
+        }
 
         return withContext(default) {
             SphinxJson.decodeFromString(responseJsonSerializer, body.string())
         } ?: throw IOException(
             """
-                Failed to convert Json to ${responseJsonSerializer.descriptor}
-                NetworkResponse: $networkResponse
-            """.trimIndent()
+            Failed to convert Json to ${responseJsonSerializer.descriptor}
+            NetworkResponse: $networkResponse
+        """.trimIndent()
         )
     }
 

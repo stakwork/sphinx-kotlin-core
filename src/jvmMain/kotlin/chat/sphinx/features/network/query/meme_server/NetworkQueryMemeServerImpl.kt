@@ -7,7 +7,6 @@ import chat.sphinx.concepts.network.query.meme_server.model.*
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
 import chat.sphinx.crypto.common.annotations.RawPasswordAccess
 import chat.sphinx.crypto.common.clazzes.Password
-import chat.sphinx.features.network.query.meme_server.model.MemeServerChallengeSigRelayResponse
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
@@ -15,10 +14,6 @@ import chat.sphinx.wrapper.lightning.LightningNodePubKey
 import chat.sphinx.wrapper.meme_server.*
 import chat.sphinx.wrapper.message.media.MediaType
 import chat.sphinx.wrapper.message.media.token.MediaHost
-import chat.sphinx.wrapper.relay.AuthorizationToken
-import chat.sphinx.wrapper.relay.RelayUrl
-import chat.sphinx.wrapper.relay.RequestSignature
-import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.io.errors.IOException
@@ -77,7 +72,7 @@ class NetworkQueryMemeServerImpl(
             requestBodyPair = Pair(
                 mapOf(Pair("", "")),
                 Json.serializersModule.serializer()
-            )
+            ),
         )
 
     override suspend fun getPaymentTemplates(

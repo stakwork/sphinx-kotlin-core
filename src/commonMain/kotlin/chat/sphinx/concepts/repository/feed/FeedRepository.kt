@@ -9,11 +9,37 @@ import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageUUID
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
+import chat.sphinx.wrapper.podcast.PodcastEpisode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 interface FeedRepository {
+    val createProjectTimestamps: MutableStateFlow<MutableMap<String, Long>> // Key: episodeId, Value: timestampMillis
+
     fun getPodcastByChatId(chatId: ChatId): Flow<Podcast?>
     fun getPodcastById(feedId: FeedId): Flow<Podcast?>
+
+    suspend fun checkIfEpisodeNodeExists(
+        podcastEpisode: PodcastEpisode,
+        podcastTitle: FeedTitle,
+        workflowId: Int?,
+        token: String?
+    )
+    suspend fun getEpisodeNodeDetails(
+        podcastEpisode: PodcastEpisode,
+        podcastTitle: FeedTitle,
+        referenceId: FeedReferenceId,
+        workflowId: Int?,
+        token: String?
+    )
+    suspend fun getChaptersData(
+        podcastEpisode: PodcastEpisode,
+        podcastTitle: FeedTitle,
+        referenceId: FeedReferenceId,
+        id: FeedId,
+        workflowId: Int?,
+        token: String?
+    )
 
     fun searchFeedsBy(
         searchTerm: String,

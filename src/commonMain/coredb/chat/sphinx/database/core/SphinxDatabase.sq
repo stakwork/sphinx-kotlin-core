@@ -29,6 +29,7 @@ import chat.sphinx.wrapper.dashboard.ContactId;
 import chat.sphinx.wrapper.dashboard.DashboardItemId;
 import chat.sphinx.wrapper.dashboard.InviteId;
 import chat.sphinx.wrapper.feed.FeedAuthor;
+import chat.sphinx.wrapper.feed.FeedChaptersData;
 import chat.sphinx.wrapper.feed.FeedContentType;
 import chat.sphinx.wrapper.feed.FeedDescription;
 import chat.sphinx.wrapper.feed.FeedDestinationAddress;
@@ -44,6 +45,7 @@ import chat.sphinx.wrapper.feed.FeedLanguage;
 import chat.sphinx.wrapper.feed.FeedModelSuggested;
 import chat.sphinx.wrapper.feed.FeedModelType;
 import chat.sphinx.wrapper.feed.FeedPlayerSpeed;
+import chat.sphinx.wrapper.feed.FeedReferenceId;
 import chat.sphinx.wrapper.feed.FeedTitle;
 import chat.sphinx.wrapper.feed.FeedType;
 import chat.sphinx.wrapper.feed.FeedUrl;
@@ -1548,7 +1550,9 @@ CREATE TABLE feedItemDbo(
     link                        TEXT               AS FeedUrl,
     feed_id                     TEXT               AS FeedId NOT NULL,
     duration                    INTEGER            AS FeedItemDuration,
-    local_file                  TEXT               AS Path
+    local_file                  TEXT               AS Path,
+    reference_id                TEXT               AS FeedReferenceId,
+    chapters_data               TEXT               AS FeedChaptersData
 );
 
 feedItemUpsert {
@@ -1642,6 +1646,16 @@ feedItemUpdateLocalFile:
 UPDATE feedItemDbo
 SET local_file = :local_file
 WHERE id = ?;
+
+feedItemUpdateReferenceId:
+UPDATE feedItemDbo
+SET reference_id = :reference_id
+WHERE id = :id;
+
+feedItemUpdateChaptersData:
+UPDATE feedItemDbo
+SET chapters_data = :chapters_data
+WHERE id = :id;
 
 feedItemDeleteAll:
 DELETE FROM feedItemDbo;

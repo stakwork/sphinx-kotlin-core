@@ -251,3 +251,25 @@ internal class PlayedAdapter : ColumnAdapter<Boolean, Long?> {
         return if (value) 1L else 0L
     }
 }
+
+internal class FeedReferenceIdAdapter: ColumnAdapter<FeedReferenceId, String> {
+
+    override fun decode(databaseValue: String): FeedReferenceId {
+        return FeedReferenceId(databaseValue)
+    }
+
+    override fun encode(value: FeedReferenceId): String {
+        return value.value
+    }
+}
+
+internal class FeedChapterDataAdapter: ColumnAdapter<FeedChaptersData, String> {
+
+    override fun decode(databaseValue: String): FeedChaptersData {
+        return FeedChaptersData(databaseValue)
+    }
+
+    override fun encode(value: FeedChaptersData): String {
+        return value.value
+    }
+}

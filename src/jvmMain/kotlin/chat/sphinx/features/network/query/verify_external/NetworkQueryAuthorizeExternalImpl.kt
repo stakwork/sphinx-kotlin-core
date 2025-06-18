@@ -2,22 +2,12 @@ package chat.sphinx.features.network.query.verify_external
 
 import chat.sphinx.concepts.network.query.verify_external.NetworkQueryAuthorizeExternal
 import chat.sphinx.concepts.network.query.verify_external.model.PersonInfoDto
-import chat.sphinx.concepts.network.query.verify_external.model.SignBase64Dto
-import chat.sphinx.concepts.network.query.verify_external.model.VerifyExternalDto
 import chat.sphinx.concepts.network.query.verify_external.model.VerifyExternalInfoDto
 import chat.sphinx.concepts.network.relay_call.NetworkRelayCall
-import chat.sphinx.features.network.query.verify_external.model.SignBase64RelayResponse
-import chat.sphinx.features.network.query.verify_external.model.VerifyExternalRelayResponse
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.ResponseError
-import chat.sphinx.wrapper.relay.AuthorizationToken
-import chat.sphinx.wrapper.relay.RelayUrl
-import chat.sphinx.wrapper.relay.RequestSignature
-import chat.sphinx.wrapper.relay.TransportToken
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.PolymorphicSerializer
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 
 class NetworkQueryAuthorizeExternalImpl(
     private val networkRelayCall: NetworkRelayCall,
@@ -35,11 +25,11 @@ class NetworkQueryAuthorizeExternalImpl(
     ): Flow<LoadResponse<Any, ResponseError>> =
         networkRelayCall.post(
             url = "https://$host/verify/$challenge?token=$token",
-            responseJsonSerializer = PolymorphicSerializer(Any::class) ,
+            responseJsonSerializer = PolymorphicSerializer(Any::class),
             requestBodyPair = Pair(
                 info,
                 VerifyExternalInfoDto.serializer()
-            )
+            ),
         )
 
     override fun getPersonInfo(

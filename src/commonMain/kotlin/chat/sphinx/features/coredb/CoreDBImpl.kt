@@ -286,6 +286,8 @@ abstract class CoreDBImpl: CoreDB() {
                     feed_idAdapter = FeedIdAdapter(),
                     durationAdapter = FeedItemDurationAdapter(),
                     local_fileAdapter = PathAdapter.getInstance(),
+                    reference_idAdapter = FeedReferenceIdAdapter(),
+                    chapters_dataAdapter = FeedChapterDataAdapter()
                 ),
                 feedModelDboAdapter = FeedModelDbo.Adapter(
                     idAdapter = FeedIdAdapter(),

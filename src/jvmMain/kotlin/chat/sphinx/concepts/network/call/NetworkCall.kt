@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.io.errors.IOException
 import kotlinx.serialization.KSerializer
 import okhttp3.Request
+import uniffi.sphinxrs.findRoute
 
 @Suppress("NOTHING_TO_INLINE")
 @Throws(IllegalArgumentException::class)
@@ -93,6 +94,7 @@ abstract class NetworkCall {
         requestBodyPair: Pair<Input, KSerializer<Input>>,
         mediaType: String? = "application/json",
         headers: Map<String, String>? = null,
+        accept400AsSuccess: Boolean = false
     ): Flow<LoadResponse<Result, ResponseError>>
 
     /**
@@ -117,7 +119,8 @@ abstract class NetworkCall {
     abstract suspend fun <T: Any> call(
         responseJsonSerializer: KSerializer<T>,
         request: Request,
-        useExtendedNetworkCallClient: Boolean = false
+        useExtendedNetworkCallClient: Boolean = false,
+        accept400AsSuccess: Boolean = false
     ): T
 
     @Throws(NullPointerException::class, IOException::class)

@@ -1,0 +1,5 @@
+import chat.sphinx.wrapper.feed.FeedChaptersData;
+import chat.sphinx.wrapper.feed.FeedReferenceId;
+
+ALTER TABLE feedItemDbo ADD COLUMN reference_id TEXT AS FeedReferenceId DEFAULT NULL;
+ALTER TABLE feedItemDbo ADD COLUMN chapters_data TEXT AS FeedChaptersData DEFAULT NULL;
