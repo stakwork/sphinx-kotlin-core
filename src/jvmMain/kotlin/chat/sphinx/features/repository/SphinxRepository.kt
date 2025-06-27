@@ -6189,7 +6189,7 @@ abstract class SphinxRepository(
     override fun getAllFeeds(): Flow<List<Feed>> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
         emitAll(
-            queries.feedGetAllSubscribed()
+            queries.feedGetAll()
                 .asFlow()
                 .mapToList(io)
                 .map { listFeedDbo ->
