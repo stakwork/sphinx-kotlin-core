@@ -328,7 +328,8 @@ abstract class CoreDBImpl: CoreDB() {
                     item_idAdapter = FeedIdAdapter(),
                     feed_idAdapter = FeedIdAdapter(),
                     durationAdapter = FeedItemDurationAdapter(),
-                    current_timeAdapter = FeedItemDurationAdapter()
+                    current_timeAdapter = FeedItemDurationAdapter(),
+                    last_playedAdapter = DateTimeAdapter.getInstance()
                 )
             ).sphinxDatabaseQueries
         }

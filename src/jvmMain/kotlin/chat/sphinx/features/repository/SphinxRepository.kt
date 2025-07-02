@@ -6139,8 +6139,8 @@ abstract class SphinxRepository(
                     item_id = itemId,
                     duration = duration,
                     current_time = currentTime,
-                    played = played
-
+                    played = played,
+                    last_played = System.currentTimeMillis().toDateTime()
                 )
             }
 
@@ -6557,6 +6557,18 @@ abstract class SphinxRepository(
                 }
             }
         }
+    }
+
+    override suspend fun getLastPlayedEpisode(): Flow<ContentEpisodeStatus?> {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        return queries.contentEpisodeStatusGetLatestLastPlayedItem()
+            .asFlow()
+            .mapToOneOrNull(io)
+            .map { dbo ->
+                dbo?.let { contentEpisodeStatusDboPresenterMapper.mapFrom(it) }
+            }
+            .distinctUntilChanged()
     }
 
     private suspend fun processPodcast(

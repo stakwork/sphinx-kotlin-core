@@ -7,6 +7,7 @@ import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.feed.*
 import chat.sphinx.wrapper.lightning.Sat
 import chat.sphinx.wrapper.message.MessageUUID
+import chat.sphinx.wrapper.podcast.ContentEpisodeStatus
 import chat.sphinx.wrapper.podcast.FeedSearchResultRow
 import chat.sphinx.wrapper.podcast.Podcast
 import chat.sphinx.wrapper.podcast.PodcastEpisode
@@ -40,6 +41,8 @@ interface FeedRepository {
         workflowId: Int?,
         token: String?
     )
+
+    suspend fun getLastPlayedEpisode(): Flow<ContentEpisodeStatus?>
 
     fun searchFeedsBy(
         searchTerm: String,

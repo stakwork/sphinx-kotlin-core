@@ -14,7 +14,8 @@ internal class ContentEpisodeStatusDboPresenterMapper(
             value.item_id,
             value.duration,
             value.current_time,
-            value.played
+            value.played,
+            value.last_played
         )
     }
 
@@ -24,7 +25,8 @@ internal class ContentEpisodeStatusDboPresenterMapper(
             value.itemId,
             value.duration,
             value.currentTime,
-            value.played
+            value.played,
+            value.lastPlayed
         )
     }
 }
