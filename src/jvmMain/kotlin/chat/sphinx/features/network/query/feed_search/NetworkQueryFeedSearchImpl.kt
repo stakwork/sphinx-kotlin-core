@@ -29,7 +29,7 @@ class NetworkQueryFeedSearchImpl(
 ): NetworkQueryFeedSearch() {
 
     companion object {
-        private const val TRIBES_DEFAULT_SERVER_URL = "https://tribes.sphinx.chat"
+        private const val TRIBES_DEFAULT_SERVER_URL = "https://people.sphinx.chat"
 
         private const val GRAPH_MINDSET_BASE_URL = "https://graphmindset.sphinx.chat"
         private const val GRAPH_MINDSET_ADD_NODE_URL = "https://graphmindset.sphinx.chat/api/add_node?sig=&msg="
@@ -46,10 +46,12 @@ class NetworkQueryFeedSearchImpl(
         relayData: Triple<Pair<AuthorizationToken, TransportToken?>, RequestSignature?, RelayUrl>?
     ): Flow<LoadResponse<List<FeedSearchResultDto>, ResponseError>> =
         networkRelayCall.getList(
-            url = if (feedType.isPodcast())
-                "$TRIBES_DEFAULT_SERVER_URL/search_podcasts?q=$searchTerm"
-            else
-                "$TRIBES_DEFAULT_SERVER_URL/search_youtube?q=$searchTerm",
+            url = String.format(
+                if (feedType.isPodcast())
+                    ENDPOINT_PODCAST_SEARCH
+                else
+                    ENDPOINT_YOUTUBE_SEARCH, searchTerm
+            ),
             responseJsonSerializer = FeedSearchResultDto.serializer(),
         )
 
