@@ -5972,7 +5972,8 @@ abstract class SphinxRepository(
         chatUUID: ChatUUID?,
         subscribed: Subscribed,
         currentItemId: FeedId?
-    ) {
+    ): Response<FeedId, ResponseError> {
+        var updateResponse: Response<FeedId, ResponseError> = Response.Error(ResponseError("Feed content update failed"))
         withContext(io) {
             val queries = coreDB.getSphinxDatabaseQueries()
 
@@ -5986,6 +5987,7 @@ abstract class SphinxRepository(
                     is LoadResponse.Loading -> {
                     }
                     is Response.Error -> {
+                        updateResponse = response
                     }
                     is Response.Success -> {
 
@@ -6017,10 +6019,16 @@ abstract class SphinxRepository(
                                 )
                             }
                         }
+                        updateResponse = response.value.id.toFeedId()?.let {
+                            Response.Success(it)
+                        } ?: run {
+                            Response.Error(ResponseError("Feed content update failed"))
+                        }
                     }
                 }
             }
         }
+        return updateResponse
     }
 
     override fun getFeedByChatId(chatId: ChatId): Flow<Feed?> = flow {

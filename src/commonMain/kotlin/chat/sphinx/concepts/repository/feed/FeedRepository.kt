@@ -1,5 +1,7 @@
 package chat.sphinx.concepts.repository.feed
 
+import chat.sphinx.response.Response
+import chat.sphinx.response.ResponseError
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.chat.ChatHost
 import chat.sphinx.wrapper.chat.ChatUUID
@@ -58,7 +60,7 @@ interface FeedRepository {
         chatUUID: ChatUUID?,
         subscribed: Subscribed,
         currentEpisodeId: FeedId?
-    )
+    ): Response<FeedId, ResponseError>
 
     fun getFeedByChatId(chatId: ChatId): Flow<Feed?>
     fun getFeedById(feedId: FeedId): Flow<Feed?>
