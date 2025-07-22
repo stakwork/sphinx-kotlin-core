@@ -436,12 +436,13 @@ abstract class SphinxRepository(
             webViewPaymentHash.value = paymentHash
         }
 
-        if (endHops?.isNotEmpty() == true && routerPubKey != null) {
+        if (endHops?.isNotEmpty() == true && routerPubKey?.isNotEmpty() == true) {
             connectManager.concatNodesFromResponse(
                 endHops,
                 routerPubKey,
                 milliSatAmount
             )
+            println("Concat nodes was called")
         }
         val tag = connectManager.processInvoicePayment(
             paymentRequest.value,
@@ -599,6 +600,31 @@ abstract class SphinxRepository(
     private fun isJsonResponseEmpty(json: String?): Boolean {
         return json.isNullOrEmpty()
     }
+
+    override fun requestNodes(nodeUrl: String) {
+        applicationScope.launch(mainImmediate) {
+            networkQueryContact.getNodes(nodeUrl).collect { loadResponse ->
+                when (loadResponse) {
+                    is Response.Success -> {
+                        val nodes = loadResponse.value
+                        storeRouterPubKey(nodes)
+                        connectManager.addNodesFromResponse(nodes)
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun storeRouterPubKey(routerUrl: String){
+        try {
+            val jsonObject = JSONObject(routerUrl)
+            val routerPubKey = jsonObject.getString("pubkey")
+            serversUrls.storeRouterPubkey(routerPubKey)
+
+        } catch (e: Exception) { }
+    }
+
 
     override fun clearWebViewPreImage() {
         webViewPreImage.value = null
@@ -1359,7 +1385,10 @@ abstract class SphinxRepository(
     }
 
     override fun onGetNodes() {
-//        connectionManagerState.value = OwnerRegistrationState.GetNodes
+        val routerUrl = serversUrls.getRouterUrl()
+        if (routerUrl != null) {
+            requestNodes(routerUrl)
+        }
     }
 
     override fun listenToOwnerCreation(callback: () -> Unit) {

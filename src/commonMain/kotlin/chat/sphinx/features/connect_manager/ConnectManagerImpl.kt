@@ -1371,6 +1371,8 @@ class ConnectManagerImpl(
         routerPubKey: String,
         amount: Long
     ) {
+        LOG.d("MQTT_MESSAGES", "concatNodesFromResponse called with nodesJson: $nodesJson, routerPubKey: $routerPubKey, amount: $amount")
+
         try {
             val concatNodes = concatRoute(
                 getCurrentUserState(),
@@ -1383,7 +1385,7 @@ class ConnectManagerImpl(
             notifyListeners {
                 onConnectManagerError(ConnectManagerError.ConcatNodesError)
             }
-            LOG.d("MQTT_MESSAGES", "concatNodesFromResponse ${e.message}")
+            LOG.d("MQTT_MESSAGES", "concatNodesFromResponse error: ${e.message}")
         }
     }
 
@@ -1786,6 +1788,8 @@ class ConnectManagerImpl(
         paymentRequest: String,
         milliSatAmount: Long
     ): String? {
+        LOG.d("MQTT_MESSAGES", "processInvoicePayment called with paymentRequest: $paymentRequest, milliSatAmount: $milliSatAmount")
+
         try {
             val invoice = payInvoice(
                 ownerSeed!!,
@@ -1795,12 +1799,14 @@ class ConnectManagerImpl(
                 milliSatAmount.toULong()
             )
             handleRunReturn(invoice)
+            LOG.d("MQTT_MESSAGES", "el resultado del tag ${invoice.msgs.first().tag}")
+
             return invoice.msgs.first().tag
         } catch (e: Exception) {
             notifyListeners {
                 onConnectManagerError(ConnectManagerError.PayInvoiceError)
             }
-            LOG.d("MQTT_MESSAGES", "processInvoicePayment ${e.message}")
+            LOG.d("MQTT_MESSAGES", "processInvoicePayment error: ${e.message}")
             return null
         }
     }
