@@ -6,9 +6,16 @@ import chat.sphinx.logger.SphinxLogger
 /**
  * TODO: Implement an actual multiplatform logger...
  */
-class SphinxLoggerImpl: SphinxLogger() {
+class SphinxLoggerImpl : SphinxLogger() {
+
+    companion object {
+        private const val ENABLE_LOGS = false
+    }
+
     override fun log(tag: String, message: String, type: LogType, throwable: Throwable?) {
-        val nnThrowable = throwable ?: ""
-        println("$tag: $message $nnThrowable")
+        if (!ENABLE_LOGS) return
+
+        val nnThrowable = throwable?.let { "\n${it.stackTraceToString()}" } ?: ""
+        println("$tag [$type]: $message $nnThrowable")
     }
 }
