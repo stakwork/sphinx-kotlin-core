@@ -5,6 +5,7 @@ import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.Seen
 import chat.sphinx.wrapper.chat.Chat
+import chat.sphinx.wrapper.chat.Push
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.lightning.LightningNodePubKey
@@ -419,6 +420,7 @@ abstract class Message {
     abstract val messageContent: MessageContent?
     abstract val status: MessageStatus
     abstract val seen: Seen
+    abstract val push: Push?
     abstract val senderAlias: SenderAlias?
     abstract val senderPic: PhotoUrl?
     abstract val originalMUID: MessageMUID?
@@ -460,6 +462,7 @@ abstract class Message {
                 other.messageContent                == messageContent               &&
                 other.status                        == status                       &&
                 other.seen                          == seen                         &&
+                other.push                          == push                         &&
                 other.senderAlias                   == senderAlias                  &&
                 other.senderPic                     == senderPic                    &&
                 other.originalMUID                  == originalMUID                 &&
@@ -516,6 +519,7 @@ abstract class Message {
         result = _31 * result + messageContent.hashCode()
         result = _31 * result + status.hashCode()
         result = _31 * result + seen.hashCode()
+        result = _31 * result + push.hashCode()
         result = _31 * result + senderAlias.hashCode()
         result = _31 * result + senderPic.hashCode()
         result = _31 * result + originalMUID.hashCode()
@@ -542,9 +546,9 @@ abstract class Message {
         return "Message(id=$id,uuid=$uuid,chatId=$chatId,type=$type,sender=$sender,"            +
                 "receiver=$receiver,amount=$amount,paymentHash=$paymentHash,"                   +
                 "paymentRequest=$paymentRequest,date=$date,expirationDate=$expirationDate,"     +
-                "messageContent=$messageContent,status=$status,seen=$seen,"                     +
+                "messageContent=$messageContent,status=$status,seen=$seen,push=$push,"          +
                 "senderAlias=$senderAlias,senderPic=$senderPic,originalMUID=$originalMUID,"     +
-                "replyUUID=$replyUUID,threadUUID=$threadUUID,flagged=$flagged,"                                        +
+                "replyUUID=$replyUUID,threadUUID=$threadUUID,flagged=$flagged,"                 +
                 "messageContentDecrypted=$messageContentDecrypted,"                             +
                 "messageDecryptionError=$messageDecryptionError,"                               +
                 "messageDecryptionException=$messageDecryptionException,"                       +

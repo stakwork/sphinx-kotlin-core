@@ -5,6 +5,7 @@ import chat.sphinx.database.core.MessageMediaDbo
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.Seen
+import chat.sphinx.wrapper.chat.Push
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.lightning.LightningPaymentHash
@@ -44,6 +45,8 @@ class MessageDboWrapper(val messageDbo: MessageDbo): Message() {
         get() = messageDbo.status
     override val seen: Seen
         get() = messageDbo.seen
+    override val push: Push?
+        get() = messageDbo.push
     override val senderAlias: SenderAlias?
         get() = messageDbo.sender_alias
     override val senderPic: PhotoUrl?
@@ -162,6 +165,7 @@ fun convertMessageDboToNewMessage(messageDbo: MessageDbo, messageMedia: MessageM
         messageContent = messageDbo.message_content,
         status = messageDbo.status,
         seen = messageDbo.seen,
+        push = messageDbo.push,
         senderAlias = messageDbo.sender_alias,
         senderPic = messageDbo.sender_pic,
         originalMUID = messageDbo.original_muid,

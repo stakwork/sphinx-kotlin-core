@@ -3,6 +3,7 @@ package chat.sphinx.wrapper.message
 import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.Seen
+import chat.sphinx.wrapper.chat.Push
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.lightning.LightningPaymentHash
@@ -26,6 +27,7 @@ class NewMessage(
     override val messageContent: MessageContent? = null,
     override val status: MessageStatus,
     override val seen: Seen,
+    override val push: Push? = Push.False,
     override val senderAlias: SenderAlias? = null,
     override val senderPic: PhotoUrl? = null,
     override val originalMUID: MessageMUID? = null,
@@ -76,7 +78,7 @@ class NewMessage(
         return "NewMessage(id=$id, uuid=$uuid, chatId=$chatId, type=$type, sender=$sender, " +
                 "receiver=$receiver, amount=$amount, paymentHash=$paymentHash, " +
                 "paymentRequest=$paymentRequest, date=$date, expirationDate=$expirationDate, " +
-                "messageContent=$messageContent, status=$status, seen=$seen, " +
+                "messageContent=$messageContent, status=$status, seen=$seen,push=$push, " +
                 "senderAlias=$senderAlias, senderPic=$senderPic, originalMUID=$originalMUID, " +
                 "replyUUID=$replyUUID, flagged=$flagged, recipientAlias=$recipientAlias, " +
                 "recipientPic=$recipientPic, person=$person, threadUUID=$threadUUID, " +

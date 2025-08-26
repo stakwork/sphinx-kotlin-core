@@ -8344,6 +8344,12 @@ abstract class SphinxRepository(
             val now = DateTime.nowUTC().toDateTime()
             val messageDate = if (isTribe) date ?: now else timestamp ?: now
 
+            val ownerAlias = chatTribe?.myAlias?.value ?: owner?.alias?.value ?: ""
+
+            val hasMention = if (isTribe && !fromMe && ownerAlias.isNotEmpty() && msg.content?.isNotEmpty() == true) {
+                (msg.content?.contains("@$ownerAlias ", ignoreCase = true) ?: false).toPush()
+            } else Push.False
+
             val newMessage = NewMessage(
                 id = msgIndex,
                 uuid = msgUuid,
@@ -8359,6 +8365,7 @@ abstract class SphinxRepository(
                 messageContent = null,
                 status = status,
                 seen = Seen.False,
+                push = hasMention,
                 senderAlias = senderAlias,
                 senderPic = msgSender.photo_url?.toPhotoUrl(),
                 originalMUID = null,

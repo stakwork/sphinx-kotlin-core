@@ -546,7 +546,7 @@ fun TransactionCallbacks.upsertNewMessage(
         message.type,
         message.recipientAlias,
         message.recipientPic,
-        Push.False,
+        message.push,
         message.person,
         message.threadUUID,
         message.tagMessage,
