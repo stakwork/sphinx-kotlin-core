@@ -24,6 +24,7 @@ import org.eclipse.paho.client.mqttv3.*
 import org.json.JSONException
 import org.json.JSONObject
 import uniffi.sphinxrs.*
+import java.lang.Long.max
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.*
@@ -85,10 +86,14 @@ class ConnectManagerImpl(
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
                 null
             )
         )
     }
+
     override val ownerInfoStateFlow: StateFlow<OwnerInfo>
         get() = _ownerInfoStateFlow.asStateFlow()
 
@@ -560,10 +565,7 @@ class ConnectManagerImpl(
                     notifyListeners {
                         onUpsertContacts(contactsToRestore) {
                             // Handle new messages
-                            msgs.forEach { msg ->
-                                processMessage(msg)
-                            }
-
+                            processMessages(msgs)
                             continueRestore(msgs, topic)
                         }
                     }
@@ -642,10 +644,29 @@ class ConnectManagerImpl(
         }
     }
 
-    private fun processMessage(msg: Msg) {
+//    private fun processMessage(msg: Msg) {
+//
+//        notifyListeners {
+//            onMessage(
+//                msg.message.orEmpty(),
+//                msg.sender.orEmpty(),
+//                msg.type?.toInt() ?: 0,
+//                msg.uuid.orEmpty(),
+//                msg.index.orEmpty(),
+//                msg.timestamp?.toLong(),
+//                msg.sentTo.orEmpty(),
+//                msg.msat?.let { convertMillisatsToSats(it) },
+//                msg.fromMe,
+//                msg.tag,
+//                msg.timestamp?.toLong(),
+//                isRestoreAccount()
+//            )
+//        }
+//    }
 
-        notifyListeners {
-            onMessage(
+    private fun processMessages(msgs: List<Msg>) {
+        val mqttMessages = msgs.map { msg ->
+            chat.sphinx.wrapper.message.MqttMessage(
                 msg.message.orEmpty(),
                 msg.sender.orEmpty(),
                 msg.type?.toInt() ?: 0,
@@ -656,11 +677,19 @@ class ConnectManagerImpl(
                 msg.msat?.let { convertMillisatsToSats(it) },
                 msg.fromMe,
                 msg.tag,
-                msg.timestamp?.toLong(),
-                isRestoreAccount()
+                msg.timestamp?.toLong()
             )
         }
+
+        notifyListeners {
+            onMessages(mqttMessages, isRestoreAccount())
+        }
+
+        _ownerInfoStateFlow.value = ownerInfoStateFlow.value.copy(
+            messageLastIndex = max(_ownerInfoStateFlow.value.messageLastIndex ?: 0, mqttMessages.maxByOrNull { it.msgIndex.toLongOrNull() ?: 0L }?.msgIndex?.toLongOrNull() ?: 0L)
+        )
     }
+
 
     private fun fetchMessagesWithPagination(
         serverHighestIndexRecevied: ULong,
@@ -719,9 +748,10 @@ class ConnectManagerImpl(
         _ownerInfoStateFlow.value = ownerInfo
     }
 
-    override fun updateOwnerInfoUserState(userState: String) {
+    override fun updateOwnerInfoUserState(userState: String, userStateByteArray: ByteArray) {
         _ownerInfoStateFlow.value = ownerInfoStateFlow.value.copy(
-            userState = userState
+            userState = userState,
+            userStateByteArray = userStateByteArray
         )
     }
 
@@ -974,7 +1004,10 @@ class ConnectManagerImpl(
             _ownerInfoStateFlow.value = OwnerInfo(
                 ownerInfo.alias,
                 ownerInfo.picture,
+                ownerInfo.pubkey,
+                ownerInfo.routeHint,
                 ownerInfoStateFlow.value.userState,
+                ownerInfoStateFlow.value.userStateByteArray,
                 ownerInfo.messageLastIndex
             )
 
@@ -1243,8 +1276,8 @@ class ConnectManagerImpl(
                 ownerInfoStateFlow.value.alias ?: "",
                 tribeServerIp,
                 serverDefaultTribe,
-                null, // needs to implement
-                null // needs to implement
+                ownerInfoStateFlow.value.pubkey,
+                ownerInfoStateFlow.value.routeHint
             )
 
             if (createInvite.newInvite != null) {
@@ -2137,12 +2170,20 @@ class ConnectManagerImpl(
     }
 
     private fun getCurrentUserState(): ByteArray {
+        ownerInfoStateFlow.value.userStateByteArray?.let { bytes ->
+            return bytes
+        }
         val userStateMap = retrieveUserStateMap(ownerInfoStateFlow.value.userState)
+        val bytesArray = MsgPack.encodeToByteArray(MsgPackDynamicSerializer, userStateMap)
+
+        _ownerInfoStateFlow.value = ownerInfoStateFlow.value.copy(
+            userStateByteArray = bytesArray
+        )
+
         LOG.d("MQTT_MESSAGES", "getCurrentUserState $userStateMap")
 
-        return MsgPack.encodeToByteArray(MsgPackDynamicSerializer, userStateMap)
+        return bytesArray
     }
-
     private fun encodeMapToBase64(map: MutableMap<String, ByteArray>): String {
         val encodedMap = mutableMapOf<String, String>()
 

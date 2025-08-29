@@ -2,6 +2,7 @@ package chat.sphinx.concepts.repository.chat
 
 import chat.sphinx.concepts.network.query.chat.model.NewTribeDto
 import chat.sphinx.concepts.repository.chat.model.CreateTribe
+import chat.sphinx.database.core.SphinxDatabaseQueries
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
@@ -82,10 +83,11 @@ interface ChatRepository {
 
     suspend fun updateTimezoneUpdatedOnSystemChange()
 
-    suspend fun updateChatRemoteTimezoneIdentifier(
+    fun updateChatRemoteTimezoneIdentifier(
         remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
         chatId: ChatId,
-        isRestore: Boolean
+        isRestore: Boolean,
+        queries: SphinxDatabaseQueries
     )
 
     suspend fun getLastLsatByIssuer(issuer: LsatIssuer): Flow<Lsat?>

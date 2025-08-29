@@ -7,6 +7,7 @@ import chat.sphinx.concepts.network.query.message.model.PutPaymentRequestDto
 import chat.sphinx.concepts.repository.message.model.SendMessage
 import chat.sphinx.concepts.repository.message.model.SendPayment
 import chat.sphinx.concepts.repository.message.model.SendPaymentRequest
+import chat.sphinx.database.core.SphinxDatabaseQueries
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
@@ -103,37 +104,11 @@ interface MessageRepository {
 
     suspend fun messageMediaUpdateLocalFile(message: Message, filepath: Path)
 
-    suspend fun upsertMqttMessage(
-        msg: Msg,
-        msgSender: MsgSender,
-        contactTribePubKey: String,
-        msgType: MessageType,
-        msgUuid: MessageUUID,
-        msgIndex: MessageId,
-        msgAmount: Sat?,
-        originalUuid: MessageUUID?,
-        timestamp: DateTime?,
-        date: DateTime?,
-        fromMe: Boolean,
-        realPaymentAmount: Sat?,
-        paymentRequest: LightningPaymentRequest?,
-        paymentHash: LightningPaymentHash?,
-        bolt11: Bolt11?,
-        tag: TagMessage?,
-        isRestore: Boolean
-    )
-
-    suspend fun deleteMqttMessage(messageUuid: MessageUUID)
+    fun deleteMqttMessage(messageUuid: MessageUUID, queries: SphinxDatabaseQueries)
 
     fun getMaxIdMessage(): Flow<Long?>
     fun getLastMessage(): Flow<Message?>
     fun getTribeLastMemberRequestBySenderAlias(alias: SenderAlias, chatId: ChatId): Flow<Message?>
-
-    fun sendMediaKeyOnPaidPurchase(
-        msg: Msg,
-        contactInfo: MsgSender,
-        paidAmount: Sat
-    )
 
     suspend fun sendNewPaymentRequest(
         requestPayment: SendPayment

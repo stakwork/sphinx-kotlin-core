@@ -12,10 +12,10 @@ data class MessageMetadata(
         return Json.encodeToString(this)
     }
 
+
     companion object {
-        @Throws(Exception::class, IllegalArgumentException::class)
-        fun String.toMessageMetadata(): MessageMetadata {
-            return Json.decodeFromString(this) ?: throw IllegalArgumentException("Invalid JSON for NewCreateTribe")
-        }
+        fun String.toMessageMetadata(): MessageMetadata? =
+            runCatching { Json.decodeFromString<MessageMetadata>(this) }.getOrNull()
     }
 }
+

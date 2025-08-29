@@ -4,6 +4,7 @@ import chat.sphinx.concepts.connect_manager.model.OwnerInfo
 import chat.sphinx.concepts.connect_manager.model.RestoreState
 import chat.sphinx.wrapper.contact.NewContact
 import chat.sphinx.wrapper.lightning.WalletMnemonic
+import chat.sphinx.wrapper.message.MqttMessage
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +27,7 @@ abstract class ConnectManager {
 
     // Account Management Methods
     abstract fun setOwnerInfo(ownerInfo: OwnerInfo)
-    abstract fun updateOwnerInfoUserState(userState: String)
+    abstract fun updateOwnerInfoUserState(userState: String, userStateByteArray: ByteArray)
     abstract fun createAccount(userAlias: String)
     abstract fun restoreAccount(
         defaultTribe: String?,
@@ -219,21 +220,9 @@ interface ConnectManagerListener {
     fun onRestoreFinished(isRestoreCancelled: Boolean = false)
     fun updatePaidInvoices()
 
+
     // Messaging Callbacks
-    fun onMessage(
-        msg: String,
-        msgSender: String,
-        msgType: Int,
-        msgUuid: String,
-        msgIndex: String,
-        msgTimestamp: Long?,
-        sentTo: String,
-        amount: Long?,
-        fromMe: Boolean?,
-        tag: String?,
-        date: Long?,
-        isRestore: Boolean,
-    )
+    fun onMessages(messages: List<MqttMessage>, isRestore: Boolean)
     fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long)
     fun onMessagesCounts(msgsCounts: String)
     fun onSentStatus(sentStatus: String)

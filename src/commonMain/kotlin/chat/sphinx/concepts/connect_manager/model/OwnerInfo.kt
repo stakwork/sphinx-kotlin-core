@@ -3,6 +3,9 @@ package chat.sphinx.concepts.connect_manager.model
 data class OwnerInfo(
     val alias: String?,
     val picture: String?,
+    val pubkey: String?,
+    val routeHint: String?,
     val userState: String?,
+    val userStateByteArray: ByteArray?,
     val messageLastIndex: Long?
 )
