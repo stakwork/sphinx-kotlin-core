@@ -2325,6 +2325,66 @@ abstract class SphinxRepository(
         )
     }
 
+    override fun getUnseenReceivedMessages(): Flow<List<Message>> = flow {
+        var ownerId: ContactId? = accountOwner.value?.id
+
+        if (ownerId == null) {
+            try {
+                accountOwner.collect { contact ->
+                    if (contact != null) {
+                        ownerId = contact.id
+                        throw Exception()
+                    }
+                }
+            } catch (e: Exception) {
+            }
+            delay(25L)
+        }
+
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetUnseenIncomingMessages(ownerId!!)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
+    override fun getUnseenReceivedMentions(): Flow<List<Message>?> = flow {
+        var ownerId: ContactId? = accountOwner.value?.id
+
+        if (ownerId == null) {
+            try {
+                accountOwner.collect { contact ->
+                    if (contact != null) {
+                        ownerId = contact.id
+                        throw Exception()
+                    }
+                }
+            } catch (e: Exception) {
+            }
+            delay(25L)
+        }
+
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageGetUnseenIncomingMentions(ownerId!!)
+                .asFlow()
+                .mapToList(io)
+                .map { listMessageDbo ->
+                    listMessageDbo.map {
+                        messageDboPresenterMapper.mapFrom(it)
+                    }
+                }
+                .distinctUntilChanged()
+        )
+    }
+
     override fun getPaymentsTotalFor(feedId: FeedId): Flow<Sat?> = flow {
         emitAll(
             coreDB.getSphinxDatabaseQueries()
