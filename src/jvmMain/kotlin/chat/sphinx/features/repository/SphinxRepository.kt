@@ -4591,6 +4591,18 @@ abstract class SphinxRepository(
             .map { mapMessageDboAndDecryptContentIfNeeded(queries, it) }
     }
 
+    override fun getAllMessagesCountByChatId(
+        chatId: ChatId,
+    ): Flow<Long?> = flow {
+        emitAll(
+            coreDB.getSphinxDatabaseQueries()
+                .messageCountAllToShowByChatId(chatId)
+                .asFlow()
+                .mapToOneOrNull(io)
+                .map { it }
+        )
+    }
+
     override fun updateMessageContentDecrypted(
         messageId: MessageId,
         messageContentDecrypted: MessageContentDecrypted

@@ -39,6 +39,10 @@ interface MessageRepository {
 
     suspend fun getAllMessagesByUUID(messageUUIDs: List<MessageUUID>): List<Message>
 
+    fun getAllMessagesCountByChatId(
+        chatId: ChatId
+    ): Flow<Long?>
+
     fun updateMessageContentDecrypted(messageId: MessageId, messageContentDecrypted: MessageContentDecrypted)
 
     fun readMessages(chatId: ChatId)
