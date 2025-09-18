@@ -5522,13 +5522,16 @@ abstract class SphinxRepository(
 
             var mediaTokenValue: String? = null
 
+            val dims = sendPayment.paymentTemplate?.getDimensions() // "1500x1300"
+            val metaJson = """{"dimensions":"$dims"}"""
+
             sendPayment.paymentTemplate?.let { template ->
 
                 mediaTokenValue = connectManager.generateMediaToken(
                     contact?.node_pub_key?.value ?: "",
                     sendPayment.paymentTemplate?.muid ?: "",
                     MediaHost.DEFAULT.value,
-                    sendPayment.paymentTemplate?.getDimensions(),
+                    metaJson,
                     null
                 )
 
