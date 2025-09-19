@@ -92,6 +92,7 @@ class MediaCacheHandlerImpl(
         mediaType: MediaType,
         extension: String?
     ): Path? {
+        fun cleanedExt(): String? = extension?.trim()?.removePrefix(".")?.lowercase()
         return when (mediaType) {
             is MediaType.Audio -> {
                 mediaType.value.split("/").lastOrNull()?.let { fileType ->
@@ -135,8 +136,11 @@ class MediaCacheHandlerImpl(
                         fileType.contains("gif", ignoreCase = true) -> {
                             createImageFile("gif")
                         }
-                        else -> {
-                            null
+
+                        else -> when (val ext = cleanedExt()) {
+                            "jpeg","jpg","bmp","png","gif" -> createImageFile(ext)
+                            null -> createImageFile("jpg")
+                            else -> createImageFile(ext)
                         }
                     }
                 }

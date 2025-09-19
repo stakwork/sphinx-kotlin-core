@@ -36,14 +36,14 @@ abstract class MessageMedia {
 
     override fun hashCode(): Int {
         var result = _17
-        result = _31 * result + mediaKey.hashCode()
+        result = _31 * result + (mediaKey?.hashCode() ?: 0)
         result = _31 * result + mediaType.hashCode()
         result = _31 * result + mediaToken.hashCode()
-        result = _31 * result + localFile.hashCode()
-        result = _31 * result + fileName.hashCode()
-        result = _31 * result + mediaKeyDecrypted.hashCode()
+        result = _31 * result + (localFile?.hashCode() ?: 0)
+        result = _31 * result + (fileName?.hashCode() ?: 0)
+        result = _31 * result + (mediaKeyDecrypted?.hashCode() ?: 0)
         result = _31 * result + mediaKeyDecryptionError.hashCode()
-        result = _31 * result + mediaKeyDecryptionException.hashCode()
+        result = _31 * result + (mediaKeyDecryptionException?.hashCode() ?: 0)
         return result
     }
     override fun toString(): String {
