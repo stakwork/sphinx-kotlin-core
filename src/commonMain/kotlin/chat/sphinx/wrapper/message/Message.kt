@@ -149,15 +149,16 @@ inline fun Message.retrieveUrlAndMessageMedia(): Pair<String, MessageMedia?>? {
 
         val messageMedia: MessageMedia = purchaseAcceptItem?.messageMedia ?: media
 
+        // FIX: Always return the messageMedia, regardless of localFile status
         if (messageMedia.localFile != null) {
             mediaData = Pair(
-                url?.value?.let { if (it.isEmpty()) null else it } ?: "http://127.0.0.1",
+                messageMedia.localFile!!.toString(), // Use local file path directly
                 messageMedia,
             )
         } else {
-            url?.let { mediaUrl ->
-                mediaData = Pair(mediaUrl.value, messageMedia)
-            }
+            // FIX: Provide fallback URL even if url is null
+            val urlValue = url?.value ?: "http://127.0.0.1"
+            mediaData = Pair(urlValue, messageMedia)
         }
     }
 
@@ -468,6 +469,12 @@ abstract class Message {
                 other.originalMUID                  == originalMUID                 &&
                 other.replyUUID                     == replyUUID                    &&
                 other.flagged                       == flagged                      &&
+                other.recipientAlias                == recipientAlias               &&
+                other.recipientPic                  == recipientPic                 &&
+                other.person                        == person                       &&
+                other.threadUUID                    == threadUUID                   &&
+                other.tagMessage                    == tagMessage                   &&
+                other.errorMessage                  == errorMessage                 &&
                 other.messageContentDecrypted       == messageContentDecrypted      &&
                 other.messageDecryptionError        == messageDecryptionError       &&
                 other.messageDecryptionException    == messageDecryptionException   &&
@@ -476,12 +483,11 @@ abstract class Message {
                 other.callLinkMessage               == callLinkMessage              &&
                 other.podcastClip                   == podcastClip                  &&
                 other.giphyData                     == giphyData                    &&
-                other.recipientAlias                == recipientAlias               &&
-                other.recipientPic                  == recipientPic                 &&
+                other.remoteTimezoneIdentifier      == remoteTimezoneIdentifier     &&
                 other.reactions.let { a ->
                     reactions.let { b ->
                         (a.isNullOrEmpty() && b.isNullOrEmpty()) ||
-                        (a?.containsAll(b ?: emptyList()) == true && b?.containsAll(a) == true)
+                                (a?.containsAll(b ?: emptyList()) == true && b?.containsAll(a) == true)
                     }
                 }                                                                   &&
                 other.purchaseItems.let { a ->
@@ -491,9 +497,12 @@ abstract class Message {
                     }
                 }                                                                   &&
                 other.replyMessage                  == replyMessage                 &&
-                other.threadUUID                    == threadUUID                   &&
-                other.remoteTimezoneIdentifier      == remoteTimezoneIdentifier
-
+                other.thread.let { a ->
+                    thread.let { b ->
+                        (a.isNullOrEmpty() && b.isNullOrEmpty()) ||
+                                (a?.containsAll(b ?: emptyList()) == true && b?.containsAll(a) == true)
+                    }
+                }
     }
 
     companion object {
@@ -526,6 +535,11 @@ abstract class Message {
         result = _31 * result + replyUUID.hashCode()
         result = _31 * result + threadUUID.hashCode()
         result = _31 * result + flagged.hashCode()
+        result = _31 * result + recipientAlias.hashCode()
+        result = _31 * result + recipientPic.hashCode()
+        result = _31 * result + person.hashCode()
+        result = _31 * result + tagMessage.hashCode()
+        result = _31 * result + errorMessage.hashCode()
         result = _31 * result + messageContentDecrypted.hashCode()
         result = _31 * result + messageDecryptionError.hashCode()
         result = _31 * result + messageDecryptionException.hashCode()
@@ -534,10 +548,10 @@ abstract class Message {
         result = _31 * result + callLinkMessage.hashCode()
         result = _31 * result + podcastClip.hashCode()
         result = _31 * result + giphyData.hashCode()
-        result = _31 * result + recipientAlias.hashCode()
-        result = _31 * result + recipientPic.hashCode()
+        result = _31 * result + remoteTimezoneIdentifier.hashCode()
         reactions?.forEach { result = _31 * result + it.hashCode() }
         purchaseItems?.forEach { result = _31 * result + it.hashCode() }
+        thread?.forEach { result = _31 * result + it.hashCode() }
         result = _31 * result + replyMessage.hashCode()
         return result
     }

@@ -23,7 +23,8 @@ abstract class MessageMedia {
                 other.localFile                     == localFile                    &&
                 other.fileName                      == fileName                     &&
                 other.mediaKeyDecrypted             == mediaKeyDecrypted            &&
-                other.mediaKeyDecryptionError       == mediaKeyDecryptionError
+                other.mediaKeyDecryptionError       == mediaKeyDecryptionError      &&
+                other.mediaKeyDecryptionException   == mediaKeyDecryptionException
     }
 
     companion object {
@@ -42,9 +43,9 @@ abstract class MessageMedia {
         result = _31 * result + fileName.hashCode()
         result = _31 * result + mediaKeyDecrypted.hashCode()
         result = _31 * result + mediaKeyDecryptionError.hashCode()
+        result = _31 * result + mediaKeyDecryptionException.hashCode()
         return result
     }
-
     override fun toString(): String {
         return  "MessageMedia(mediaKey=$mediaKey,mediaType=$mediaType,mediaToken=$mediaToken," +
                 "localFile=$localFile,fileName=$fileName,mediaKeyDecrypted=$mediaKeyDecrypted," +
