@@ -99,5 +99,6 @@ data class Chat(
     val timezoneEnabled: TimezoneEnabled?,
     val timezoneIdentifier: TimezoneIdentifier?,
     val remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
-    val timezoneUpdated: TimezoneUpdated?
+    val timezoneUpdated: TimezoneUpdated?,
+    val ownedTribe: OwnedTribe?
     )

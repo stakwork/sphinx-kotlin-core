@@ -369,7 +369,8 @@ abstract class SphinxRepository(
                 timezoneEnabled = null,
                 timezoneIdentifier = null,
                 remoteTimezoneIdentifier = null,
-                timezoneUpdated = null
+                timezoneUpdated = null,
+                ownedTribe = OwnedTribe.False
             )
 
             chatLock.withLock {
@@ -1236,7 +1237,8 @@ abstract class SphinxRepository(
                                 timezoneEnabled = null,
                                 timezoneIdentifier = null,
                                 remoteTimezoneIdentifier = null,
-                                timezoneUpdated = null
+                                timezoneUpdated = null,
+                                ownedTribe = OwnedTribe.False
                             )
 
                             chatLock.withLock {
@@ -1314,7 +1316,8 @@ abstract class SphinxRepository(
                                 timezoneEnabled = null,
                                 timezoneIdentifier = null,
                                 remoteTimezoneIdentifier = null,
-                                timezoneUpdated = null
+                                timezoneUpdated = null,
+                                ownedTribe = OwnedTribe.False // CHECK THIS IS NOT CORRECT
                             )
 
                             messageLock.withLock {
@@ -1873,7 +1876,8 @@ abstract class SphinxRepository(
                     timezoneEnabled = existingTribe?.timezoneEnabled,
                     timezoneIdentifier = existingTribe?.timezoneIdentifier,
                     remoteTimezoneIdentifier = existingTribe?.remoteTimezoneIdentifier,
-                    timezoneUpdated = existingTribe?.timezoneUpdated
+                    timezoneUpdated = existingTribe?.timezoneUpdated,
+                    ownedTribe = OwnedTribe.True
                 )
 
                 chatLock.withLock {
@@ -4083,13 +4087,14 @@ abstract class SphinxRepository(
                 pendingContactIds = emptyList(),
                 latestMessageId = null,
                 contentSeenAt = null,
-                pinedMessage = null,
                 notify = NotificationLevel.SeeAll,
                 secondBrainUrl = null,
+                pinedMessage = null,
                 timezoneEnabled = null,
                 timezoneIdentifier = null,
                 remoteTimezoneIdentifier = null,
-                timezoneUpdated = null
+                timezoneUpdated = null,
+                ownedTribe = OwnedTribe.False
             )
 
             transaction.upsertNewContact(newContact, queries)

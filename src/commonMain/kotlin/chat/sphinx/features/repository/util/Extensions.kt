@@ -261,6 +261,7 @@ inline fun TransactionCallbacks.upsertNewChat(
         chat.pendingContactIds,
         chat.notify,
         pinedMessage,
+        chat.ownedTribe,
         chatId,
         chat.uuid,
         chatType,

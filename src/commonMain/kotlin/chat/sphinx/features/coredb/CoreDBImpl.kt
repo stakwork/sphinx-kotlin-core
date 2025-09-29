@@ -155,7 +155,8 @@ abstract class CoreDBImpl: CoreDB() {
                     timezone_enabledAdapter = TimezoneEnabledAdapter(),
                     timezone_updatedAdapter = TimezoneUpdatedAdapter(),
                     remote_timezone_identifierAdapter = RemoteTimezoneIdentifierAdapter(),
-                    timezone_identifierAdapter = TimezoneIdentifierAdapter()
+                    timezone_identifierAdapter = TimezoneIdentifierAdapter(),
+                    is_my_tribeAdapter = OwnedTribeAdapter(),
                 ),
                 contactDboAdapter = ContactDbo.Adapter(
                     idAdapter = ContactIdAdapter.getInstance(),
