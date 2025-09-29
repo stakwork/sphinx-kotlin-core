@@ -1105,56 +1105,192 @@ abstract class SphinxRepository(
     }
 
     override fun onUpsertTribes(
-        tribes: List<Pair<String?, Boolean?>>,
+        tribes: List<Triple<String?, Int, Boolean>>,
         isProductionEnvironment: Boolean,
         callback: (() -> Unit)?
-    )  {
+    ) {
         if (tribes.isEmpty()) {
-            callback?.let { nnCallback ->
-                nnCallback()
-            }
+            callback?.invoke()
             return
         }
 
         applicationScope.launch(io) {
-            val total = tribes.count();
-            var index = 0
+            try {
+                // Parse input and kick off concurrent fetches
+                val tribeDataList = coroutineScope {
+                    tribes.mapNotNull { triple ->
+                        val msgSender = try {
+                            triple.first?.toMsgSender() ?: return@mapNotNull null
+                        } catch (_: Exception) {
+                            return@mapNotNull null
+                        }
 
-            val tribeList = tribes.mapNotNull { tribes ->
+                        val messageType = triple.second.toMessageType() // implement mapper below
+                        val isAdmin = (msgSender.role == 0 && triple.third)
+
+                        async {
+                            fetchTribeInfo(
+                                senderInfo = msgSender,
+                                messageType = messageType,
+                                isAdmin = isAdmin,
+                                isProductionEnvironment = isProductionEnvironment
+                            )
+                        }
+                    }.awaitAll().filterNotNull()
+                }
+
+                if (tribeDataList.isNotEmpty()) {
+                    insertTribesInSingleTransaction(tribeDataList)
+                }
+
+                callback?.invoke()
+            } catch (t: Throwable) {
+                callback?.invoke()
+            }
+        }
+    }
+
+    private suspend fun fetchTribeInfo(
+        senderInfo: MsgSender,
+        messageType: MessageType,
+        isAdmin: Boolean,
+        isProductionEnvironment: Boolean
+    ): TribeData? {
+        val host = senderInfo.host ?: return null
+
+        return try {
+            val response = withTimeoutOrNull(30_000) {
+                var result: Any? = null
                 try {
-                    Pair(
-                        tribes.first?.toMsgSender(),
-                        tribes.second
-                    )
+                    networkQueryChat.getTribeInfo(
+                        ChatHost(host),
+                        LightningNodePubKey(senderInfo.pubkey),
+                        isProductionEnvironment
+                    ).collect { loadResponse ->
+                        if (loadResponse !is LoadResponse.Loading && result == null) {
+                            result = loadResponse
+                        }
+                    }
                 } catch (e: Exception) {
+                    LOG.e("FetchTribeInfo", "Flow collection error for tribe ${senderInfo.pubkey}: ${e.message}", e)
+                    if (result == null) {
+                        result = Response.Error(ResponseError("Collection error", e))
+                    }
+                }
+                result
+            }
+
+            when (response) {
+                is Response.Success<*> -> {
+                    TribeData(
+                        senderInfo = senderInfo,
+                        messageType = messageType,
+                        isAdmin = isAdmin,
+                        tribeInfo = response.value as NewTribeDto
+                    )
+                }
+                is Response.Error<*> -> {
+                    LOG.w("FetchTribeInfo", "Error response for tribe ${senderInfo.pubkey}: ${response.cause}")
+                    null
+                }
+                else -> {
+                    LOG.w("FetchTribeInfo", "Timeout or null response for tribe ${senderInfo.pubkey}")
                     null
                 }
             }
+        } catch (e: Exception) {
+            LOG.e("FetchTribeInfo", "Error fetching tribe ${senderInfo.pubkey}: ${e.message}", e)
+            null
+        }
+    }
 
-            tribeList.forEach { tribe ->
-                val isAdmin = (tribe.first?.role == 0 && tribe.second == true)
-                tribe.first?.let {
-                    joinTribeOnRestoreAccount(it, isAdmin, isProductionEnvironment) {
-                        if (index == total - 1) {
-                            callback?.let { nnCallback ->
-                                nnCallback()
-                            }
-                        } else {
-                            index += 1
-                        }
-                    }
-                } ?: run {
-                    if (index == total - 1) {
-                        callback?.let { nnCallback ->
-                            nnCallback()
-                        }
-                    } else {
-                        index += 1
+    data class TribeData(
+        val senderInfo: MsgSender,
+        val messageType: MessageType,
+        val isAdmin: Boolean,
+        val tribeInfo: NewTribeDto
+    )
+
+    private suspend fun insertTribesInSingleTransaction(tribeDataList: List<TribeData>) {
+        messageLock.withLock {
+            chatLock.withLock {
+                val queries = coreDB.getSphinxDatabaseQueries()
+                queries.transaction {
+                    tribeDataList.forEach { tribeData ->
+                        insertSingleTribe(tribeData, queries, this)
                     }
                 }
             }
         }
     }
+
+    private fun generateTribeId(queries: SphinxDatabaseQueries): Long {
+        return queries.chatGetLastTribeId().executeAsOneOrNull()
+            ?.let { it.MIN?.minus(1) }
+            ?: Long.MAX_VALUE
+    }
+
+    private fun insertSingleTribe(
+        tribeData: TribeData,
+        queries: SphinxDatabaseQueries,
+        transaction: TransactionWithoutReturn
+    ) {
+        val contactInfo = tribeData.senderInfo
+        val loadResponse = tribeData.tribeInfo
+
+        val tribeId = generateTribeId(queries)
+        val now: String = DateTime.nowUTC()
+
+        val status = if (tribeData.messageType.isMemberApprove() || tribeData.messageType.isGroupJoin()) {
+            ChatStatus.Approved
+        } else {
+            ChatStatus.Pending
+        }
+
+        val newTribe = Chat(
+            id = ChatId(tribeId),
+            uuid = ChatUUID(contactInfo.pubkey),
+            name = ChatName(loadResponse.name),
+            photoUrl = loadResponse.img?.toPhotoUrl(),
+            type = ChatType.Tribe,
+            status = status,
+            contactIds = listOf(ContactId(0), ContactId(tribeId)),
+            isMuted = ChatMuted.False,
+            createdAt = now.toDateTime(),
+            groupKey = null,
+            host = contactInfo.host?.toChatHost(),
+            pricePerMessage = loadResponse.getPricePerMessageInSats().toSat(),
+            escrowAmount = loadResponse.getEscrowAmountInSats().toSat(),
+            unlisted = loadResponse.unlisted?.toChatUnlisted() ?: ChatUnlisted.False,
+            privateTribe = loadResponse.private.toChatPrivate(),
+            ownerPubKey = LightningNodePubKey(loadResponse.pubkey),
+            seen = Seen.False,
+            metaData = null,
+            myPhotoUrl = null,
+            myAlias = null,
+            pendingContactIds = emptyList(),
+            latestMessageId = null,
+            contentSeenAt = null,
+            pinedMessage = loadResponse.pin?.toMessageUUID(),
+            notify = NotificationLevel.SeeAll,
+            secondBrainUrl = loadResponse.second_brain_url?.toSecondBrainUrl(),
+            timezoneEnabled = null,
+            timezoneIdentifier = null,
+            remoteTimezoneIdentifier = null,
+            timezoneUpdated = null,
+            ownedTribe = tribeData.isAdmin.toOwnedTribe()
+        )
+
+        transaction.upsertNewChat(
+            newTribe,
+            SynchronizedMap<ChatId, Seen>(),
+            queries,
+            null,
+            accountOwner.value?.nodePubKey
+        )
+    }
+
+
 
     override fun onNewBalance(balance: Long) {
         applicationScope.launch(io) {
@@ -3422,6 +3558,22 @@ abstract class SphinxRepository(
             )
         }
     }
+
+    override suspend fun updateChatOwned(chatId: ChatId, ownedTribe: OwnedTribe) {
+        val queries = coreDB.getSphinxDatabaseQueries()
+
+        try {
+            chatLock.withLock {
+                queries.chatUpdateOwnedTribe(
+                    is_my_tribe = ownedTribe,
+                    id = chatId
+                )
+            }
+        } catch (ex: Exception) {
+            LOG.e(TAG, ex.printStackTrace().toString(), ex)
+        }
+    }
+
 
     override suspend fun togglePinMessage(
         chatId: ChatId,

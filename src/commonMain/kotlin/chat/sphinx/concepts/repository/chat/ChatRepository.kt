@@ -57,6 +57,11 @@ interface ChatRepository {
         profilePic: PublicAttachmentInfo? = null,
     )
 
+    suspend fun updateChatOwned(
+        chatId: ChatId,
+        ownedTribe: OwnedTribe
+    )
+
     suspend fun togglePinMessage(
         chatId: ChatId,
         message: Message,

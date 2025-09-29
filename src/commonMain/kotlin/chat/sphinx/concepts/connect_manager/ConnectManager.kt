@@ -204,7 +204,7 @@ interface ConnectManagerListener {
     )
     fun onRestoreMessages()
     fun onUpsertTribes(
-        tribes: List<Pair<String?, Boolean?>>,
+        tribes: List<Triple<String?, Int, Boolean>>,
         isProductionEnvironment: Boolean,
         callback: (() -> Unit)? = null
     ) // Sender, FromMe

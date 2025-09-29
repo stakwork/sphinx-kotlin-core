@@ -545,7 +545,11 @@ class ConnectManagerImpl(
             val tribesToUpdate = msgs.filter {
                 it.type?.toInt() == TYPE_MEMBER_APPROVE || it.type?.toInt() == TYPE_GROUP_JOIN
             }.map {
-                Pair(it.sender, it.fromMe)
+                Triple(
+                    it.sender,
+                    it.type?.toInt() ?: 100,
+                    it.fromMe ?: false
+                )
             }
 
             LOG.d("RESTORE_PROCESS_TRIBE", "$tribesToUpdate")
@@ -563,9 +567,10 @@ class ConnectManagerImpl(
                     LOG.d("RESTORE_PROCESS_CONTACTS", "$contactsToRestore")
 
                     notifyListeners {
-                        onUpsertContacts(contactsToRestore) {
-                            // Handle new messages
-                            processMessages(msgs)
+                        onUpsertContacts(contactsToRestore,) {
+                            if (!isRestoringContacts()) {
+                                processMessages(msgs)
+                            }
                             continueRestore(msgs, topic)
                         }
                     }
@@ -2349,6 +2354,10 @@ class ConnectManagerImpl(
     }
 
     private fun isRestoreAccount(): Boolean = restoreMnemonicWords?.isNotEmpty() == true
+
+    private fun isRestoringContacts() : Boolean {
+        return restoreStateFlow.value is RestoreState.RestoringContacts
+    }
 
     private inner class SynchronizedListenerHolder {
         private val listeners: LinkedHashSet<ConnectManagerListener> = LinkedHashSet()
