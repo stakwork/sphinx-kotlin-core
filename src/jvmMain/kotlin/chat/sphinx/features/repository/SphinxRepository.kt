@@ -4530,7 +4530,7 @@ abstract class SphinxRepository(
 
                         chatDbo?.let {
                             val chat = chatDboPresenterMapper.mapFrom(chatDbo)
-                            isMyTribe = chat.isTribeOwnedByAccount(accountOwner.value?.nodePubKey)
+                            isMyTribe = chat.ownedTribe?.isTrue() == true
                         }
 
                         val filteredMemberRequests = listMessageDbo.filter { dbo ->
@@ -7734,7 +7734,7 @@ abstract class SphinxRepository(
                 queries.messageGetLowestProvisionalMessageId().executeAsOneOrNull()
             }
             val provisionalId = MessageId((currentProvisionalId?.value ?: 0L) - 1)
-            val isDeleteTribe = tribe.isTribeOwnedByAccount(accountOwner.value?.nodePubKey)
+            val isDeleteTribe = tribe.ownedTribe?.isTrue() == true
             val messageType = if(isDeleteTribe) MessageType.TRIBE_DELETE else MessageType.GROUP_LEAVE
 
             val newMessage = chat.sphinx.wrapper.mqtt.Message(
