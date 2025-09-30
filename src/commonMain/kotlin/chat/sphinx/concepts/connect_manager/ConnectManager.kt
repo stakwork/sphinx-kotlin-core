@@ -43,6 +43,7 @@ abstract class ConnectManager {
     abstract fun processChallengeSignature(challenge: String): String?
     abstract fun fetchFirstMessagesPerKey(lastMsgIdx: Long, totalCount: Long?)
     abstract fun fetchMessagesOnRestoreAccount(totalHighestIndex: Long?, totalMsgsCount: Long?)
+    abstract fun fetchMessagesPerContact(minIndex: Long, publicKey: String)
     abstract fun getAllMessagesCount()
     abstract fun initializeMqttAndSubscribe(
         serverUri: String,
@@ -223,6 +224,7 @@ interface ConnectManagerListener {
 
     // Messaging Callbacks
     fun onMessages(messages: List<MqttMessage>, isRestore: Boolean)
+    fun onMessagesRestoreWith(count: Int, publicKey: String)
     fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long)
     fun onMessagesCounts(msgsCounts: String)
     fun onSentStatus(sentStatus: String)

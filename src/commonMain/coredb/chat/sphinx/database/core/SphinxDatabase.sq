@@ -793,6 +793,34 @@ messageGetAllCount:
 SELECT COUNT(*)
 FROM messageDbo;
 
+messageGetLowestIndex:
+SELECT MIN(id)
+FROM messageDbo
+WHERE chat_id = ?;
+
+messageGetRecentMessages:
+SELECT *
+FROM messageDbo
+WHERE chat_id = ?
+ORDER BY id DESC
+LIMIT ?;
+
+messageCountOlderThan:
+SELECT COUNT(*)
+FROM messageDbo
+WHERE chat_id = ? AND id < ?;
+
+messageDeleteOlderThan:
+DELETE FROM messageDbo
+WHERE chat_id = ? AND id < ?;
+
+messageGetIdThreshold:
+SELECT id
+FROM messageDbo
+WHERE chat_id = ?
+ORDER BY id DESC
+LIMIT 1 OFFSET ?;
+
 messageGetAllToShowByUUID:
 SELECT *
 FROM messageDbo

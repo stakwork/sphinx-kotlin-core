@@ -641,6 +641,24 @@ class ConnectManagerImpl(
                 }
             }
         } else {
+            if (_restoreStateFlow.value is RestoreState.FetchingMessagesPerContact){
+                (_restoreStateFlow.value as? RestoreState.FetchingMessagesPerContact)?.let { stateFlow ->
+                    val publicKey = stateFlow.publicKey
+                    val allHaveSameSender = msgs.all { it -> it.sender?.contains(publicKey) == true || it.sentTo == publicKey }
+
+                    if (msgs.isNotEmpty() && allHaveSameSender) {
+                        _restoreStateFlow.value = RestoreState.RestoreFinished
+
+                        notifyListeners {
+                            onMessagesRestoreWith(msgs.count(), publicKey)
+                        }
+
+                        getReadMessages()
+                        return
+                    }
+                }
+            }
+
             val highestIndexReceived = msgs.maxByOrNull { it.index?.toLong() ?: 0L }?.index?.toULong()
 
             highestIndexReceived?.let { nnHighestIndexReceived ->
@@ -977,6 +995,32 @@ class ConnectManagerImpl(
                 onConnectManagerError(ConnectManagerError.FetchMessageError)
             }
             LOG.d("MQTT_MESSAGES", "fetchMessagesOnRestoreAccount ${e.message}")
+        }
+    }
+
+    override fun fetchMessagesPerContact(
+        minIndex: Long,
+        publicKey: String
+    ) {
+        _restoreStateFlow.value = RestoreState.FetchingMessagesPerContact(publicKey)
+
+        try {
+            val fetchMessages = fetchMsgsBatchPerContact(
+                ownerSeed!!,
+                getTimestampInMilliseconds(),
+                getCurrentUserState(),
+                minIndex.toULong(),
+                MSG_BATCH_LIMIT.toUInt(),
+                true,
+                publicKey
+            )
+            LOG.d("MQTT_MESSAGES", "fetchMessagesPerContact")
+            handleRunReturn(fetchMessages)
+        } catch (e: Exception) {
+            notifyListeners {
+                onConnectManagerError(ConnectManagerError.FetchMessageError)
+            }
+            LOG.d("MQTT_MESSAGES", "fetchMessagesPerContact ${e.message}")
         }
     }
 

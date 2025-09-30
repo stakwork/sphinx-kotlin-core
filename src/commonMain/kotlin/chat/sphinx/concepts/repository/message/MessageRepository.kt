@@ -47,6 +47,13 @@ interface MessageRepository {
 
     fun readMessages(chatId: ChatId)
 
+    fun cleanupOldMessages(chatId: ChatId)
+
+    fun fetchMessagesPerContact(
+        chatId: ChatId,
+        publicKey: String
+    )
+
     fun sendMessage(sendMessage: SendMessage?)
 
     suspend fun payAttachment(message: Message)

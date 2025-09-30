@@ -227,6 +227,10 @@ abstract class SphinxRepository(
         MutableStateFlow(null)
     }
 
+    override val fetchProcessState: MutableStateFlow<Pair<Int, String>?> by lazy {
+        MutableStateFlow(null)
+    }
+
     override val connectManagerErrorState: MutableStateFlow<ConnectManagerError?> by lazy {
         MutableStateFlow(null)
     }
@@ -1750,6 +1754,16 @@ abstract class SphinxRepository(
                     }
                 }
             }
+        }
+    }
+
+    override fun onMessagesRestoreWith(count: Int, publicKey: String) {
+        applicationScope.launch(mainImmediate) {
+            fetchProcessState.value = Pair(count, publicKey)
+
+            delay(5000L)
+
+            fetchProcessState.value = null
         }
     }
 
@@ -3574,7 +3588,6 @@ abstract class SphinxRepository(
         }
     }
 
-
     override suspend fun togglePinMessage(
         chatId: ChatId,
         message: Message,
@@ -4880,6 +4893,63 @@ abstract class SphinxRepository(
                 queries = coreDB.getSphinxDatabaseQueries(),
                 executeNetworkRequest = true
             )
+        }
+    }
+
+    override fun cleanupOldMessages(chatId: ChatId) {
+        applicationScope.launch(io) {
+            try {
+                val deletedCount = withContext(dispatchers.io) {
+                    val queries = coreDB.getSphinxDatabaseQueries()
+
+                    queries.transactionWithResult {
+                        val thresholdMessage = queries.messageGetRecentMessages(chatId, 100)
+                            .executeAsList()
+                            .lastOrNull()
+
+                        if (thresholdMessage == null) {
+                            0
+                        } else {
+                            val thresholdId = thresholdMessage.id
+
+                            val countToDelete = queries.messageCountOlderThan(chatId, thresholdId)
+                                .executeAsOne()
+                                .toInt()
+
+                            if (countToDelete > 0) {
+                                queries.messageDeleteOlderThan(chatId, thresholdId)
+                                LOG.d("SphinxRepository", "Deleted $countToDelete old messages from chat ${chatId.value}")
+                            }
+
+                            countToDelete
+                        }
+                    }
+                }
+
+                if (deletedCount > 0) {
+                    LOG.d("SphinxRepository", "Successfully cleaned up $deletedCount old messages from chat ${chatId.value}")
+                } else {
+                    LOG.d("SphinxRepository", "No old messages to clean up from chat ${chatId.value}")
+                }
+
+            } catch (e: Exception) {
+                LOG.e("SphinxRepository", "Error cleaning up old messages for chat ${chatId.value}: ${e.message}", e)
+            }
+        }
+    }
+
+    override fun fetchMessagesPerContact(
+        chatId: ChatId,
+        publicKey: String
+    ) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+            queries.messageGetLowestIndex(chatId).executeAsOneOrNull()?.let { it.MIN?.minus(1) }?.let {
+                if (it - 1 <= 0) {
+                    return@let
+                }
+                connectManager.fetchMessagesPerContact(it - 1, publicKey)
+            }
         }
     }
 
