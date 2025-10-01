@@ -124,4 +124,6 @@ interface MessageRepository {
     suspend fun sendNewPaymentRequest(
         requestPayment: SendPayment
     )
+
+    fun setLatestMessagesDatePerChat()
 }

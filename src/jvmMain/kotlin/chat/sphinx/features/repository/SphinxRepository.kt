@@ -2012,7 +2012,7 @@ abstract class SphinxRepository(
                     escrowAmount = newCreateTribe.getEscrowAmountInSats().toSat(),
                     unlisted = if (newCreateTribe.unlisted == true) ChatUnlisted.True else ChatUnlisted.False,
                     privateTribe = if (newCreateTribe.private == true) ChatPrivate.True else ChatPrivate.False,
-                    ownerPubKey = accountOwner.value?.nodePubKey,
+                    ownerPubKey = LightningNodePubKey(tribePubKey),
                     seen = Seen.False,
                     metaData = existingTribe?.metaData,
                     myPhotoUrl = accountOwner.value?.photoUrl,
@@ -3715,6 +3715,25 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun setLatestMessagesDatePerChat() {
+        applicationScope.launch(io) {
+            val allChats = getAllChats()
+            allChats.mapNotNull { it.latestMessageId }.let { latestMessagesIds ->
+                val messagesMap = getMessagesByIds(latestMessagesIds).first().associateBy { it?.chatId }
+
+                messagesMap.forEach { (chatId, message) ->
+                    chatId?.let { nnChatId ->
+                        message?.date?.let { nnDateTime ->
+                            latestMessageUpdatedTimeMap.withLock { map ->
+                                map[nnChatId] = nnDateTime
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     override fun updateChatRemoteTimezoneIdentifier(
         remoteTimezoneIdentifier: RemoteTimezoneIdentifier?,
         chatId: ChatId,
@@ -4244,7 +4263,7 @@ abstract class SphinxRepository(
                 escrowAmount = null,
                 unlisted = ChatUnlisted.False,
                 privateTribe = ChatPrivate.False,
-                ownerPubKey = null,
+                ownerPubKey = contact.lightningNodePubKey,
                 seen = Seen.False,
                 metaData = null,
                 myPhotoUrl = null,
@@ -9278,6 +9297,7 @@ abstract class SphinxRepository(
             }
         }
     }
+
 
     suspend fun getOwner() : Contact? {
         var owner: Contact? = accountOwner.value

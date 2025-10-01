@@ -240,7 +240,6 @@ inline fun TransactionCallbacks.upsertNewChat(
     val pricePerMessage = chat.pricePerMessage
     val escrowAmount = chat.escrowAmount
     val chatName = chat.name
-    val adminPubKey = chat.ownerPubKey
     val pinedMessage = chat.pinedMessage
 
     queries.chatUpsert(
@@ -273,8 +272,8 @@ inline fun TransactionCallbacks.upsertNewChat(
 
     if (
         chatType.isTribe() &&
-        (ownerPubKey == adminPubKey) &&
-        (pricePerMessage != null || escrowAmount != null)
+        chat.ownedTribe?.isTrue() == true &&
+        (pricePerMessage != null || escrowAmount != null || pinedMessage != null)
     ) {
         queries.chatUpdateTribeData(
             pricePerMessage,
