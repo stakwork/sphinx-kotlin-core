@@ -199,7 +199,7 @@ class NetworkClientImpl(
     private val loggingInterceptor: HttpLoggingInterceptor? by lazy {
         if (debug.value) {
             HttpLoggingInterceptor().let { interceptor ->
-                interceptor.level = HttpLoggingInterceptor.Level.BODY
+                interceptor.level = HttpLoggingInterceptor.Level.NONE
                 redactedLoggingHeaders?.headers?.let { list ->
                     for (header in list) {
                         if (header.isNotEmpty()) {

@@ -612,42 +612,55 @@ class ConnectManagerImpl(
         }
 
         if (isRestoreAccount()) {
-
-            if (restoreStateFlow.value is RestoreState.RestoringContacts) {
+            if (isRestoringContacts()) {
                 val highestIndex = msgs.maxByOrNull { it.index?.toLong() ?: 0L }?.index?.toLong()
                 highestIndex?.let { nnHighestIndex ->
                     calculateContactRestore()
 
                     msgsCountsState.value?.first_for_each_scid_highest_index?.let { highestIndex ->
                         if (nnHighestIndex < highestIndex) {
-                            fetchFirstMessagesPerKey(nnHighestIndex.plus(1L), msgsCountsState.value?.ok_key)
+                            fetchFirstMessagesPerKey(
+                                nnHighestIndex.plus(1L),
+                                msgsCountsState.value?.ok_key
+                            )
                         } else {
                             goToNextPhaseOrFinish()
                         }
                     }
                 }
-            } else {
-                // Restore Message Step
-                if (restoreStateFlow.value is RestoreState.RestoringMessages) {
-                    val minIndex = msgs.minByOrNull { it.index?.toLong() ?: 0L }?.index?.toULong()
-                    minIndex?.let { nnMinIndex ->
-                        calculateMessageRestore()
-                        fetchMessagesOnRestoreAccount(nnMinIndex.minus(1u).toLong(), msgsCountsState.value?.total)
+            }
 
-                        notifyListeners {
-                            onRestoreMinIndex(nnMinIndex.toLong())
-                        }
-                    }
+            if (isRestoringMessages()) {
+                calculateMessageRestore()
+
+                restoreProgress.currentChatRestoreIndex += 1
+
+                if (restoreProgress.currentChatRestoreIndex == restoreProgress.totalChatsToRestore) {
+                    goToNextPhaseOrFinish()
+                    return
                 }
+
+                fetchMessagesOnRestoreAccount(
+                    restoreProgress.messagesHighestIndex.toLong(),
+                    restoreProgress.totalChatsToRestore.toLong(),
+                    restoreProgress.chatPublicKeys
+                )
+            }
+
+            if (isRestoreFinished()) {
+                goToNextPhaseOrFinish()
             }
         } else {
+            println("Triggered before RestoreState.FetchingMessagesPerContact")
             if (_restoreStateFlow.value is RestoreState.FetchingMessagesPerContact){
                 (_restoreStateFlow.value as? RestoreState.FetchingMessagesPerContact)?.let { stateFlow ->
                     val publicKey = stateFlow.publicKey
                     val allHaveSameSender = msgs.all { it -> it.sender?.contains(publicKey) == true || it.sentTo == publicKey }
 
+                    println("Triggered before onMessagesRestoreWith")
+                    _restoreStateFlow.value = null
+
                     if (msgs.isNotEmpty() && allHaveSameSender) {
-                        _restoreStateFlow.value = RestoreState.RestoreFinished
 
                         notifyListeners {
                             onMessagesRestoreWith(msgs.count(), publicKey)
@@ -972,22 +985,31 @@ class ConnectManagerImpl(
     }
 
     override fun fetchMessagesOnRestoreAccount(
-        totalHighestIndex: Long?,
-        totalMsgsCount: Long?
+        totalHighestIndex: Long,
+        chatsTotal: Long,
+        chatsPublicKeys: List<String>
     ) {
         try {
-            if (restoreStateFlow.value !is RestoreState.RestoringMessages) {
+            if (!isRestoringMessages()) {
                 _restoreStateFlow.value = RestoreState.RestoringMessages
-                setMessagesTotal(totalMsgsCount)
+                setChatsRestoreData(
+                    totalHighestIndex,
+                    chatsTotal,
+                    chatsPublicKeys
+                )
             }
 
-            val fetchMessages = fetchMsgsBatch(
+            val currentIndex = restoreProgress.currentChatRestoreIndex
+            val currentPublicKey = chatsPublicKeys[currentIndex]
+
+            val fetchMessages = fetchMsgsBatchPerContact(
                 ownerSeed!!,
                 getTimestampInMilliseconds(),
                 getCurrentUserState(),
-                totalHighestIndex?.toULong() ?: 0.toULong(),
+                totalHighestIndex.toULong(),
                 MSG_BATCH_LIMIT.toUInt(),
                 true,
+                currentPublicKey
             )
             handleRunReturn(fetchMessages)
         } catch (e: Exception) {
@@ -998,12 +1020,26 @@ class ConnectManagerImpl(
         }
     }
 
+
+    private fun setChatsRestoreData(
+        highestIndex: Long,
+        totalChat: Long?,
+        chatsPublicKeys: List<String>
+    ) {
+        totalChat?.let {
+            restoreProgress.messagesHighestIndex = highestIndex.toInt()
+            restoreProgress.totalChatsToRestore = it.toInt()
+            restoreProgress.chatPublicKeys = chatsPublicKeys
+        }
+    }
+
     override fun fetchMessagesPerContact(
         minIndex: Long,
         publicKey: String
     ) {
         _restoreStateFlow.value = RestoreState.FetchingMessagesPerContact(publicKey)
 
+        println("Triggered fetchMessagesPerContact for $publicKey from index $minIndex")
         try {
             val fetchMessages = fetchMsgsBatchPerContact(
                 ownerSeed!!,
@@ -1014,13 +1050,12 @@ class ConnectManagerImpl(
                 true,
                 publicKey
             )
-            LOG.d("MQTT_MESSAGES", "fetchMessagesPerContact")
             handleRunReturn(fetchMessages)
         } catch (e: Exception) {
+            println("Triggered fetchMessagesPerContact ERROR for $publicKey from index $minIndex: ${e.message}")
             notifyListeners {
                 onConnectManagerError(ConnectManagerError.FetchMessageError)
             }
-            LOG.d("MQTT_MESSAGES", "fetchMessagesPerContact ${e.message}")
         }
     }
 
@@ -2403,6 +2438,14 @@ class ConnectManagerImpl(
         return restoreStateFlow.value is RestoreState.RestoringContacts
     }
 
+    private fun isRestoringMessages() : Boolean {
+        return restoreStateFlow.value is RestoreState.RestoringMessages
+    }
+
+    private fun isRestoreFinished() : Boolean {
+        return restoreStateFlow.value is RestoreState.RestoreFinished
+    }
+
     private inner class SynchronizedListenerHolder {
         private val listeners: LinkedHashSet<ConnectManagerListener> = LinkedHashSet()
 
@@ -2435,11 +2478,6 @@ class ConnectManagerImpl(
         }
     }
 
-    private fun setMessagesTotal(totalHighestIndex: Long?) {
-        totalHighestIndex?.let {
-            restoreProgress.totalMessages = it.toInt()
-        }
-    }
 
     private fun calculateContactRestore() {
         try {
@@ -2461,13 +2499,12 @@ class ConnectManagerImpl(
 
     private fun calculateMessageRestore() {
         try {
-            val restoredMsgs = restoreProgress.restoredMessagesAmount.plus(MSG_BATCH_LIMIT)
-            if (restoredMsgs >= restoreProgress.totalMessages) {
+            val restoredIndex = restoreProgress.currentChatRestoreIndex
+
+            if (restoredIndex >= restoreProgress.totalChatsToRestore) {
                 restoreProgress.progressPercentage = 100
             } else {
-                restoreProgress.restoredMessagesAmount = restoredMsgs
-                restoreProgress.progressPercentage =
-                    (restoreProgress.fixedContactPercentage + ((restoredMsgs.toDouble() / restoreProgress.totalMessages.toDouble())) * restoreProgress.fixedMessagesPercentage.toDouble()).roundToInt()
+                restoreProgress.progressPercentage = (restoreProgress.fixedContactPercentage + ((restoredIndex.toDouble() / restoreProgress.totalChatsToRestore.toDouble())) * restoreProgress.fixedMessagesPercentage.toDouble()).roundToInt()
             }
             notifyListeners {
                 onRestoreProgress(restoreProgress.progressPercentage)

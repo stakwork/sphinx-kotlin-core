@@ -42,7 +42,7 @@ abstract class ConnectManager {
     abstract fun setOwnerDeviceId(deviceId: String, pushKey: String)
     abstract fun processChallengeSignature(challenge: String): String?
     abstract fun fetchFirstMessagesPerKey(lastMsgIdx: Long, totalCount: Long?)
-    abstract fun fetchMessagesOnRestoreAccount(totalHighestIndex: Long?, totalMsgsCount: Long?)
+    abstract fun fetchMessagesOnRestoreAccount(totalHighestIndex: Long, chatsTotal: Long, chatsPublicKeys: List<String>)
     abstract fun fetchMessagesPerContact(minIndex: Long, publicKey: String)
     abstract fun getAllMessagesCount()
     abstract fun initializeMqttAndSubscribe(

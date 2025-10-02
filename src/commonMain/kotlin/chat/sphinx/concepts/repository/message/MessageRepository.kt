@@ -11,7 +11,6 @@ import chat.sphinx.database.core.SphinxDatabaseQueries
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
-import chat.sphinx.wrapper.DateTime
 import chat.sphinx.wrapper.chat.Chat
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
@@ -51,7 +50,7 @@ interface MessageRepository {
 
     fun fetchMessagesPerContact(
         chatId: ChatId,
-        publicKey: String
+        publicKey: String,
     )
 
     fun sendMessage(sendMessage: SendMessage?)

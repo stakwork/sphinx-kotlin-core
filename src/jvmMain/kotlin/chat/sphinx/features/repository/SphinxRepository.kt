@@ -743,22 +743,26 @@ abstract class SphinxRepository(
     }
 
     override fun startRestoreProcess() {
-        applicationScope.launch(mainImmediate) {
+        applicationScope.launch(io) {
             var msgCounts: MsgsCounts? = null
 
-            restoreProcessState.asStateFlow().collect{ restoreProcessState ->
+            restoreProcessState.asStateFlow().collect { restoreProcessState ->
                 when (restoreProcessState) {
                     is RestoreProcessState.MessagesCounts -> {
                         msgCounts = restoreProcessState.msgsCounts
                         connectManager.fetchFirstMessagesPerKey(0L, msgCounts?.first_for_each_scid)
                     }
+
                     is RestoreProcessState.RestoreMessages -> {
                         delay(100L)
-                        connectManager.fetchMessagesOnRestoreAccount(
-                            msgCounts?.total_highest_index,
-                            msgCounts?.total
-                        )
 
+                        val allChats = getAllChats()
+
+                        connectManager.fetchMessagesOnRestoreAccount(
+                            msgCounts?.total_highest_index ?: Long.MAX_VALUE,
+                            allChats.count()?.toLong() ?: 0,
+                            allChats.mapNotNull({ it.ownerPubKey?.value }) ?: emptyList()
+                        )
                     }
                     else -> {}
                 }
@@ -1176,7 +1180,6 @@ abstract class SphinxRepository(
                         }
                     }
                 } catch (e: Exception) {
-                    LOG.e("FetchTribeInfo", "Flow collection error for tribe ${senderInfo.pubkey}: ${e.message}", e)
                     if (result == null) {
                         result = Response.Error(ResponseError("Collection error", e))
                     }
@@ -1194,11 +1197,9 @@ abstract class SphinxRepository(
                     )
                 }
                 is Response.Error<*> -> {
-                    LOG.w("FetchTribeInfo", "Error response for tribe ${senderInfo.pubkey}: ${response.cause}")
                     null
                 }
                 else -> {
-                    LOG.w("FetchTribeInfo", "Timeout or null response for tribe ${senderInfo.pubkey}")
                     null
                 }
             }
@@ -1763,6 +1764,13 @@ abstract class SphinxRepository(
 
             delay(5000L)
 
+            fetchProcessState.value = null
+        }
+    }
+
+    override fun clearFetchProcessState() {
+        applicationScope.launch(mainImmediate) {
+            println("🧹 Clearing fetch process state")
             fetchProcessState.value = null
         }
     }
@@ -3069,7 +3077,6 @@ abstract class SphinxRepository(
 
         if (owner?.id == null || owner!!.id == contactId) {
             val msg = "Account Owner was null, or deleteContactById was called for account owner."
-            LOG.w(TAG, msg)
             return Response.Error(ResponseError(msg))
         }
 
@@ -3584,7 +3591,6 @@ abstract class SphinxRepository(
                 )
             }
         } catch (ex: Exception) {
-            LOG.e(TAG, ex.printStackTrace().toString(), ex)
         }
     }
 
@@ -5058,12 +5064,10 @@ abstract class SphinxRepository(
             val ownerPubKey = owner?.nodePubKey
 
             if (owner == null) {
-                LOG.w(TAG, "Owner returned null")
                 return@launch
             }
 
             if (ownerPubKey == null) {
-                LOG.w(TAG, "Owner's public key was null")
                 return@launch
             }
 
