@@ -410,14 +410,13 @@ abstract class SphinxRepository(
         )
     }
 
+
     override fun getTagsByChatId(chatId: ChatId) {
         applicationScope.launch(io) {
-            getSentConfirmedMessagesByChatId(chatId).collect { messages ->
-                if (messages.isNotEmpty()) {
-                    val tags = messages.mapNotNull { it.tagMessage?.value }.distinct()
-                    connectManager.getMessagesStatusByTags(tags)
-                }
-            }
+            val tags = getSentConfirmedMessagesByChatId(chatId).first()
+                .mapNotNull { it.tagMessage?.value }
+                .distinct()
+                connectManager.getMessagesStatusByTags(tags)
         }
     }
 
@@ -1762,7 +1761,7 @@ abstract class SphinxRepository(
         applicationScope.launch(mainImmediate) {
             fetchProcessState.value = Pair(count, publicKey)
 
-            delay(5000L)
+            delay(2000L)
 
             fetchProcessState.value = null
         }
