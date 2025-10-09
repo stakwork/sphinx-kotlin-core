@@ -652,15 +652,15 @@ class ConnectManagerImpl(
             }
         } else {
             println("Triggered before RestoreState.FetchingMessagesPerContact")
-            if (_restoreStateFlow.value is RestoreState.FetchingMessagesPerContact){
+            if (_restoreStateFlow.value is RestoreState.FetchingMessagesPerContact) {
                 (_restoreStateFlow.value as? RestoreState.FetchingMessagesPerContact)?.let { stateFlow ->
                     val publicKey = stateFlow.publicKey
                     val allHaveSameSender = msgs.all { it -> it.sender?.contains(publicKey) == true || it.sentTo == publicKey }
 
                     println("Triggered before onMessagesRestoreWith")
-                    _restoreStateFlow.value = null
 
                     if (msgs.isNotEmpty() && allHaveSameSender) {
+                        _restoreStateFlow.value = RestoreState.RestoreFinished
 
                         notifyListeners {
                             onMessagesRestoreWith(msgs.count(), publicKey)
@@ -672,10 +672,11 @@ class ConnectManagerImpl(
                 }
             }
 
-            val highestIndexReceived = msgs.maxByOrNull { it.index?.toLong() ?: 0L }?.index?.toULong()
-
-            highestIndexReceived?.let { nnHighestIndexReceived ->
-                fetchMessagesWithPagination(nnHighestIndexReceived)
+            if (_restoreStateFlow.value == null) {
+                val highestIndexReceived = msgs.maxByOrNull { it.index?.toLong() ?: 0L }?.index?.toULong()
+                highestIndexReceived?.let { nnHighestIndexReceived ->
+                    fetchMessagesWithPagination(nnHighestIndexReceived)
+                }
             }
         }
     }
@@ -884,7 +885,7 @@ class ConnectManagerImpl(
         }
     }
 
-    override fun cancelRestore() {
+    override fun finishRestore() {
         _restoreStateFlow.value = null
     }
 
@@ -1510,6 +1511,7 @@ class ConnectManagerImpl(
         lastMsgIdx: Long?,
         reverse: Boolean
     ) {
+        print("fetchMessagesOnAppInit called with lastMsgIdx: $lastMsgIdx, reverse: $reverse\n")
         try {
             val fetchMessages = fetchMsgsBatch(
                 ownerSeed!!,

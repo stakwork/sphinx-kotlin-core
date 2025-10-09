@@ -35,7 +35,7 @@ abstract class ConnectManager {
         mixerServerIp: String?,
         routerUrl: String?
     )
-    abstract fun cancelRestore()
+    abstract fun finishRestore()
     abstract fun setInviteCode(inviteString: String)
     abstract fun setMnemonicWords(words: List<String>?)
     abstract fun setNetworkType(isTestEnvironment: Boolean)

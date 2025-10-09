@@ -78,7 +78,6 @@ import chat.sphinx.features.repository.util.*
 import chat.sphinx.logger.SphinxLogger
 import chat.sphinx.logger.d
 import chat.sphinx.logger.e
-import chat.sphinx.logger.w
 import chat.sphinx.response.*
 import chat.sphinx.utils.ServersUrlsHelper
 import chat.sphinx.utils.SphinxJson
@@ -654,7 +653,7 @@ abstract class SphinxRepository(
     }
 
     override fun cancelRestore() {
-        connectManager.cancelRestore()
+        connectManager.finishRestore()
         onRestoreFinished(isRestoreCancelled = true)
     }
 
