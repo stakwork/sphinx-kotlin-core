@@ -260,6 +260,9 @@ class ConnectManagerImpl(
                 if (isRestoreAccount()) {
                     getAllMessagesCount()
                 } else if (ownerInfoStateFlow.value.messageLastIndex != null) {
+
+                    _restoreStateFlow.value = null
+
                     val msgLastIndex = ownerInfoStateFlow.value.messageLastIndex?.plus(1)
                     fetchMessagesOnAppInit(
                         msgLastIndex ?: 0,
