@@ -597,6 +597,7 @@ class ConnectManagerImpl(
                 notifyListeners { onRestoreProgress(restoreProgress.fixedContactPercentage + restoreProgress.fixedMessagesPercentage) }
                 _restoreStateFlow.value = RestoreState.RestoreFinished
                 notifyListeners { onRestoreFinished() }
+                restoreMnemonicWords = emptyList()
             }
 
             notifyListeners { updatePaidInvoices() }
@@ -890,6 +891,7 @@ class ConnectManagerImpl(
 
     override fun finishRestore() {
         _restoreStateFlow.value = null
+        restoreMnemonicWords = emptyList()
     }
 
     override fun setInviteCode(inviteString: String) {
