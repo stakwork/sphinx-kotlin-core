@@ -1766,6 +1766,15 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun onNoMoreMessagesToRestore(publicKey: String) {
+        applicationScope.launch(mainImmediate) {
+            fetchProcessState.value = Pair(0, publicKey)
+            delay(100)
+            fetchProcessState.value = null
+        }
+    }
+
+
     override fun clearFetchProcessState() {
         applicationScope.launch(mainImmediate) {
             println("🧹 Clearing fetch process state")

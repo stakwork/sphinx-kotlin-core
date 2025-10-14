@@ -225,6 +225,7 @@ interface ConnectManagerListener {
     // Messaging Callbacks
     fun onMessages(messages: List<MqttMessage>, isRestore: Boolean)
     fun onMessagesRestoreWith(count: Int, publicKey: String)
+    fun onNoMoreMessagesToRestore(publicKey: String)
     fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long)
     fun onMessagesCounts(msgsCounts: String)
     fun onSentStatus(sentStatus: String)
