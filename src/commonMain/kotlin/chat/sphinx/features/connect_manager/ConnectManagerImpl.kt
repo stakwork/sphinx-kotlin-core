@@ -590,31 +590,27 @@ class ConnectManagerImpl(
         if (restoreStateFlow.value is RestoreState.RestoringContacts) {
             notifyListeners { onRestoreProgress(restoreProgress.fixedContactPercentage) }
             notifyListeners { onRestoreMessages() }
-            println("restoreStateFlow.value is RestoreState.RestoringContacts")
         }
 
         if (restoreStateFlow.value is RestoreState.RestoringMessages || restoreStateFlow.value == null) {
-            println("restoreStateFlow.value is RestoreState.RestoringMessages || restoreStateFlow.value == null")
             if (restoreStateFlow.value is RestoreState.RestoringMessages) {
-                println("restoreStateFlow.value is RestoreState.RestoringMessages")
                 notifyListeners { onRestoreProgress(restoreProgress.fixedContactPercentage + restoreProgress.fixedMessagesPercentage) }
                 _restoreStateFlow.value = RestoreState.RestoreFinished
                 notifyListeners { onRestoreFinished() }
                 restoreMnemonicWords = emptyList()
+            } else {
+                val pubkey = (restoreStateFlow.value as? RestoreState.FetchingMessagesPerContact)?.publicKey
+                notifyListeners {
+                    if (pubkey != null) {
+                        onNoMoreMessagesToRestore(pubkey)
+                    }
+                }
             }
 
             notifyListeners { updatePaidInvoices() }
             getReadMessages()
             getMutedChats()
             getPings()
-        } else {
-            val pubkey = (restoreStateFlow.value as? RestoreState.FetchingMessagesPerContact)?.publicKey
-            notifyListeners {
-                if (pubkey != null) {
-                    onNoMoreMessagesToRestore(pubkey)
-                }
-            }
-            println("restoreStateFlow.value is ${restoreStateFlow.value} entró en el else")
         }
     }
 
