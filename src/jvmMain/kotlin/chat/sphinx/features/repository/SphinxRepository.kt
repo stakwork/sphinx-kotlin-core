@@ -184,8 +184,7 @@ abstract class SphinxRepository(
     FeedRepository,
     ConnectManagerRepository,
     CoroutineDispatchers by dispatchers,
-    ConnectManagerListener
-{
+    ConnectManagerListener {
 
     companion object {
         const val TAG: String = "SphinxRepository"
@@ -345,7 +344,7 @@ abstract class SphinxRepository(
             val newTribe = Chat(
                 id = ChatId(tribeId),
                 uuid = ChatUUID(tribePubKey),
-                name = ChatName( tribeName ?: "unknown"),
+                name = ChatName(tribeName ?: "unknown"),
                 photoUrl = tribePicture?.toPhotoUrl(),
                 type = ChatType.Tribe,
                 status = ChatStatus.Approved,
@@ -415,7 +414,7 @@ abstract class SphinxRepository(
             val tags = getSentConfirmedMessagesByChatId(chatId).first()
                 .mapNotNull { it.tagMessage?.value }
                 .distinct()
-                connectManager.getMessagesStatusByTags(tags)
+            connectManager.getMessagesStatusByTags(tags)
         }
     }
 
@@ -616,19 +615,21 @@ abstract class SphinxRepository(
                         storeRouterPubKey(nodes)
                         connectManager.addNodesFromResponse(nodes)
                     }
+
                     else -> {}
                 }
             }
         }
     }
 
-    private fun storeRouterPubKey(routerUrl: String){
+    private fun storeRouterPubKey(routerUrl: String) {
         try {
             val jsonObject = JSONObject(routerUrl)
             val routerPubKey = jsonObject.getString("pubkey")
             serversUrls.storeRouterPubkey(routerPubKey)
 
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+        }
     }
 
 
@@ -762,6 +763,7 @@ abstract class SphinxRepository(
                             allChats.mapNotNull({ it.ownerPubKey?.value }) ?: emptyList()
                         )
                     }
+
                     else -> {}
                 }
             }
@@ -931,7 +933,7 @@ abstract class SphinxRepository(
             val scid = routeHint.toLightningRouteHint()?.getScid()
 
             if (scid != null) {
-                val alias = if(!isRestoreAccount) ownerAlias else null
+                val alias = if (!isRestoreAccount) ownerAlias else null
 
                 if (accountOwner.value?.nodePubKey == null) {
                     createOwner(okKey, routeHint, scid, alias)
@@ -993,6 +995,7 @@ abstract class SphinxRepository(
                         // Handle the error, e.g., show a notification or log the error
                         // Navigate to the next screen or perform the next action
                     }
+
                     LoadResponse.Loading -> {}
                 }
             }
@@ -1011,6 +1014,7 @@ abstract class SphinxRepository(
                             loadResponse.value.router
                         )
                     }
+
                     LoadResponse.Loading -> {}
                     is Response.Error -> {
                         connectManagerErrorState.value = ConnectManagerError.InternetConnectionError
@@ -1194,9 +1198,11 @@ abstract class SphinxRepository(
                         tribeInfo = response.value as NewTribeDto
                     )
                 }
+
                 is Response.Error<*> -> {
                     null
                 }
+
                 else -> {
                     null
                 }
@@ -1292,7 +1298,6 @@ abstract class SphinxRepository(
             accountOwner.value?.nodePubKey
         )
     }
-
 
 
     override fun onNewBalance(balance: Long) {
@@ -1406,15 +1411,20 @@ abstract class SphinxRepository(
         val host = contactInfo.host ?: return
 
         withContext(dispatchers.io) {
-            networkQueryChat.getTribeInfo(ChatHost(host), LightningNodePubKey(contactInfo.pubkey), isProductionEnvironment)
+            networkQueryChat.getTribeInfo(
+                ChatHost(host),
+                LightningNodePubKey(contactInfo.pubkey),
+                isProductionEnvironment
+            )
                 .collect { loadResponse ->
                     when (loadResponse) {
                         is LoadResponse.Loading -> {}
                         is Response.Error -> {
-                            callback?.let {nnCallback ->
+                            callback?.let { nnCallback ->
                                 nnCallback()
                             }
                         }
+
                         is Response.Success -> {
                             val queries = coreDB.getSphinxDatabaseQueries()
 
@@ -1441,7 +1451,9 @@ abstract class SphinxRepository(
                                 escrowAmount = loadResponse.value.getEscrowAmountInSats().toSat(),
                                 unlisted = loadResponse.value.unlisted?.toChatUnlisted() ?: ChatUnlisted.False,
                                 privateTribe = loadResponse.value.private.toChatPrivate(),
-                                ownerPubKey = if (isAdmin) accountOwner.value?.nodePubKey else LightningNodePubKey(contactInfo.pubkey),
+                                ownerPubKey = if (isAdmin) accountOwner.value?.nodePubKey else LightningNodePubKey(
+                                    contactInfo.pubkey
+                                ),
                                 seen = Seen.False,
                                 metaData = null,
                                 myPhotoUrl = null,
@@ -1473,7 +1485,7 @@ abstract class SphinxRepository(
                                 }
                             }
 
-                            callback?.let {nnCallback ->
+                            callback?.let { nnCallback ->
                                 nnCallback()
                             }
                         }
@@ -1679,7 +1691,9 @@ abstract class SphinxRepository(
             timestamp = msgTimestamp?.toDateTime(),
             date = message.date?.toDateTime(),
             paymentRequest = paymentRequest,
-            paymentHash = paymentRequest?.let { connectManager.retrievePaymentHash(it.value)?.toLightningPaymentHash() },
+            paymentHash = paymentRequest?.let {
+                connectManager.retrievePaymentHash(it.value)?.toLightningPaymentHash()
+            },
             bolt11 = paymentRequest?.let { Bolt11.decode(it) },
             msgTag = tag?.toTagMessage()
         )
@@ -1733,11 +1747,16 @@ abstract class SphinxRepository(
 
             messageLock.withLock {
                 queries.transaction {
-                    val contactsMap = queries.contactGetAllByPubKeys(contactPublicKeys).executeAsList().associateBy { it.node_pub_key?.value }
+                    val contactsMap = queries.contactGetAllByPubKeys(contactPublicKeys).executeAsList()
+                        .associateBy { it.node_pub_key?.value }
                     val tribesMap = queries.chatGetAllByUUIDS(tribeUUIDs).executeAsList().associateBy { it.uuid.value }
-                    val messagesByUUIDMap = queries.messageGetMessagesByUUIDs(messageUUIDs).executeAsList().associateBy { it.uuid?.value }
-                    val messageProvisionalIds = messagesByUUIDMap.values.filter { it.id.isProvisionalMessage }.map { it.id }
-                    val messagesMediaByIDMap = queries.messageMediaGetAllById(messageIDs + messageProvisionalIds).executeAsList().associateBy { it.id.value }
+                    val messagesByUUIDMap =
+                        queries.messageGetMessagesByUUIDs(messageUUIDs).executeAsList().associateBy { it.uuid?.value }
+                    val messageProvisionalIds =
+                        messagesByUUIDMap.values.filter { it.id.isProvisionalMessage }.map { it.id }
+                    val messagesMediaByIDMap =
+                        queries.messageMediaGetAllById(messageIDs + messageProvisionalIds).executeAsList()
+                            .associateBy { it.id.value }
 
                     messages.forEach { message ->
                         onMessage(
@@ -1814,6 +1833,7 @@ abstract class SphinxRepository(
 
                         }
                     }
+
                     else -> {
                         val message = if (mqttMessage.msg.isNotEmpty()) mqttMessage.msg.toMsg() else emptyMsg
 
@@ -1828,6 +1848,7 @@ abstract class SphinxRepository(
                                     )
                                 }
                             }
+
                             is MessageType.ContactKeyConfirmation -> {
                                 saveNewContactRegistered(
                                     queries,
@@ -1836,6 +1857,7 @@ abstract class SphinxRepository(
                                     message.date
                                 )
                             }
+
                             is MessageType.ContactKey -> {
                                 saveNewContactRegistered(
                                     queries,
@@ -1844,11 +1866,13 @@ abstract class SphinxRepository(
                                     message.date
                                 )
                             }
+
                             is MessageType.Delete -> {
                                 mqttMessage.msg.toMsg().replyUuid?.toMessageUUID()?.let { replyUuid ->
                                     deleteMqttMessage(replyUuid, queries)
                                 }
                             }
+
                             else -> {}
                         }
 
@@ -2002,7 +2026,8 @@ abstract class SphinxRepository(
 
                 val existingTribe = tribePubKey.toChatUUID()?.let { getChatByUUID(it) }?.firstOrNull()
                 // TribeId is set from LONG.MAX_VALUE and decremented by 1 for each new tribe
-                val tribeId = existingTribe?.id?.value ?: queries.chatGetLastTribeId().executeAsOneOrNull()?.let { it.MIN?.minus(1) }
+                val tribeId = existingTribe?.id?.value ?: queries.chatGetLastTribeId().executeAsOneOrNull()
+                    ?.let { it.MIN?.minus(1) }
                 ?: (Long.MAX_VALUE)
                 val now: String = DateTime.nowUTC()
 
@@ -2089,7 +2114,8 @@ abstract class SphinxRepository(
 
             val combinedMessages: List<Message?> = paymentsReceivedMsgs.orEmpty() + paymentsSentMsgs.orEmpty()
 
-            val tribeBoostMessages = paymentsSentMsgs.orEmpty().filter { it?.isTribeChat() == true && it.type.isBoost() }
+            val tribeBoostMessages =
+                paymentsSentMsgs.orEmpty().filter { it?.isTribeChat() == true && it.type.isBoost() }
             val replyUUIDs = tribeBoostMessages.mapNotNull { it?.replyUUID?.value }
             val repliedMessages = if (replyUUIDs.isNotEmpty()) {
                 getAllMessagesByUUID(replyUUIDs.mapNotNull { it.toMessageUUID() })
@@ -2118,8 +2144,10 @@ abstract class SphinxRepository(
                     val senderAlias = when {
                         message.isTribeChat() && message.type.isBoost() ->
                             replyUUIDToSenderAlias[message.replyUUID?.value]
+
                         message.type.isDirectPayment() ->
                             chatIdToChatName[message.chatId]
+
                         else -> message.senderAlias?.value
                     }
                     TransactionDto(
@@ -2173,6 +2201,7 @@ abstract class SphinxRepository(
             reconnectMqtt()
         }
     }
+
     override fun onNewInviteCreated(
         nickname: String,
         inviteString: String,
@@ -2356,7 +2385,8 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
             delay(25L)
         }
 
@@ -2387,7 +2417,8 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
             delay(25L)
         }
 
@@ -2414,7 +2445,8 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
             delay(25L)
         }
 
@@ -2442,7 +2474,8 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
             delay(25L)
         }
 
@@ -2472,7 +2505,8 @@ abstract class SphinxRepository(
                         throw Exception()
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
             delay(25L)
         }
 
@@ -3197,6 +3231,7 @@ abstract class SphinxRepository(
                     is Response.Error -> {
                         response = loadResponse
                     }
+
                     is Response.Success -> {
                         val contact = getContactByPubKey(lightningNodePubKey).firstOrNull()
 
@@ -3453,6 +3488,7 @@ abstract class SphinxRepository(
                     is Response.Error -> {
                         response = networkResponse
                     }
+
                     is Response.Success -> {
                         val newUrl =
                             PhotoUrl("https://${memeServerHost.value}/public/${networkResponse.value.muid}")
@@ -3618,6 +3654,7 @@ abstract class SphinxRepository(
                         is Response.Error -> {
                             response = loadResponse
                         }
+
                         is Response.Success -> {
                             val pinUpdatedTribeInfo = if (isUnpinMessage) {
                                 loadResponse.value.copy(pin = null).toJsonString()
@@ -3857,7 +3894,8 @@ abstract class SphinxRepository(
                         }
                     }
                 }
-            }catch (e: Exception) {}
+            } catch (e: Exception) {
+            }
         }
     }
 
@@ -4403,7 +4441,6 @@ abstract class SphinxRepository(
     }
 
 
-
     ////////////////
     /// Messages ///
     ////////////////
@@ -4474,6 +4511,7 @@ abstract class SphinxRepository(
                             message
                         }
                     }
+
                     is Response.Success -> {
 
                         val message: MessageDboWrapper =
@@ -4530,17 +4568,20 @@ abstract class SphinxRepository(
     }
 
     @OptIn(UnencryptedDataAccess::class)
-    override fun getAllMessagesToShowByChatId(chatId: ChatId, limit: Long, chatThreadUUID: ThreadUUID?): Flow<List<Message>> = flow {
+    override fun getAllMessagesToShowByChatId(
+        chatId: ChatId,
+        limit: Long,
+        chatThreadUUID: ThreadUUID?
+    ): Flow<List<Message>> = flow {
         val queries = coreDB.getSphinxDatabaseQueries()
 
         emitAll(
             (
-               if (chatThreadUUID != null) {
-                   queries.messageGetAllMessagesByThreadUUID(chatId, listOf(chatThreadUUID))
-            }
-               else {
-                   queries.messageGetAllToShowByChatId(chatId, limit)
-               })
+                    if (chatThreadUUID != null) {
+                        queries.messageGetAllMessagesByThreadUUID(chatId, listOf(chatThreadUUID))
+                    } else {
+                        queries.messageGetAllToShowByChatId(chatId, limit)
+                    })
                 .asFlow()
                 .mapToList(io)
                 .map { listMessageDbo ->
@@ -4581,12 +4622,14 @@ abstract class SphinxRepository(
 
                         val purchaseItemsMUIDs = purchaseItemsMap.keys.map { MessageMUID(it.value) }
 
-                        val memberRequestsUUID = listMessageDbo.filter({ it.type.isMemberRequest() && it.uuid != null }).map { ReplyUUID(it.uuid!!.value) }
+                        val memberRequestsUUID = listMessageDbo.filter({ it.type.isMemberRequest() && it.uuid != null })
+                            .map { ReplyUUID(it.uuid!!.value) }
 
                         val messagesMediaIds: MutableList<MessageId> = mutableListOf()
                         messagesMediaIds.addAll(listMessageDbo.filter({ it.type.canContainMedia }).map { it.id })
 
-                        val repliesUUIDs = listMessageDbo.filter({ it.reply_uuid != null }).map { it.reply_uuid?.value?.toMessageUUID() }
+                        val repliesUUIDs = listMessageDbo.filter({ it.reply_uuid != null })
+                            .map { it.reply_uuid?.value?.toMessageUUID() }
 
                         memberRequestsUUID.chunked(500).forEach { chunkedIds ->
                             queries.messageGetAllRequestResponseItemsByReplyUUID(
@@ -4662,36 +4705,40 @@ abstract class SphinxRepository(
 
                                                     when (decryptResponse) {
                                                         is Response.Error -> {
-                                                            messageMediaMap[mediaDbo.id] = MessageMediaDboWrapper(mediaDbo).also {
-                                                                it._mediaKeyDecrypted = null
-                                                                it._mediaKeyDecryptionError = true
-                                                                it._mediaKeyDecryptionException = decryptResponse.exception
-                                                            }
+                                                            messageMediaMap[mediaDbo.id] =
+                                                                MessageMediaDboWrapper(mediaDbo).also {
+                                                                    it._mediaKeyDecrypted = null
+                                                                    it._mediaKeyDecryptionError = true
+                                                                    it._mediaKeyDecryptionException =
+                                                                        decryptResponse.exception
+                                                                }
                                                         }
+
                                                         is Response.Success -> {
                                                             decryptResponse.value
                                                                 .toUnencryptedString(trim = false)
                                                                 .value
                                                                 .toMediaKeyDecrypted()
                                                                 .let { decryptedKey ->
-                                                                    messageMediaMap[mediaDbo.id] = MessageMediaDboWrapper(mediaDbo)
-                                                                        .also {
-                                                                            it._mediaKeyDecrypted = decryptedKey
+                                                                    messageMediaMap[mediaDbo.id] =
+                                                                        MessageMediaDboWrapper(mediaDbo)
+                                                                            .also {
+                                                                                it._mediaKeyDecrypted = decryptedKey
 
-                                                                            if (decryptedKey == null) {
-                                                                                it._mediaKeyDecryptionError = true
-                                                                            } else {
+                                                                                if (decryptedKey == null) {
+                                                                                    it._mediaKeyDecryptionError = true
+                                                                                } else {
 
-                                                                                messageLock.withLock {
-                                                                                    withContext(io) {
-                                                                                        queries.messageMediaUpdateMediaKeyDecrypted(
-                                                                                            decryptedKey,
-                                                                                            mediaDbo.id
-                                                                                        )
+                                                                                    messageLock.withLock {
+                                                                                        withContext(io) {
+                                                                                            queries.messageMediaUpdateMediaKeyDecrypted(
+                                                                                                decryptedKey,
+                                                                                                mediaDbo.id
+                                                                                            )
+                                                                                        }
                                                                                     }
                                                                                 }
                                                                             }
-                                                                        }
                                                                 }
                                                         }
                                                     }
@@ -4706,7 +4753,7 @@ abstract class SphinxRepository(
                                 }
                         }
 
-                        repliesUUIDs.chunked(500).forEach {  messageUUIDs ->
+                        repliesUUIDs.chunked(500).forEach { messageUUIDs ->
                             queries.messageGetAllByUUID(messageUUIDs).executeAsList()
                                 .let { response ->
                                     response.forEach { messageDbo ->
@@ -4822,10 +4869,25 @@ abstract class SphinxRepository(
             .mapToOneOrNull(io)
             .map {
                 it?.let { messageDbo ->
-                    mapMessageDboAndDecryptContentIfNeeded(queries, messageDbo)
+                    val messageMedia = if (messageDbo.type.canContainMedia) {
+                        queries.messageMediaGetById(messageId)
+                            .executeAsOneOrNull()
+                            ?.let { mediaDbo ->
+                                MessageMediaDboWrapper(mediaDbo)
+                            }
+                    } else {
+                        null
+                    }
+
+                    mapMessageDboAndDecryptContentIfNeeded(
+                        queries,
+                        messageDbo,
+                        messageMedia = messageMedia
+                    )
                 }
             }
             .distinctUntilChanged()
+
 
     override fun getTribeLastMemberRequestByContactId(
         contactId: ContactId,
