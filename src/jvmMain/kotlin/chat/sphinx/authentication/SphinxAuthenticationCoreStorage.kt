@@ -5,6 +5,7 @@ import chat.sphinx.concepts.coroutines.CoroutineDispatchers
 import chat.sphinx.features.authentication.core.data.AuthenticationCoreStorage
 import chat.sphinx.utils.createPlatformSettings
 import com.russhwolf.settings.Settings
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 open class SphinxAuthenticationCoreStorage(
@@ -54,15 +55,25 @@ open class SphinxAuthenticationCoreStorage(
             settings.remove(key)
         }
     }
-
     /**
      * This should only be called from [SphinxKeyRestore] upon failure. This should
      * **never** be called elsewhere, except for good reason, thus it being only in
      * the implementation which lower layered modules have no idea about.
      * */
+
     suspend fun clearAuthenticationStorage() {
         withContext(dispatchers.io) {
-            settings.clear()
+            try {
+                settings.clear()
+                delay(50L)
+            } catch (e: Exception) {
+                settings.remove(CREDENTIALS)
+                settings.keys.forEach { key ->
+                    settings.remove(key)
+                }
+                delay(50L)
+            }
         }
     }
 }
+

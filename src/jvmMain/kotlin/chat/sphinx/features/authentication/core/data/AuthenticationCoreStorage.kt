@@ -25,15 +25,18 @@ abstract class AuthenticationCoreStorage: AuthenticationStorage {
 
     protected abstract suspend fun saveCredentialString(credentialString: CredentialString)
     protected abstract suspend fun retrieveCredentialString(): CredentialString?
-    
+
     suspend fun hasCredential(): Boolean {
-        return retrieveCredentialString() != null
+        return try {
+            retrieveCredentialString() != null
+        } catch (e: Exception) {
+            false
+        }
     }
 
     @JvmSynthetic
     internal suspend fun saveCredentials(credentials: Credentials) {
         saveCredentialString(CredentialString(credentials.toString()))
-        delay(25L)
     }
 
     @JvmSynthetic
