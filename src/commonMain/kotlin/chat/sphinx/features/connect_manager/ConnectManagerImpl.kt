@@ -1613,7 +1613,6 @@ class ConnectManagerImpl(
             ownerInfoStateFlow.value.picture ?: ""
         }
 
-
         try {
             val message = send(
                 ownerSeed!!,
@@ -1630,6 +1629,12 @@ class ConnectManagerImpl(
             handleRunReturn(message)
 
             message.msgs.firstOrNull()?.let { sentMessage ->
+                sentMessage.paymentHash?.let { paymentHash ->
+                    notifyListeners {
+                        onMessagePaymentHash(paymentHash, provisionalId)
+                    }
+                }
+
                 sentMessage.uuid?.let { msgUuid ->
                     notifyListeners {
                         onMessageTagAndUuid(sentMessage.tag, msgUuid, provisionalId)

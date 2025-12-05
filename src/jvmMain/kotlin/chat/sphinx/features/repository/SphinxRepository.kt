@@ -1945,6 +1945,16 @@ abstract class SphinxRepository(
         }
     }
 
+    override fun onMessagePaymentHash(paymentHash: String, provisionalId: Long) {
+        applicationScope.launch(io) {
+            val queries = coreDB.getSphinxDatabaseQueries()
+
+            messageLock.withLock {
+                queries.messageUpdatePaymentHash(LightningPaymentHash(paymentHash), MessageId(provisionalId))
+            }
+        }
+    }
+
     override fun onMessagesCounts(msgsCounts: String) {
         try {
             msgsCounts.toMsgsCounts()?.let {
@@ -5350,7 +5360,7 @@ abstract class SphinxRepository(
         }
     }
 
-    fun sendNewMessage(
+    override fun sendNewMessage(
         contact: String,
         messageContent: String,
         attachmentInfo: AttachmentInfo?,

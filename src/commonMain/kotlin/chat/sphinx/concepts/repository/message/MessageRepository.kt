@@ -4,6 +4,7 @@ package chat.sphinx.concepts.repository.message
 //import androidx.paging.PagingSource
 import androidx.paging.PagingData
 import chat.sphinx.concepts.network.query.message.model.PutPaymentRequestDto
+import chat.sphinx.concepts.repository.message.model.AttachmentInfo
 import chat.sphinx.concepts.repository.message.model.SendMessage
 import chat.sphinx.concepts.repository.message.model.SendPayment
 import chat.sphinx.concepts.repository.message.model.SendPaymentRequest
@@ -11,12 +12,16 @@ import chat.sphinx.database.core.SphinxDatabaseQueries
 import chat.sphinx.response.LoadResponse
 import chat.sphinx.response.Response
 import chat.sphinx.response.ResponseError
+import chat.sphinx.wrapper.PhotoUrl
 import chat.sphinx.wrapper.chat.Chat
+import chat.sphinx.wrapper.chat.ChatAlias
 import chat.sphinx.wrapper.dashboard.ChatId
 import chat.sphinx.wrapper.dashboard.ContactId
 import chat.sphinx.wrapper.feed.FeedId
 import chat.sphinx.wrapper.lightning.*
 import chat.sphinx.wrapper.message.*
+import chat.sphinx.wrapper.message.media.MediaKey
+import chat.sphinx.wrapper.message.media.MediaToken
 import chat.sphinx.wrapper.payment.PaymentTemplate
 import chat.sphinx.wrapper_message.ThreadUUID
 import kotlinx.coroutines.flow.Flow
@@ -55,9 +60,27 @@ interface MessageRepository {
 
     fun sendMessage(sendMessage: SendMessage?)
 
+    fun sendNewMessage(
+        contact: String,
+        messageContent: String,
+        attachmentInfo: AttachmentInfo?,
+        mediaToken: MediaToken?,
+        mediaKey: MediaKey?,
+        messageType: MessageType?,
+        provisionalId: MessageId?,
+        amount: Sat?,
+        replyUUID: ReplyUUID?,
+        threadUUID: ThreadUUID?,
+        isTribe: Boolean,
+        memberPubKey: LightningNodePubKey?,
+        chatAlias: ChatAlias?,
+        chatProfilePic: PhotoUrl?,
+        metadata: String?
+    )
+
     suspend fun payAttachment(message: Message)
 
-    fun resendMessage(
+    fun resendMessage( // DEPRECATED
         message: Message,
         chat: Chat,
     )

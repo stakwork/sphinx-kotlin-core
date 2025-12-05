@@ -227,6 +227,7 @@ interface ConnectManagerListener {
     fun onMessagesRestoreWith(count: Int, publicKey: String)
     fun onNoMoreMessagesToRestore(publicKey: String)
     fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long)
+    fun onMessagePaymentHash(paymentHash: String, provisionalId: Long)
     fun onMessagesCounts(msgsCounts: String)
     fun onSentStatus(sentStatus: String)
     fun onMessageTagList(tags: String)
