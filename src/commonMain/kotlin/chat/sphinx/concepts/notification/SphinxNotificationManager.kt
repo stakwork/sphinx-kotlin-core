@@ -40,4 +40,12 @@ interface SphinxNotificationManager {
         positiveButtonTitle: String? = null,
         negativeButtonTitle: String? = null
     )
+
+    suspend fun notifyWithSound(
+        notificationId: Long,
+        groupId: String?,
+        title: String,
+        message: String,
+        playSound: Boolean = true
+    )
 }
