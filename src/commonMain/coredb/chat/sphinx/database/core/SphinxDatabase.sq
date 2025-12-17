@@ -1146,7 +1146,7 @@ messageUpdateTagAndUUID:
 UPDATE messageDbo
 SET tag_message = :tag_message,
     uuid = :uuid,
-    status = 1
+    status = :status
 WHERE id = ?;
 
 messageUpdateUUIDByUUID:

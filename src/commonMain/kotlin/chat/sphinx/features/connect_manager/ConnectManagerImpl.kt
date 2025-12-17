@@ -11,6 +11,7 @@ import chat.sphinx.wrapper.contact.NewContact
 import chat.sphinx.wrapper.lightning.WalletMnemonic
 import chat.sphinx.wrapper.lightning.toLightningNodePubKey
 import chat.sphinx.wrapper.lightning.toLightningRouteHint
+import chat.sphinx.wrapper.message.MessageStatus
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
 import chat.sphinx.wrapper.mqtt.NewInvite
@@ -1630,14 +1631,17 @@ class ConnectManagerImpl(
 
             message.msgs.firstOrNull()?.let { sentMessage ->
                 sentMessage.paymentHash?.let { paymentHash ->
+
                     notifyListeners {
                         onMessagePaymentHash(paymentHash, provisionalId)
                     }
                 }
 
+                val status = if (sentMessage.paymentHash != null) MessageStatus.Pending else MessageStatus.Confirmed
+
                 sentMessage.uuid?.let { msgUuid ->
                     notifyListeners {
-                        onMessageTagAndUuid(sentMessage.tag, msgUuid, provisionalId)
+                        onMessageTagAndUuid(sentMessage.tag, msgUuid, provisionalId, status)
                     }
                 }
             }

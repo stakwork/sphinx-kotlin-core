@@ -1885,6 +1885,7 @@ abstract class SphinxRepository(
                         ) ?: return
 
                         applicationScope.launch {
+
                             upsertMqttMessage(
                                 queries,
                                 transaction,
@@ -1933,14 +1934,14 @@ abstract class SphinxRepository(
         }
     }
 
-    override fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long) {
+    override fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long, status: MessageStatus) {
         applicationScope.launch(io) {
             val queries = coreDB.getSphinxDatabaseQueries()
             val tagMessage = tag?.let { TagMessage(it) }
 
             // messageUpdateTagAndUUID also updates the Status to CONFIRMED
             messageLock.withLock {
-                queries.messageUpdateTagAndUUID(tagMessage, MessageUUID(msgUUID), MessageId(provisionalId))
+                queries.messageUpdateTagAndUUID(tagMessage, MessageUUID(msgUUID), status, MessageId(provisionalId))
             }
         }
     }

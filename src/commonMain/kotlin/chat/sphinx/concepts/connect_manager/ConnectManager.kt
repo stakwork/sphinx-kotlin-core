@@ -4,6 +4,7 @@ import chat.sphinx.concepts.connect_manager.model.OwnerInfo
 import chat.sphinx.concepts.connect_manager.model.RestoreState
 import chat.sphinx.wrapper.contact.NewContact
 import chat.sphinx.wrapper.lightning.WalletMnemonic
+import chat.sphinx.wrapper.message.MessageStatus
 import chat.sphinx.wrapper.message.MqttMessage
 import chat.sphinx.wrapper.mqtt.ConnectManagerError
 import chat.sphinx.wrapper.mqtt.MsgsCounts
@@ -226,7 +227,7 @@ interface ConnectManagerListener {
     fun onMessages(messages: List<MqttMessage>, isRestore: Boolean)
     fun onMessagesRestoreWith(count: Int, publicKey: String)
     fun onNoMoreMessagesToRestore(publicKey: String)
-    fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long)
+    fun onMessageTagAndUuid(tag: String?, msgUUID: String, provisionalId: Long, status: MessageStatus)
     fun onMessagePaymentHash(paymentHash: String, provisionalId: Long)
     fun onMessagesCounts(msgsCounts: String)
     fun onSentStatus(sentStatus: String)
