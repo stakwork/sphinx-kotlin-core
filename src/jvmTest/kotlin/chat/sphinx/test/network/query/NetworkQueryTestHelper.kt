@@ -165,10 +165,12 @@ abstract class NetworkQueryTestHelper: AuthenticationCoreDefaultsTestHelper() {
         Cache(testDirectory.resolve("okhttp_test_cache").toFile(), 2000000L /*2MB*/)
     }
 
-    private val appModule = AppModule()
-    private val authenticationModule = AuthenticationModule(
-        SphinxContainer.appModule
-    )
+    private val appModule by lazy { AppModule() }
+    private val authenticationModule by lazy {
+        AuthenticationModule(
+            SphinxContainer.appModule
+        )
+    }
 
     protected open val networkClient: NetworkClient by lazy {
         NetworkClientImpl(

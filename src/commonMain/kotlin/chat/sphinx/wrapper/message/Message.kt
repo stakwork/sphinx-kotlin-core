@@ -300,8 +300,17 @@ inline val Message.isAttachmentAvailable: Boolean
                     retrieveVideoUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false ||
                     retrieveFileUrlAndMessageMedia()?.second?.mediaKeyDecrypted?.value?.isNullOrEmpty() == false)
 
+inline fun String.containsHtmlTags(): Boolean =
+    Regex("<([a-zA-Z][a-zA-Z0-9]*)\\b[^>]*>(.*?)</\\1>", RegexOption.DOT_MATCHES_ALL).containsMatchIn(this)
+
 inline val Message.isCopyAllowed: Boolean
-    get() = (this.retrieveTextToShow() ?: "").isNotEmpty() || (this.retrieveInvoiceTextToShow() ?: "").isNotEmpty()
+    get() {
+        if (type.isBotRes()) {
+            val content = messageContentDecrypted?.value ?: return false
+            return content.isNotEmpty() && !content.containsHtmlTags()
+        }
+        return (this.retrieveTextToShow() ?: "").isNotEmpty() || (this.retrieveInvoiceTextToShow() ?: "").isNotEmpty()
+    }
 
 inline val Message.isCopyLinkAllowed: Boolean
     get() = this.isSphinxCallLink

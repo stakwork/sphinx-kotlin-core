@@ -23,6 +23,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    google()
     maven(url = "https://jitpack.io")
 }
 
