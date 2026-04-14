@@ -17,7 +17,6 @@ package chat.sphinx.test.features.authentication.core
 
 import chat.sphinx.concepts.authentication.data.AuthenticationStorage.Companion.CREDENTIALS
 import chat.sphinx.features.authentication.core.data.AuthenticationCoreStorage
-import kotlin.jvm.Synchronized
 
 /**
  * Extend and implement your own overrides if desired.
@@ -25,24 +24,20 @@ import kotlin.jvm.Synchronized
 open class TestAuthenticationCoreStorage: AuthenticationCoreStorage() {
     val storage = mutableMapOf<String, String?>()
 
-    @Synchronized
     override suspend fun saveCredentialString(credentialString: CredentialString) {
         storage[CREDENTIALS] = credentialString.value
     }
 
-    @Synchronized
     override suspend fun retrieveCredentialString(): CredentialString? {
         return storage[CREDENTIALS]?.let { string ->
             CredentialString(string)
         }
     }
 
-    @Synchronized
     override suspend fun getString(key: String, defaultValue: String?): String? {
         return storage[key] ?: defaultValue
     }
 
-    @Synchronized
     override suspend fun putString(key: String, value: String?) {
         if (key == CREDENTIALS) {
             throw IllegalArgumentException(

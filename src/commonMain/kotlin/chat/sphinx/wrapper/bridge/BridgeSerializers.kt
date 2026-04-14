@@ -395,7 +395,8 @@ data class BridgeMessage(
     val application: String,
     val password: String,
     val budget: Int?,
-    val signature: String?
+    val signature: String?,
+    val routeHint: String?
 )
 
 @Serializable
@@ -404,6 +405,7 @@ data class SendAuthMessage(
     val type: String,
     val application: String,
     val password: String,
+    val routeHint: String?
 )
 
 @Throws(AssertionError::class)
@@ -413,7 +415,8 @@ fun SendAuthMessage.toJson(): String =
             pubkey,
             type,
             application,
-            password
+            password,
+            routeHint
         )
     )
 
@@ -423,7 +426,8 @@ data class SendAuthMessageWithSignature(
     val type: String,
     val application: String,
     val password: String,
-    val signature: String?
+    val signature: String?,
+    val routeHint: String?
 )
 
 @Serializable
@@ -433,6 +437,7 @@ data class SendSetBudgetMessage(
     val application: String,
     val password: String,
     val budget: Int?,
+    val routeHint: String?
 )
 
 @Throws(AssertionError::class)
@@ -444,7 +449,8 @@ fun BridgeMessage.toJson(): String {
                 type,
                 application,
                 password,
-                it
+                it,
+                routeHint
             )
         )
     }
@@ -456,7 +462,8 @@ fun BridgeMessage.toJson(): String {
                 type,
                 application,
                 password,
-                it
+                it,
+                routeHint
             )
         )
     }
@@ -466,7 +473,8 @@ fun BridgeMessage.toJson(): String {
             pubkey,
             type,
             application,
-            password
+            password,
+            routeHint
         )
     )
 }
