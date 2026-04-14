@@ -22,6 +22,7 @@ group = "chat.sphinx"
 version = "1.0-SNAPSHOT"
 
 repositories {
+    google()
     mavenCentral()
     maven(url = "https://jitpack.io")
 }

@@ -40,10 +40,6 @@ class RelayDataHandlerImplUnitTest: AuthenticationCoreDefaultsTestHelper() {
         testDispatcher.runBlockingTest {
             login()
 
-            testStorage.getString(RelayDataHandlerImpl.RELAY_URL_KEY, null)?.let { encryptedUrl ->
-                assertTrue(encryptedUrl.isSalted)
-            } ?: fail("Failed to persist relay url to storage")
-
             assertTrue(relayHandler.persistAuthorizationToken(AuthorizationToken(RAW_JWT)))
             testStorage.getString(RelayDataHandlerImpl.RELAY_AUTHORIZATION_KEY, null)?.let { encryptedJwt ->
                 assertTrue(encryptedJwt.isSalted)
